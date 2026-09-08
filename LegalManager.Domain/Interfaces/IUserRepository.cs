@@ -8,6 +8,8 @@ namespace LegalManager.Domain.Interfaces
 
         IReadOnlyList<User> GetAll();
 
-        User? GetById(int id);
+        User? GetById(Guid id);
+
+        void Save();
     }
 }

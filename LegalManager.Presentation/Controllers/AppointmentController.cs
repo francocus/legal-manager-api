@@ -41,7 +41,7 @@ namespace LegalManager.Presentation.Controllers
         }
 
         [HttpGet("availability")]
-        public ActionResult<AvailabilityResponse> GetAvailability([FromQuery] int lawyerId, [FromQuery] DateOnly date)
+        public ActionResult<AvailabilityResponse> GetAvailability([FromQuery] Guid lawyerId, [FromQuery] DateOnly date)
         {
             try
             {
@@ -51,7 +51,7 @@ namespace LegalManager.Presentation.Controllers
         }
 
         [HttpGet("{id}")]
-        public ActionResult<AppointmentResponse> GetById([FromRoute] int id)
+        public ActionResult<AppointmentResponse> GetById([FromRoute] Guid id)
         {
             var appointment = appointmentService.GetById(id);
             if (appointment == null) return NotFound($"No existe un elemento con el id {id}.");
@@ -59,7 +59,7 @@ namespace LegalManager.Presentation.Controllers
         }
 
         [HttpPatch("{id}/confirm")]
-        public ActionResult<AppointmentResponse> Confirm([FromRoute] int id)
+        public ActionResult<AppointmentResponse> Confirm([FromRoute] Guid id)
         {
             try
             {
@@ -71,7 +71,7 @@ namespace LegalManager.Presentation.Controllers
         }
 
         [HttpPatch("{id}/cancel")]
-        public ActionResult<AppointmentResponse> Cancel([FromRoute] int id)
+        public ActionResult<AppointmentResponse> Cancel([FromRoute] Guid id)
         {
             try
             {
@@ -83,7 +83,7 @@ namespace LegalManager.Presentation.Controllers
         }
 
         [HttpPatch("{id}/reschedule")]
-        public ActionResult<AppointmentResponse> Reschedule([FromRoute] int id, [FromBody] RescheduleAppointmentRequest request)
+        public ActionResult<AppointmentResponse> Reschedule([FromRoute] Guid id, [FromBody] RescheduleAppointmentRequest request)
         {
             try
             {
@@ -95,7 +95,7 @@ namespace LegalManager.Presentation.Controllers
         }
 
         [HttpDelete("{id}")]
-        public ActionResult Delete([FromRoute] int id)
+        public ActionResult Delete([FromRoute] Guid id)
         {
             try
             {

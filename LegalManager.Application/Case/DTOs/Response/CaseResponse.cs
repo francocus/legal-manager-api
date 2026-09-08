@@ -3,8 +3,8 @@ using LegalManager.Domain.Entities;
 namespace LegalManager.Application.DTOs
 {
     public record CaseResponse(
-        int Id, string CaseNumber, string Title, string Area, CaseStatus Status,
+        Guid Id, string CaseNumber, string Title, string Area, CaseStatus Status,
         DateOnly StartDate, DateOnly LastUpdate, DateOnly? ClosingDate,
-        string? Description, string? Notes, int ClientId, int CreatedByUserId,
-        IReadOnlyList<int> LawyerIds, bool Active);
+        string? Description, string? Notes, Guid ClientId, Guid CreatedByUserId,
+        IReadOnlyList<Guid> LawyerIds, bool Active);
 }

@@ -8,8 +8,10 @@ namespace LegalManager.Domain.Interfaces
 
         IReadOnlyList<Appointment> GetAll();
 
-        Appointment? GetById(int id);
+        Appointment? GetById(Guid id);
 
-        bool HasScheduleConflict(int lawyerId, DateOnly date, TimeOnly time, TimeOnly endTime);
+        bool HasScheduleConflict(Guid lawyerId, DateOnly date, TimeOnly time, TimeOnly endTime);
+
+        void Save();
     }
 }

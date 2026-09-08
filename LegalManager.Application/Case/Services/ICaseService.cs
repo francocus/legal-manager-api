@@ -9,16 +9,16 @@ namespace LegalManager.Application.Interfaces
 
         IReadOnlyList<Case> GetAll();
 
-        Case? GetById(int id);
+        Case? GetById(Guid id);
 
-        Case? Update(int id, UpdateCaseRequest request);
+        Case? Update(Guid id, UpdateCaseRequest request);
 
-        Case? ChangeStatus(int id, ChangeStatusRequest request);
+        Case? ChangeStatus(Guid id, ChangeStatusRequest request);
 
-        Case? AddLawyer(int id, AddLawyerRequest request);
+        Case? AddLawyer(Guid id, AddLawyerRequest request);
 
-        Case? RemoveLawyer(int id, RemoveLawyerRequest request);
+        Case? RemoveLawyer(Guid id, RemoveLawyerRequest request);
 
-        bool Delete(int id);
+        bool Delete(Guid id);
     }
 }

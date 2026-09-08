@@ -1,21 +1,34 @@
 ﻿using LegalManager.Domain.Entities;
 using LegalManager.Domain.Interfaces;
+using LegalManager.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace LegalManager.Infrastructure.Repositories
 {
     public class AppointmentsRepository : IAppointmentRepository
     {
-        private readonly List<Appointment> appointments = new List<Appointment>();
+        private readonly LegalManagerDbContext context;
 
-        public void Add(Appointment appointment) => appointments.Add(appointment);
+        public AppointmentsRepository(LegalManagerDbContext context)
+        {
+            this.context = context;
+        }
+
+        public void Add(Appointment appointment) => context.Appointments.Add(appointment);
 
         public IReadOnlyList<Appointment> GetAll()
-            => appointments.Where(a => a.Active).ToList().AsReadOnly();
+            => context.Appointments.Where(a => a.Active).ToList();
 
-        public Appointment? GetById(int id)
-            => appointments.FirstOrDefault(a => a.Id == id && a.Active);
+        public Appointment? GetById(Guid id)
+            => context.Appointments.FirstOrDefault(a => a.Id == id && a.Active);
 
-        public bool HasScheduleConflict(int lawyerId, DateOnly date, TimeOnly time, TimeOnly endTime)
-            => appointments.Any(a => a.LawyerId == lawyerId && a.OverlapsWith(date, time, endTime));
+        public bool HasScheduleConflict(Guid lawyerId, DateOnly date, TimeOnly time, TimeOnly endTime)
+            => context.Appointments.Any(a => a.LawyerId == lawyerId
+                && a.Active
+                && a.Status != AppointmentStatus.Cancelado
+                && a.Date == date
+                && a.Time == time);
+
+        public void Save() => context.SaveChanges();
     }
 }

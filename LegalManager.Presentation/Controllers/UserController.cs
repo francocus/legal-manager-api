@@ -80,7 +80,7 @@ namespace LegalManager.Presentation.Controllers
             => Ok(userService.GetAdmins().Select(ToResponse).ToList());
 
         [HttpGet("{id}")]
-        public ActionResult<UserResponse> GetById([FromRoute] int id)
+        public ActionResult<UserResponse> GetById([FromRoute] Guid id)
         {
             var user = userService.GetById(id);
             if (user == null) return NotFound($"No existe un elemento con el id {id}.");
@@ -88,7 +88,7 @@ namespace LegalManager.Presentation.Controllers
         }
 
         [HttpPut("{id}")]
-        public ActionResult<UserResponse> Update([FromRoute] int id, [FromBody] UpdateUserRequest request)
+        public ActionResult<UserResponse> Update([FromRoute] Guid id, [FromBody] UpdateUserRequest request)
         {
             try
             {
@@ -101,7 +101,7 @@ namespace LegalManager.Presentation.Controllers
         }
 
         [HttpPatch("client/{id}/phone")]
-        public ActionResult<UserResponse> UpdatePhone([FromRoute] int id, [FromBody] UpdatePhoneRequest request)
+        public ActionResult<UserResponse> UpdatePhone([FromRoute] Guid id, [FromBody] UpdatePhoneRequest request)
         {
             try
             {
@@ -113,7 +113,7 @@ namespace LegalManager.Presentation.Controllers
         }
 
         [HttpPatch("lawyer/{id}/phone")]
-        public ActionResult<UserResponse> UpdateLawyerPhone([FromRoute] int id, [FromBody] UpdatePhoneRequest request)
+        public ActionResult<UserResponse> UpdateLawyerPhone([FromRoute] Guid id, [FromBody] UpdatePhoneRequest request)
         {
             try
             {
@@ -125,7 +125,7 @@ namespace LegalManager.Presentation.Controllers
         }
 
         [HttpPatch("client/{id}/address")]
-        public ActionResult<UserResponse> UpdateAddress([FromRoute] int id, [FromBody] UpdateAddressRequest request)
+        public ActionResult<UserResponse> UpdateAddress([FromRoute] Guid id, [FromBody] UpdateAddressRequest request)
         {
             try
             {
@@ -137,7 +137,7 @@ namespace LegalManager.Presentation.Controllers
         }
 
         [HttpPatch("lawyer/{id}/bar-number")]
-        public ActionResult<UserResponse> UpdateBarNumber([FromRoute] int id, [FromBody] UpdateBarNumberRequest request)
+        public ActionResult<UserResponse> UpdateBarNumber([FromRoute] Guid id, [FromBody] UpdateBarNumberRequest request)
         {
             try
             {
@@ -149,7 +149,7 @@ namespace LegalManager.Presentation.Controllers
         }
 
         [HttpPatch("lawyer/{id}/specialties")]
-        public ActionResult<UserResponse> UpdateSpecialties([FromRoute] int id, [FromBody] UpdateSpecialtiesRequest request)
+        public ActionResult<UserResponse> UpdateSpecialties([FromRoute] Guid id, [FromBody] UpdateSpecialtiesRequest request)
         {
             try
             {
@@ -161,7 +161,7 @@ namespace LegalManager.Presentation.Controllers
         }
 
         [HttpDelete("{id}")]
-        public ActionResult Delete([FromRoute] int id)
+        public ActionResult Delete([FromRoute] Guid id)
         {
             try
             {

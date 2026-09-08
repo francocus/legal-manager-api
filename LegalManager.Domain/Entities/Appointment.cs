@@ -2,46 +2,51 @@
 {
     public class Appointment
     {
-        private static int nextId = 1;
-        public static readonly IReadOnlyList<TimeOnly> ValidSlots = new List<TimeOnly>
+        public static readonly IReadOnlyList<TimeOnly> ValidSlots = Array.AsReadOnly(new TimeOnly[]
         {
             new(9, 0), new(10, 30), new(12, 0), new(14, 0), new(15, 30), new(17, 0)
-        };
+        });
 
-        public int Id { get; }
-        public string Title { get; }
+        public Guid Id { get; private set; }
+        public string Title { get; private set; }
         public DateOnly Date { get; private set; }
         public TimeOnly Time { get; private set; }
         public TimeOnly EndTime { get; private set; }
-        public string Reason { get; }
+        public string Reason { get; private set; }
         public AppointmentStatus Status { get; private set; }
         public AppointmentStatus EffectiveStatus =>
             Status == AppointmentStatus.Confirmado && Date.ToDateTime(Time) < DateTime.Now
                 ? AppointmentStatus.Finalizado
                 : Status;
-        public string? Area { get; }
+        public string? Area { get; private set; }
         public string? Location { get; private set; }
         public string? Notes { get; private set; }
-        public int ClientId { get; }
-        public int LawyerId { get; }
-        public int? CaseId { get; }
+        public Guid ClientId { get; private set; }
+        public Guid LawyerId { get; private set; }
+        public Guid? CaseId { get; private set; }
         public bool Active { get; private set; }
 
-        public Appointment(string title, DateOnly date, TimeOnly time, TimeOnly endTime, string reason, string? area, string? location, string? notes, int clientId, int lawyerId, int? caseId)
+        private Appointment()
+        {
+            Title = string.Empty;
+            Reason = string.Empty;
+        }
+
+        public Appointment(string title, DateOnly date, TimeOnly time, TimeOnly endTime, string reason, string? area, string? location, string? notes, Guid clientId, Guid lawyerId, Guid? caseId)
         {
             if (string.IsNullOrWhiteSpace(title))
                 throw new ArgumentException("El título es obligatorio.", nameof(title));
 
-            if (clientId <= 0)
+            if (clientId == Guid.Empty)
                 throw new ArgumentException("El turno necesita un cliente asignado.", nameof(clientId));
 
-            if (lawyerId <= 0)
+            if (lawyerId == Guid.Empty)
                 throw new ArgumentException("El turno necesita un abogado asignado.", nameof(lawyerId));
 
             if (!ValidSlots.Contains(time))
                 throw new ArgumentException($"Horario inválido. Valores permitidos: {string.Join(", ", ValidSlots)}.", nameof(time));
 
-            Id = nextId++;
+            Id = Guid.NewGuid();
             Title = title;
             Date = date;
             Time = time;

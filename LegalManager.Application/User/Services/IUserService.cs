@@ -19,20 +19,20 @@ namespace LegalManager.Application.Interfaces
 
         IReadOnlyList<User> GetAdmins();
 
-        User? GetById(int id);
+        User? GetById(Guid id);
 
-        User? Update(int id, UpdateUserRequest request);
+        User? Update(Guid id, UpdateUserRequest request);
 
-        User? UpdateClientPhone(int id, string? phone);
+        User? UpdateClientPhone(Guid id, string? phone);
 
-        User? UpdateLawyerPhone(int id, string? phone);
+        User? UpdateLawyerPhone(Guid id, string? phone);
 
-        User? UpdateClientAddress(int id, string? address);
+        User? UpdateClientAddress(Guid id, string? address);
 
-        User? UpdateBarNumber(int id, string barNumber);
+        User? UpdateBarNumber(Guid id, string barNumber);
 
-        User? UpdateSpecialties(int id, IEnumerable<string> specialties);
+        User? UpdateSpecialties(Guid id, IEnumerable<string> specialties);
 
-        bool Delete(int id);
+        bool Delete(Guid id);
     }
 }

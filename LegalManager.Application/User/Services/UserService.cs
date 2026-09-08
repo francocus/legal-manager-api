@@ -18,7 +18,7 @@ namespace LegalManager.Application.Services
             this.appointmentsRepository = appointmentsRepository;
         }
 
-        private void EnsureUnique(string email, string dni, int? excludeId = null)
+        private void EnsureUnique(string email, string dni, Guid? excludeId = null)
         {
             var users = usersRepository.GetAll();
             var normalizedEmail = email?.Trim();
@@ -36,6 +36,7 @@ namespace LegalManager.Application.Services
 
             var client = new Client(request.FirstName, request.LastName, request.Dni, request.Email, request.Password, request.Phone, request.Address);
             usersRepository.Add(client);
+            usersRepository.Save();
             return client;
         }
 
@@ -45,6 +46,7 @@ namespace LegalManager.Application.Services
 
             var lawyer = new Lawyer(request.FirstName, request.LastName, request.Dni, request.Email, request.Password, request.BarNumber, request.Phone, request.Specialties);
             usersRepository.Add(lawyer);
+            usersRepository.Save();
             return lawyer;
         }
 
@@ -54,6 +56,7 @@ namespace LegalManager.Application.Services
 
             var admin = new Admin(request.FirstName, request.LastName, request.Dni, request.Email, request.Password);
             usersRepository.Add(admin);
+            usersRepository.Save();
             return admin;
         }
 
@@ -65,9 +68,9 @@ namespace LegalManager.Application.Services
 
         public IReadOnlyList<User> GetAdmins() => usersRepository.GetAll().OfType<Admin>().ToList().AsReadOnly();
 
-        public User? GetById(int id) => usersRepository.GetById(id);
+        public User? GetById(Guid id) => usersRepository.GetById(id);
 
-        public User? Update(int id, UpdateUserRequest request)
+        public User? Update(Guid id, UpdateUserRequest request)
         {
             var user = GetById(id);
             if (user == null) return null;
@@ -75,10 +78,11 @@ namespace LegalManager.Application.Services
             EnsureUnique(request.Email, request.Dni, id);
 
             user.UpdateDetails(request.FirstName, request.LastName, request.Dni, request.Email);
+            usersRepository.Save();
             return user;
         }
 
-        public User? UpdateClientPhone(int id, string? phone)
+        public User? UpdateClientPhone(Guid id, string? phone)
         {
             var user = GetById(id);
             if (user == null) return null;
@@ -87,10 +91,11 @@ namespace LegalManager.Application.Services
                 throw new ArgumentException("El usuario indicado no es un cliente.");
 
             client.UpdatePhone(phone);
+            usersRepository.Save();
             return client;
         }
 
-        public User? UpdateLawyerPhone(int id, string? phone)
+        public User? UpdateLawyerPhone(Guid id, string? phone)
         {
             var user = GetById(id);
             if (user == null) return null;
@@ -99,10 +104,11 @@ namespace LegalManager.Application.Services
                 throw new ArgumentException("El usuario indicado no es un abogado.");
 
             lawyer.UpdatePhone(phone);
+            usersRepository.Save();
             return lawyer;
         }
 
-        public User? UpdateClientAddress(int id, string? address)
+        public User? UpdateClientAddress(Guid id, string? address)
         {
             var user = GetById(id);
             if (user == null) return null;
@@ -111,10 +117,11 @@ namespace LegalManager.Application.Services
                 throw new ArgumentException("El usuario indicado no es un cliente.");
 
             client.UpdateAddress(address);
+            usersRepository.Save();
             return client;
         }
 
-        public User? UpdateBarNumber(int id, string barNumber)
+        public User? UpdateBarNumber(Guid id, string barNumber)
         {
             var user = GetById(id);
             if (user == null) return null;
@@ -123,10 +130,11 @@ namespace LegalManager.Application.Services
                 throw new ArgumentException("El usuario indicado no es un abogado.");
 
             lawyer.UpdateBarNumber(barNumber);
+            usersRepository.Save();
             return lawyer;
         }
 
-        public User? UpdateSpecialties(int id, IEnumerable<string> specialties)
+        public User? UpdateSpecialties(Guid id, IEnumerable<string> specialties)
         {
             var user = GetById(id);
             if (user == null) return null;
@@ -135,10 +143,11 @@ namespace LegalManager.Application.Services
                 throw new ArgumentException("El usuario indicado no es un abogado.");
 
             lawyer.UpdateSpecialties(specialties);
+            usersRepository.Save();
             return lawyer;
         }
 
-        public bool Delete(int id)
+        public bool Delete(Guid id)
         {
             var user = GetById(id);
             if (user == null) return false;
@@ -154,6 +163,7 @@ namespace LegalManager.Application.Services
                 throw new InvalidOperationException($"El usuario con id {id} tiene expedientes o turnos activos y no puede ser desactivado.");
 
             user.Deactivate();
+            usersRepository.Save();
             return true;
         }
     }
