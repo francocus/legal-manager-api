@@ -42,7 +42,7 @@ namespace LegalManager.Presentation.Controllers
         }
 
         [HttpGet("{id}")]
-        public ActionResult<CaseResponse> GetById([FromRoute] int id)
+        public ActionResult<CaseResponse> GetById([FromRoute] Guid id)
         {
             var caseItem = caseService.GetById(id);
             if (caseItem == null) return NotFound($"No existe un elemento con el id {id}.");
@@ -50,7 +50,7 @@ namespace LegalManager.Presentation.Controllers
         }
 
         [HttpPut("{id}")]
-        public ActionResult<CaseResponse> Update([FromRoute] int id, [FromBody] UpdateCaseRequest request)
+        public ActionResult<CaseResponse> Update([FromRoute] Guid id, [FromBody] UpdateCaseRequest request)
         {
             try
             {
@@ -63,7 +63,7 @@ namespace LegalManager.Presentation.Controllers
         }
 
         [HttpPatch("{id}/status")]
-        public ActionResult<CaseResponse> ChangeStatus([FromRoute] int id, [FromBody] ChangeStatusRequest request)
+        public ActionResult<CaseResponse> ChangeStatus([FromRoute] Guid id, [FromBody] ChangeStatusRequest request)
         {
             try
             {
@@ -76,7 +76,7 @@ namespace LegalManager.Presentation.Controllers
         }
 
         [HttpPatch("{id}/lawyers/add")]
-        public ActionResult<CaseResponse> AddLawyer([FromRoute] int id, [FromBody] AddLawyerRequest request)
+        public ActionResult<CaseResponse> AddLawyer([FromRoute] Guid id, [FromBody] AddLawyerRequest request)
         {
             try
             {
@@ -89,7 +89,7 @@ namespace LegalManager.Presentation.Controllers
         }
 
         [HttpPatch("{id}/lawyers/remove")]
-        public ActionResult<CaseResponse> RemoveLawyer([FromRoute] int id, [FromBody] RemoveLawyerRequest request)
+        public ActionResult<CaseResponse> RemoveLawyer([FromRoute] Guid id, [FromBody] RemoveLawyerRequest request)
         {
             try
             {
@@ -102,7 +102,7 @@ namespace LegalManager.Presentation.Controllers
         }
 
         [HttpDelete("{id}")]
-        public ActionResult Delete([FromRoute] int id)
+        public ActionResult Delete([FromRoute] Guid id)
         {
             try
             {

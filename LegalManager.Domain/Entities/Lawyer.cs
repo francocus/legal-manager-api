@@ -6,6 +6,12 @@
         public string? Phone { get; private set; }
         public IReadOnlyList<string> Specialties { get; private set; }
 
+        private Lawyer()
+        {
+            BarNumber = string.Empty;
+            Specialties = Array.Empty<string>();
+        }
+
         public Lawyer(string firstName, string lastName, string dni, string email, string password, string barNumber, string? phone, IEnumerable<string>? specialties = null)
             : base(firstName, lastName, dni, email, password)
         {

@@ -2,15 +2,22 @@ using System.Text.Json.Serialization;
 using LegalManager.Application.Interfaces;
 using LegalManager.Application.Services;
 using LegalManager.Domain.Interfaces;
+using LegalManager.Infrastructure.Persistence;
 using LegalManager.Infrastructure.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var connectionString = builder.Configuration.GetConnectionString("LegalManagerDb")
+    ?? throw new InvalidOperationException("Falta la connection string 'LegalManagerDb' en appsettings.json.");
+
+builder.Services.AddDbContext<LegalManagerDbContext>(options =>
+    options.UseSqlServer(connectionString));
+
 // Infrastructure: la implementacion concreta se elige aca, en el arranque.
-// Singleton porque el repositorio en memoria guarda el estado del proceso.
-builder.Services.AddSingleton<IUserRepository, UsersRepository>();
-builder.Services.AddSingleton<ICaseRepository, CasesRepository>();
-builder.Services.AddSingleton<IAppointmentRepository, AppointmentsRepository>();
+builder.Services.AddScoped<IUserRepository, UsersRepository>();
+builder.Services.AddScoped<ICaseRepository, CasesRepository>();
+builder.Services.AddScoped<IAppointmentRepository, AppointmentsRepository>();
 
 // Application: casos de uso.
 builder.Services.AddScoped<IUserService, UserService>();

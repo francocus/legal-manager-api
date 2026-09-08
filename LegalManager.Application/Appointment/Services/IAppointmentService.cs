@@ -9,16 +9,16 @@ namespace LegalManager.Application.Interfaces
 
         IReadOnlyList<Appointment> GetAll();
 
-        IReadOnlyList<TimeOnly> GetAvailability(int lawyerId, DateOnly date);
+        IReadOnlyList<TimeOnly> GetAvailability(Guid lawyerId, DateOnly date);
 
-        Appointment? GetById(int id);
+        Appointment? GetById(Guid id);
 
-        Appointment? Confirm(int id);
+        Appointment? Confirm(Guid id);
 
-        Appointment? Cancel(int id);
+        Appointment? Cancel(Guid id);
 
-        Appointment? Reschedule(int id, RescheduleAppointmentRequest request);
+        Appointment? Reschedule(Guid id, RescheduleAppointmentRequest request);
 
-        bool Delete(int id);
+        bool Delete(Guid id);
     }
 }

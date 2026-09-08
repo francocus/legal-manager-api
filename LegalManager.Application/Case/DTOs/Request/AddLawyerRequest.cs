@@ -1,4 +1,4 @@
 namespace LegalManager.Application.DTOs
 {
-    public record AddLawyerRequest(int LawyerId);
+    public record AddLawyerRequest(Guid LawyerId);
 }

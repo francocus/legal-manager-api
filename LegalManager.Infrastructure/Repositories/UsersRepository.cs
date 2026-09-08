@@ -1,18 +1,27 @@
 ﻿using LegalManager.Domain.Entities;
 using LegalManager.Domain.Interfaces;
+using LegalManager.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace LegalManager.Infrastructure.Repositories
 {
     public class UsersRepository : IUserRepository
     {
-        private readonly List<User> users = new List<User>();
+        private readonly LegalManagerDbContext context;
 
-        public void Add(User user) => users.Add(user);
+        public UsersRepository(LegalManagerDbContext context)
+        {
+            this.context = context;
+        }
+
+        public void Add(User user) => context.Users.Add(user);
 
         public IReadOnlyList<User> GetAll()
-            => users.Where(u => u.Active).ToList().AsReadOnly();
+            => context.Users.Where(u => u.Active).ToList();
 
-        public User? GetById(int id)
-            => users.FirstOrDefault(u => u.Id == id && u.Active);
+        public User? GetById(Guid id)
+            => context.Users.FirstOrDefault(u => u.Id == id && u.Active);
+
+        public void Save() => context.SaveChanges();
     }
 }
