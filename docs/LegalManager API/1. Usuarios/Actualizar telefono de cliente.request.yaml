@@ -1,0 +1,9 @@
+$kind: http-request
+url: "{{baseUrl}}/api/user/client/{{clientId}}/phone"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"phone":"11-9999"}'
+order: 10000

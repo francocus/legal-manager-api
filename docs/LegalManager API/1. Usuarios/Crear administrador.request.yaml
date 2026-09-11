@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/api/user/admin"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"firstName":"Admin","lastName":"Sistema","dni":"11111111","email":"admin@mail.com","password":"1234"}'
+scripts:
+  - type: afterResponse
+    code: pm.test('201 Created', () => pm.response.to.have.status(201));
+order: 4000

@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/api/user/{{clientId}}"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"firstName":"Juan Carlos","lastName":"Perez","dni":"30111222","email":"juan@mail.com"}'
+scripts:
+  - type: afterResponse
+    code: pm.test('200 OK', () => pm.response.to.have.status(200));
+order: 9000

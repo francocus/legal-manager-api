@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/api/user/lawyers"
+method: GET
+order: 7000

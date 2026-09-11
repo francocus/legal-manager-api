@@ -1,0 +1,9 @@
+$kind: http-request
+url: "{{baseUrl}}/api/appointment/{{appointmentId}}/reschedule"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"date":"2026-09-16","time":"10:30","endTime":"12:00"}'
+order: 6000

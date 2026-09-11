@@ -362,7 +362,6 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
-# Postman local mode
+# Postman local mode (workspace + cloud mirror)
 .postman/
 postman/
-docs/LegalManager API/

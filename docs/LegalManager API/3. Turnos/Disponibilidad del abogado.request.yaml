@@ -1,0 +1,7 @@
+$kind: http-request
+url: "{{baseUrl}}/api/appointment/availability?lawyerId={{lawyerId}}&date=2026-09-15"
+method: GET
+queryParams:
+  lawyerId: "{{lawyerId}}"
+  date: 2026-09-15
+order: 4000

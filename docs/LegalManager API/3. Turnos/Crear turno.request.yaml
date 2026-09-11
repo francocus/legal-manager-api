@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/api/appointment"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"title":"Consulta inicial","date":"2026-09-15","time":"09:00","endTime":"10:30","reason":"Primera consulta","area":"civil","location":"Oficina 1","notes":"","clientId":"{{clientId}}","lawyerId":"{{lawyerId}}","caseId":"{{caseId}}"}'
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('201 Created', () => pm.response.to.have.status(201));
+      pm.collectionVariables.set('appointmentId', pm.response.json().id);
+order: 1000

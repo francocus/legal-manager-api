@@ -1,0 +1,9 @@
+$kind: http-request
+url: "{{baseUrl}}/api/user/lawyer/{{lawyerId}}/bar-number"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"barNumber":"MP999"}'
+order: 12000

@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/api/user/lawyer"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"firstName":"Ana","lastName":"Gomez","dni":"29333444","email":"ana@mail.com","password":"1234","barNumber":"MP123","phone":"11-6666","specialties":["civil","laboral"]}'
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('201 Created', () => pm.response.to.have.status(201));
+      pm.collectionVariables.set('lawyerId', pm.response.json().id);
+order: 2000

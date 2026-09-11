@@ -1,0 +1,9 @@
+$kind: http-request
+url: "{{baseUrl}}/api/user/client/{{clientId}}/address"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"address":"Av. Siempre Viva 742"}'
+order: 11000

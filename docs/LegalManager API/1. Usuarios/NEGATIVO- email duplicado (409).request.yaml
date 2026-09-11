@@ -1,0 +1,13 @@
+$kind: http-request
+name: "NEGATIVO: email duplicado (409)"
+url: "{{baseUrl}}/api/user/client"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"firstName":"Otro","lastName":"Cliente","dni":"99999999","email":"juan@mail.com","password":"1234"}'
+scripts:
+  - type: afterResponse
+    code: pm.test('409 Conflict', () => pm.response.to.have.status(409));
+order: 14000
