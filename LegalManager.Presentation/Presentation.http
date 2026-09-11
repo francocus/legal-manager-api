@@ -44,9 +44,9 @@ Content-Type: application/json
   "startDate": "2026-09-08",
   "description": "Divorcio express",
   "notes": "",
-  "clientId": "GUID-DEL-CLIENTE",
-  "lawyerId": "GUID-DEL-ABOGADO",
-  "createdByUserId": "GUID-DEL-ABOGADO"
+  "clientId": "a0e3d64b-6ee8-466f-8d36-405533ffcfb2",
+  "lawyerId": "5a3db09d-f390-4df6-abbb-23cbb2bb4251",
+  "createdByUserId": "5a3db09d-f390-4df6-abbb-23cbb2bb4251"
 }
 
 ### 5. Listar expedientes (verificar que trae lawyerIds)
@@ -54,5 +54,5 @@ GET {{LegalManager_HostAddress}}/api/case
 Accept: application/json
 
 ### 6. Disponibilidad del abogado (REEMPLAZÁ el GUID)
-GET {{LegalManager_HostAddress}}/api/appointment/availability?lawyerId=GUID-DEL-ABOGADO&date=2026-09-15
+GET {{LegalManager_HostAddress}}/api/appointment/availability?lawyerId=5a3db09d-f390-4df6-abbb-23cbb2bb4251&date=2026-09-15
 Accept: application/json

@@ -1,0 +1,9 @@
+$kind: http-request
+url: "{{baseUrl}}/api/case/{{caseId}}/lawyers/add"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"lawyerId":"{{lawyer2Id}}"}'
+order: 6000

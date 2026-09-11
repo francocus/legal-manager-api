@@ -361,3 +361,7 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Postman local mode (workspace + cloud mirror)
+.postman/
+postman/

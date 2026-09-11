@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/api/case"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"caseNumber":"EXP-001","title":"Divorcio","area":"civil","startDate":"2026-09-08","description":"Divorcio express","notes":"","clientId":"{{clientId}}","lawyerId":"{{lawyerId}}","createdByUserId":"{{lawyerId}}"}'
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('201 Created', () => pm.response.to.have.status(201));
+      pm.collectionVariables.set('caseId', pm.response.json().id);
+order: 1000

@@ -1,0 +1,13 @@
+$kind: http-request
+name: "NEGATIVO: turno en horario ocupado (409)"
+url: "{{baseUrl}}/api/appointment"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"title":"Turno superpuesto","date":"2026-09-15","time":"09:00","endTime":"10:30","reason":"Choque","area":"civil","location":"","notes":"","clientId":"{{clientId}}","lawyerId":"{{lawyerId}}","caseId":null}'
+scripts:
+  - type: afterResponse
+    code: pm.test('409 Conflict', () => pm.response.to.have.status(409));
+order: 8000

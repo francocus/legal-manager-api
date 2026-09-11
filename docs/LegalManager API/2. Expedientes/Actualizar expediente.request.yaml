@@ -1,0 +1,9 @@
+$kind: http-request
+url: "{{baseUrl}}/api/case/{{caseId}}"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"title":"Divorcio de mutuo acuerdo","area":"civil","description":"Actualizado","notes":"nota nueva"}'
+order: 4000

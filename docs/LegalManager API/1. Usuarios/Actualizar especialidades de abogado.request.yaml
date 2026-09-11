@@ -1,0 +1,9 @@
+$kind: http-request
+url: "{{baseUrl}}/api/user/lawyer/{{lawyerId}}/specialties"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"specialties":["civil","laboral","familia"]}'
+order: 13000

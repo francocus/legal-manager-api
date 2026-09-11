@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/api/user/client"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"firstName":"Juan","lastName":"Perez","dni":"30111222","email":"juan@mail.com","password":"1234","phone":"11-5555","address":"Calle 1"}'
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('201 Created', () => pm.response.to.have.status(201));
+      pm.collectionVariables.set('clientId', pm.response.json().id);
+order: 1000

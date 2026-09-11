@@ -182,25 +182,18 @@ namespace LegalManager.Infrastructure.Persistence.Migrations
                     b.Property<DateOnly>("RegistrationDate")
                         .HasColumnType("date");
 
-                    b.Property<string>("UserType")
-                        .IsRequired()
-                        .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)");
-
                     b.HasKey("Id");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
 
-                    b.HasDiscriminator<string>("UserType").HasValue("User");
-
-                    b.UseTphMappingStrategy();
+                    b.UseTptMappingStrategy();
                 });
 
             modelBuilder.Entity("LegalManager.Domain.Entities.Admin", b =>
                 {
                     b.HasBaseType("LegalManager.Domain.Entities.User");
 
-                    b.HasDiscriminator().HasValue("admin");
+                    b.ToTable("Admins", (string)null);
                 });
 
             modelBuilder.Entity("LegalManager.Domain.Entities.Client", b =>
@@ -213,13 +206,7 @@ namespace LegalManager.Infrastructure.Persistence.Migrations
                     b.Property<string>("Phone")
                         .HasColumnType("nvarchar(max)");
 
-                    b.ToTable("Users", t =>
-                        {
-                            t.Property("Phone")
-                                .HasColumnName("Client_Phone");
-                        });
-
-                    b.HasDiscriminator().HasValue("client");
+                    b.ToTable("Clients", (string)null);
                 });
 
             modelBuilder.Entity("LegalManager.Domain.Entities.Lawyer", b =>
@@ -237,7 +224,7 @@ namespace LegalManager.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasDiscriminator().HasValue("lawyer");
+                    b.ToTable("Lawyers", (string)null);
                 });
 
             modelBuilder.Entity("CaseLawyer", b =>
@@ -287,6 +274,33 @@ namespace LegalManager.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("CreatedByUserId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("LegalManager.Domain.Entities.Admin", b =>
+                {
+                    b.HasOne("LegalManager.Domain.Entities.User", null)
+                        .WithOne()
+                        .HasForeignKey("LegalManager.Domain.Entities.Admin", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("LegalManager.Domain.Entities.Client", b =>
+                {
+                    b.HasOne("LegalManager.Domain.Entities.User", null)
+                        .WithOne()
+                        .HasForeignKey("LegalManager.Domain.Entities.Client", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("LegalManager.Domain.Entities.Lawyer", b =>
+                {
+                    b.HasOne("LegalManager.Domain.Entities.User", null)
+                        .WithOne()
+                        .HasForeignKey("LegalManager.Domain.Entities.Lawyer", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 #pragma warning restore 612, 618

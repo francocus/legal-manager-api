@@ -20,12 +20,11 @@ namespace LegalManager.Infrastructure.Persistence
         {
             base.OnModelCreating(modelBuilder);
 
-            // TPH para la herencia de User (Client, Lawyer, Admin)
-            modelBuilder.Entity<User>()
-                .HasDiscriminator<string>("UserType")
-                .HasValue<Client>(UserType.Client)
-                .HasValue<Lawyer>(UserType.Lawyer)
-                .HasValue<Admin>(UserType.Admin);
+            // TPT: una tabla por clase (Users + Clients + Lawyers + Admins)
+            modelBuilder.Entity<User>().ToTable("Users");
+            modelBuilder.Entity<Client>().ToTable("Clients");
+            modelBuilder.Entity<Lawyer>().ToTable("Lawyers");
+            modelBuilder.Entity<Admin>().ToTable("Admins");
 
             // Specialties del abogado como JSON
             modelBuilder.Entity<Lawyer>()
