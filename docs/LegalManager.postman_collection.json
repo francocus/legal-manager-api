@@ -1,0 +1,577 @@
+{
+  "info": {
+    "name": "LegalManager API",
+    "description": "Colección de pruebas para la API de Legal Manager. Ejecutá las carpetas en orden: los ids (Guid) se capturan automáticamente de las respuestas y se reutilizan en los siguientes requests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5133" },
+    { "key": "clientId", "value": "" },
+    { "key": "lawyerId", "value": "" },
+    { "key": "lawyer2Id", "value": "" },
+    { "key": "caseId", "value": "" },
+    { "key": "appointmentId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Usuarios",
+      "item": [
+        {
+          "name": "Crear cliente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('clientId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"firstName\":\"Juan\",\"lastName\":\"Perez\",\"dni\":\"30111222\",\"email\":\"juan@mail.com\",\"password\":\"1234\",\"phone\":\"11-5555\",\"address\":\"Calle 1\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/user/client",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "client"]
+            }
+          }
+        },
+        {
+          "name": "Crear abogado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('lawyerId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"firstName\":\"Ana\",\"lastName\":\"Gomez\",\"dni\":\"29333444\",\"email\":\"ana@mail.com\",\"password\":\"1234\",\"barNumber\":\"MP123\",\"phone\":\"11-6666\",\"specialties\":[\"civil\",\"laboral\"]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/user/lawyer",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "lawyer"]
+            }
+          }
+        },
+        {
+          "name": "Crear segundo abogado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('lawyer2Id', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"firstName\":\"Luis\",\"lastName\":\"Diaz\",\"dni\":\"28555666\",\"email\":\"luis@mail.com\",\"password\":\"1234\",\"barNumber\":\"MP456\",\"phone\":\"11-7777\",\"specialties\":[\"penal\"]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/user/lawyer",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "lawyer"]
+            }
+          }
+        },
+        {
+          "name": "Crear administrador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["pm.test('201 Created', () => pm.response.to.have.status(201));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"firstName\":\"Admin\",\"lastName\":\"Sistema\",\"dni\":\"11111111\",\"email\":\"admin@mail.com\",\"password\":\"1234\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/user/admin",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "admin"]
+            }
+          }
+        },
+        {
+          "name": "Listar usuarios",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user"]
+            }
+          }
+        },
+        {
+          "name": "Listar clientes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/clients",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "clients"]
+            }
+          }
+        },
+        {
+          "name": "Listar abogados",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/lawyers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "lawyers"]
+            }
+          }
+        },
+        {
+          "name": "Obtener usuario por id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/{{clientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "{{clientId}}"]
+            }
+          }
+        },
+        {
+          "name": "Actualizar usuario",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"firstName\":\"Juan Carlos\",\"lastName\":\"Perez\",\"dni\":\"30111222\",\"email\":\"juan@mail.com\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/user/{{clientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "{{clientId}}"]
+            }
+          }
+        },
+        {
+          "name": "Actualizar telefono de cliente",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"phone\":\"11-9999\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/user/client/{{clientId}}/phone",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "client", "{{clientId}}", "phone"]
+            }
+          }
+        },
+        {
+          "name": "Actualizar domicilio de cliente",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"address\":\"Av. Siempre Viva 742\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/user/client/{{clientId}}/address",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "client", "{{clientId}}", "address"]
+            }
+          }
+        },
+        {
+          "name": "Actualizar matricula de abogado",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"barNumber\":\"MP999\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/user/lawyer/{{lawyerId}}/bar-number",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "lawyer", "{{lawyerId}}", "bar-number"]
+            }
+          }
+        },
+        {
+          "name": "Actualizar especialidades de abogado",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"specialties\":[\"civil\",\"laboral\",\"familia\"]}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/user/lawyer/{{lawyerId}}/specialties",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "lawyer", "{{lawyerId}}", "specialties"]
+            }
+          }
+        },
+        {
+          "name": "NEGATIVO: email duplicado (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["pm.test('409 Conflict', () => pm.response.to.have.status(409));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"firstName\":\"Otro\",\"lastName\":\"Cliente\",\"dni\":\"99999999\",\"email\":\"juan@mail.com\",\"password\":\"1234\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/user/client",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "client"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Expedientes",
+      "item": [
+        {
+          "name": "Crear expediente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('caseId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"caseNumber\":\"EXP-001\",\"title\":\"Divorcio\",\"area\":\"civil\",\"startDate\":\"2026-09-08\",\"description\":\"Divorcio express\",\"notes\":\"\",\"clientId\":\"{{clientId}}\",\"lawyerId\":\"{{lawyerId}}\",\"createdByUserId\":\"{{lawyerId}}\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/case",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "case"]
+            }
+          }
+        },
+        {
+          "name": "Listar expedientes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/case",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "case"]
+            }
+          }
+        },
+        {
+          "name": "Obtener expediente por id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/case/{{caseId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "case", "{{caseId}}"]
+            }
+          }
+        },
+        {
+          "name": "Actualizar expediente",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\":\"Divorcio de mutuo acuerdo\",\"area\":\"civil\",\"description\":\"Actualizado\",\"notes\":\"nota nueva\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/case/{{caseId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "case", "{{caseId}}"]
+            }
+          }
+        },
+        {
+          "name": "Cambiar estado a pendiente",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"Pendiente\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/case/{{caseId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "case", "{{caseId}}", "status"]
+            }
+          }
+        },
+        {
+          "name": "Agregar abogado al expediente",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"lawyerId\":\"{{lawyer2Id}}\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/case/{{caseId}}/lawyers/add",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "case", "{{caseId}}", "lawyers", "add"]
+            }
+          }
+        },
+        {
+          "name": "Remover abogado del expediente",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"lawyerId\":\"{{lawyer2Id}}\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/case/{{caseId}}/lawyers/remove",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "case", "{{caseId}}", "lawyers", "remove"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Turnos",
+      "item": [
+        {
+          "name": "Crear turno",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('appointmentId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\":\"Consulta inicial\",\"date\":\"2026-09-15\",\"time\":\"09:00\",\"endTime\":\"10:30\",\"reason\":\"Primera consulta\",\"area\":\"civil\",\"location\":\"Oficina 1\",\"notes\":\"\",\"clientId\":\"{{clientId}}\",\"lawyerId\":\"{{lawyerId}}\",\"caseId\":\"{{caseId}}\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/appointment",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointment"]
+            }
+          }
+        },
+        {
+          "name": "Listar turnos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/appointment",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointment"]
+            }
+          }
+        },
+        {
+          "name": "Obtener turno por id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/appointment/{{appointmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointment", "{{appointmentId}}"]
+            }
+          }
+        },
+        {
+          "name": "Disponibilidad del abogado",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/appointment/availability?lawyerId={{lawyerId}}&date=2026-09-15",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointment", "availability"],
+              "query": [
+                { "key": "lawyerId", "value": "{{lawyerId}}" },
+                { "key": "date", "value": "2026-09-15" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Confirmar turno",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/appointment/{{appointmentId}}/confirm",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointment", "{{appointmentId}}", "confirm"]
+            }
+          }
+        },
+        {
+          "name": "Reprogramar turno",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"date\":\"2026-09-16\",\"time\":\"10:30\",\"endTime\":\"12:00\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/appointment/{{appointmentId}}/reschedule",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointment", "{{appointmentId}}", "reschedule"]
+            }
+          }
+        },
+        {
+          "name": "Cancelar turno",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/appointment/{{appointmentId}}/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointment", "{{appointmentId}}", "cancel"]
+            }
+          }
+        },
+        {
+          "name": "NEGATIVO: turno en horario ocupado (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["pm.test('409 Conflict', () => pm.response.to.have.status(409));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\":\"Turno superpuesto\",\"date\":\"2026-09-15\",\"time\":\"09:00\",\"endTime\":\"10:30\",\"reason\":\"Choque\",\"area\":\"civil\",\"location\":\"\",\"notes\":\"\",\"clientId\":\"{{clientId}}\",\"lawyerId\":\"{{lawyerId}}\",\"caseId\":null}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/appointment",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointment"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
