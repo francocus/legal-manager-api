@@ -14,12 +14,10 @@ var connectionString = builder.Configuration.GetConnectionString("LegalManagerDb
 builder.Services.AddDbContext<LegalManagerDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-// Infrastructure: la implementacion concreta se elige aca, en el arranque.
 builder.Services.AddScoped<IUserRepository, UsersRepository>();
 builder.Services.AddScoped<ICaseRepository, CasesRepository>();
 builder.Services.AddScoped<IAppointmentRepository, AppointmentsRepository>();
 
-// Application: casos de uso.
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ICaseService, CaseService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();

@@ -20,13 +20,11 @@ namespace LegalManager.Infrastructure.Persistence
         {
             base.OnModelCreating(modelBuilder);
 
-            // TPT: una tabla por clase (Users + Clients + Lawyers + Admins)
             modelBuilder.Entity<User>().ToTable("Users");
             modelBuilder.Entity<Client>().ToTable("Clients");
             modelBuilder.Entity<Lawyer>().ToTable("Lawyers");
             modelBuilder.Entity<Admin>().ToTable("Admins");
 
-            // Specialties del abogado como JSON
             modelBuilder.Entity<Lawyer>()
                 .Property(l => l.Specialties)
                 .HasConversion(
@@ -37,11 +35,9 @@ namespace LegalManager.Infrastructure.Persistence
                     c => c!.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
                     c => c.ToList()));
 
-            // Case: ignore propiedades calculadas
             modelBuilder.Entity<Case>()
                 .Ignore(c => c.LawyerIds);
 
-            // Case ↔ Lawyer (many-to-many, navegacion shadow "lawyers")
             modelBuilder.Entity<Case>()
                 .HasMany<Lawyer>("lawyers")
                 .WithMany();
@@ -50,39 +46,33 @@ namespace LegalManager.Infrastructure.Persistence
                 .Navigation("lawyers")
                 .AutoInclude();
 
-            // Case → Client
             modelBuilder.Entity<Case>()
                 .HasOne<User>()
                 .WithMany()
                 .HasForeignKey(c => c.ClientId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Case → CreatedBy
             modelBuilder.Entity<Case>()
                 .HasOne<User>()
                 .WithMany()
                 .HasForeignKey(c => c.CreatedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Appointment: ignore propiedades calculadas
             modelBuilder.Entity<Appointment>()
                 .Ignore(a => a.EffectiveStatus);
 
-            // Appointment → Client
             modelBuilder.Entity<Appointment>()
                 .HasOne<User>()
                 .WithMany()
                 .HasForeignKey(a => a.ClientId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Appointment → Lawyer
             modelBuilder.Entity<Appointment>()
                 .HasOne<User>()
                 .WithMany()
                 .HasForeignKey(a => a.LawyerId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Appointment → Case
             modelBuilder.Entity<Appointment>()
                 .HasOne<Case>()
                 .WithMany()
