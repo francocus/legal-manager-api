@@ -10,4 +10,4 @@ body:
 scripts:
   - type: afterResponse
     code: pm.test('409 Conflict', () => pm.response.to.have.status(409));
-order: 8000
+order: 1500

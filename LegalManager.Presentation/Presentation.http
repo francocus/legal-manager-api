@@ -29,11 +29,11 @@ Content-Type: application/json
   "specialties": ["civil", "laboral"]
 }
 
-### 3. Listar usuarios (acá copiás los ids de cliente y abogado)
+### 3. Listar usuarios (aca copias los ids de cliente y abogado)
 GET {{LegalManager_HostAddress}}/api/user
 Accept: application/json
 
-### 4. Crear expediente (REEMPLAZÁ los GUID-... por los ids reales)
+### 4. Crear expediente (REEMPLAZA los GUID-... por los ids reales)
 POST {{LegalManager_HostAddress}}/api/case
 Content-Type: application/json
 
@@ -44,15 +44,15 @@ Content-Type: application/json
   "startDate": "2026-09-08",
   "description": "Divorcio express",
   "notes": "",
-  "clientId": "a0e3d64b-6ee8-466f-8d36-405533ffcfb2",
-  "lawyerId": "5a3db09d-f390-4df6-abbb-23cbb2bb4251",
-  "createdByUserId": "5a3db09d-f390-4df6-abbb-23cbb2bb4251"
+  "clientId": "GUID-DEL-CLIENTE",
+  "lawyerId": "GUID-DEL-ABOGADO",
+  "createdByUserId": "GUID-DEL-ABOGADO"
 }
 
 ### 5. Listar expedientes (verificar que trae lawyerIds)
 GET {{LegalManager_HostAddress}}/api/case
 Accept: application/json
 
-### 6. Disponibilidad del abogado (REEMPLAZÁ el GUID)
-GET {{LegalManager_HostAddress}}/api/appointment/availability?lawyerId=5a3db09d-f390-4df6-abbb-23cbb2bb4251&date=2026-09-15
+### 6. Disponibilidad del abogado (REEMPLAZA el GUID)
+GET {{LegalManager_HostAddress}}/api/appointment/availability?lawyerId=GUID-DEL-ABOGADO&date=2026-09-15
 Accept: application/json
