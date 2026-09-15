@@ -17,10 +17,16 @@ builder.Services.AddDbContext<LegalManagerDbContext>(options =>
 builder.Services.AddScoped<IUserRepository, UsersRepository>();
 builder.Services.AddScoped<ICaseRepository, CasesRepository>();
 builder.Services.AddScoped<IAppointmentRepository, AppointmentsRepository>();
+builder.Services.AddScoped<IDocumentRepository, DocumentsRepository>();
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ICaseService, CaseService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
+builder.Services.AddScoped<IDocumentService>(sp => new DocumentService(
+    sp.GetRequiredService<IDocumentRepository>(),
+    sp.GetRequiredService<ICaseRepository>(),
+    sp.GetRequiredService<IUserRepository>(),
+    builder.Configuration["DocumentStorage:RootPath"] ?? Path.Combine(AppContext.BaseDirectory, "DocumentStorage")));
 
 builder.Services.AddControllers()
     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));

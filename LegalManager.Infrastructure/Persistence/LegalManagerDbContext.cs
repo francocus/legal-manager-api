@@ -16,6 +16,8 @@ namespace LegalManager.Infrastructure.Persistence
         public DbSet<Case> Cases => Set<Case>();
         public DbSet<Appointment> Appointments => Set<Appointment>();
 
+        public DbSet<Document> Documents => Set<Document>();
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -77,6 +79,18 @@ namespace LegalManager.Infrastructure.Persistence
                 .HasOne<Case>()
                 .WithMany()
                 .HasForeignKey(a => a.CaseId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Document>()
+                .HasOne<Case>()
+                .WithMany()
+                .HasForeignKey(d => d.CaseId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Document>()
+                .HasOne<User>()
+                .WithMany()
+                .HasForeignKey(d => d.UploadedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }
