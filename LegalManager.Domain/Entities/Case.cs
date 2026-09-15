@@ -14,7 +14,7 @@
         public string? Notes { get; private set; }
         public Guid ClientId { get; private set; }
         public Guid CreatedByUserId { get; private set; }
-        private readonly List<Lawyer> lawyers = new List<Lawyer>();
+        private readonly List<Lawyer> lawyers = [];
         public IReadOnlyList<Guid> LawyerIds => lawyers.Select(l => l.Id).ToList().AsReadOnly();
         public bool Active { get; private set; }
 

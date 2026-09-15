@@ -4,24 +4,17 @@ using LegalManager.Infrastructure.Persistence;
 
 namespace LegalManager.Infrastructure.Repositories
 {
-    public class AppointmentsRepository : IAppointmentRepository
+    public class AppointmentsRepository(LegalManagerDbContext context) : IAppointmentRepository
     {
-        private readonly LegalManagerDbContext context;
-
-        public AppointmentsRepository(LegalManagerDbContext context)
-        {
-            this.context = context;
-        }
-
         public void Add(Appointment appointment) => context.Appointments.Add(appointment);
 
         public IReadOnlyList<Appointment> GetAll()
-            => context.Appointments.Where(a => a.Active).ToList();
+            => [.. context.Appointments.Where(a => a.Active)];
 
         public Appointment? GetById(Guid id)
             => context.Appointments.FirstOrDefault(a => a.Id == id && a.Active);
 
-        public bool HasScheduleConflict(Guid lawyerId, DateOnly date, TimeOnly time, TimeOnly endTime)
+        public bool HasScheduleConflict(Guid lawyerId, DateOnly date, TimeOnly time)
             => context.Appointments.Any(a => a.LawyerId == lawyerId
                 && a.Active
                 && a.Status != AppointmentStatus.Cancelado

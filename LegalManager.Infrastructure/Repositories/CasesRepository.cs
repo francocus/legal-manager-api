@@ -4,19 +4,12 @@ using LegalManager.Infrastructure.Persistence;
 
 namespace LegalManager.Infrastructure.Repositories
 {
-    public class CasesRepository : ICaseRepository
+    public class CasesRepository(LegalManagerDbContext context) : ICaseRepository
     {
-        private readonly LegalManagerDbContext context;
-
-        public CasesRepository(LegalManagerDbContext context)
-        {
-            this.context = context;
-        }
-
         public void Add(Case caseItem) => context.Cases.Add(caseItem);
 
         public IReadOnlyList<Case> GetAll()
-            => context.Cases.Where(c => c.Active).ToList();
+            => [.. context.Cases.Where(c => c.Active)];
 
         public Case? GetById(Guid id)
             => context.Cases.FirstOrDefault(c => c.Id == id && c.Active);

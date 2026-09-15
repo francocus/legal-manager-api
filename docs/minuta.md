@@ -111,7 +111,8 @@ Se reutiliza el frontend de la versión anterior, incorporando un backend robust
 - **Base de datos:** Microsoft SQL Server, con Entity Framework Core (migraciones Code-First).
 - **Gestión documental:** librería QuestPDF para la generación de PDFs, y almacenamiento de archivos en el servidor.
 - **Inteligencia Artificial:** integración con la API de un modelo de lenguaje para la redacción del resumen narrativo del expediente.
-- **Control de versiones y despliegue:** Git / GitHub, con API en Azure App Service, Frontend en Vercel y base de datos en Azure SQL.
+- **Control de versiones y despliegue:** Git / GitHub, con API en Azure App Service, Frontend en Azure Static Web App, Base de Datos en Azure SQL Database, Documentos en Azure Storage Account.
+
 
 ## 6. Matriz de Permisos
 

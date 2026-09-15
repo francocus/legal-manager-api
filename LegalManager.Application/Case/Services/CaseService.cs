@@ -5,19 +5,11 @@ using LegalManager.Domain.Interfaces;
 
 namespace LegalManager.Application.Services
 {
-    public class CaseService : ICaseService
+    public class CaseService(
+        ICaseRepository casesRepository,
+        IUserRepository usersRepository,
+        IAppointmentRepository appointmentsRepository) : ICaseService
     {
-        private readonly ICaseRepository casesRepository;
-        private readonly IUserRepository usersRepository;
-        private readonly IAppointmentRepository appointmentsRepository;
-
-        public CaseService(ICaseRepository casesRepository, IUserRepository usersRepository, IAppointmentRepository appointmentsRepository)
-        {
-            this.casesRepository = casesRepository;
-            this.usersRepository = usersRepository;
-            this.appointmentsRepository = appointmentsRepository;
-        }
-
         public Case Create(CreateCaseRequest request)
         {
             if (casesRepository.GetAll().Any(c => c.CaseNumber == request.CaseNumber))

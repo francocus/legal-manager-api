@@ -5,21 +5,12 @@ using LegalManager.Domain.Interfaces;
 
 namespace LegalManager.Application.Services
 {
-    public class DocumentService : IDocumentService
+public class DocumentService(
+        IDocumentRepository documentsRepository,
+        ICaseRepository casesRepository,
+        IUserRepository usersRepository,
+string rootStoragePath) : IDocumentService
     {
-        private readonly IDocumentRepository documentsRepository;
-        private readonly ICaseRepository casesRepository;
-        private readonly IUserRepository usersRepository;
-        private readonly string rootStoragePath;
-
-        public DocumentService(IDocumentRepository documentsRepository, ICaseRepository casesRepository, IUserRepository usersRepository, string rootStoragePath)
-        {
-            this.documentsRepository = documentsRepository;
-            this.casesRepository = casesRepository;
-            this.usersRepository = usersRepository;
-            this.rootStoragePath = rootStoragePath;
-        }
-
         public Document Upload(UploadDocumentRequest request)
         {
             var caseItem = casesRepository.GetById(request.CaseId);

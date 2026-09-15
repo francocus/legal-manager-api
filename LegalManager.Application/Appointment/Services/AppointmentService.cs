@@ -5,19 +5,11 @@ using LegalManager.Domain.Interfaces;
 
 namespace LegalManager.Application.Services
 {
-    public class AppointmentService : IAppointmentService
+    public class AppointmentService(
+        IAppointmentRepository appointmentsRepository,
+        IUserRepository usersRepository,
+        ICaseRepository casesRepository) : IAppointmentService
     {
-        private readonly IAppointmentRepository appointmentsRepository;
-        private readonly IUserRepository usersRepository;
-        private readonly ICaseRepository casesRepository;
-
-        public AppointmentService(IAppointmentRepository appointmentsRepository, IUserRepository usersRepository, ICaseRepository casesRepository)
-        {
-            this.appointmentsRepository = appointmentsRepository;
-            this.usersRepository = usersRepository;
-            this.casesRepository = casesRepository;
-        }
-
         public Appointment Create(CreateAppointmentRequest request)
         {
             if (usersRepository.GetById(request.ClientId) is not Client)
@@ -34,7 +26,7 @@ namespace LegalManager.Application.Services
                     throw new ArgumentException("El expediente indicado no existe.");
             }
 
-            if (appointmentsRepository.HasScheduleConflict(request.LawyerId, request.Date, request.Time, request.EndTime))
+            if (appointmentsRepository.HasScheduleConflict(request.LawyerId, request.Date, request.Time))
                 throw new InvalidOperationException("El abogado ya tiene un turno en ese horario.");
 
             var area = relatedCase != null ? relatedCase.Area : request.Area;
@@ -52,7 +44,7 @@ namespace LegalManager.Application.Services
                 throw new ArgumentException("El abogado indicado no es válido.");
 
             return Appointment.ValidSlots
-                .Where(slot => !appointmentsRepository.HasScheduleConflict(lawyerId, date, slot, slot))
+                .Where(slot => !appointmentsRepository.HasScheduleConflict(lawyerId, date, slot))
                 .ToList();
         }
 
@@ -83,7 +75,7 @@ namespace LegalManager.Application.Services
             var appointment = GetById(id);
             if (appointment == null) return null;
 
-            if (appointmentsRepository.HasScheduleConflict(appointment.LawyerId, request.Date, request.Time, request.EndTime))
+            if (appointmentsRepository.HasScheduleConflict(appointment.LawyerId, request.Date, request.Time))
                 throw new InvalidOperationException("El abogado ya tiene un turno en ese horario.");
 
             appointment.Reschedule(request.Date, request.Time, request.EndTime);

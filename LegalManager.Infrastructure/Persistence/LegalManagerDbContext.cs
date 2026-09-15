@@ -5,13 +5,8 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace LegalManager.Infrastructure.Persistence
 {
-    public class LegalManagerDbContext : DbContext
+    public class LegalManagerDbContext(DbContextOptions<LegalManagerDbContext> options) : DbContext(options)
     {
-        public LegalManagerDbContext(DbContextOptions<LegalManagerDbContext> options)
-            : base(options)
-        {
-        }
-
         public DbSet<User> Users => Set<User>();
         public DbSet<Case> Cases => Set<Case>();
         public DbSet<Appointment> Appointments => Set<Appointment>();
