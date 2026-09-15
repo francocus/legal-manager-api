@@ -42,7 +42,12 @@ namespace LegalManager.Infrastructure.Persistence
 
             modelBuilder.Entity<Case>()
                 .HasMany<Lawyer>("lawyers")
-                .WithMany();
+                .WithMany()
+                .UsingEntity(
+                    "CaseLawyer",
+                    r => r.HasOne(typeof(Lawyer)).WithMany().HasForeignKey("LawyerId").OnDelete(DeleteBehavior.Restrict),
+                    l => l.HasOne(typeof(Case)).WithMany().HasForeignKey("CaseId").OnDelete(DeleteBehavior.Restrict),
+                    j => j.HasKey("CaseId", "LawyerId"));
 
             modelBuilder.Entity<Case>()
                 .Navigation("lawyers")
