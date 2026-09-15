@@ -95,12 +95,22 @@ namespace LegalManager.Application.Services
             return document;
         }
 
-        public Document? Review(Guid documentId, Guid reviewedByUserId)
+        public Document? Approve(Guid documentId, Guid reviewedByUserId)
         {
             var document = documentsRepository.GetById(documentId);
             if (document == null) return null;
 
-            document.Review(reviewedByUserId);
+            document.Approve(reviewedByUserId);
+            documentsRepository.Save();
+            return document;
+        }
+
+        public Document? Discard(Guid documentId, Guid reviewedByUserId)
+        {
+            var document = documentsRepository.GetById(documentId);
+            if (document == null) return null;
+
+            document.Discard(reviewedByUserId);
             documentsRepository.Save();
             return document;
         }

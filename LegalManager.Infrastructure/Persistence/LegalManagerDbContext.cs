@@ -95,7 +95,7 @@ namespace LegalManager.Infrastructure.Persistence
             modelBuilder.Entity<Document>()
                 .HasOne<User>()
                 .WithMany()
-                .HasForeignKey(d => d.UploadedByUserId)
+                .HasForeignKey(d => d.ReviewedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

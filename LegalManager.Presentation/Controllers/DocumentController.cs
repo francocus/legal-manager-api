@@ -17,7 +17,7 @@ namespace LegalManager.Presentation.Controllers
         }
 
         private static DocumentResponse ToResponse(Document d) => new(
-            d.Id, d.CaseId, d.FileName, d.ContentType, d.SizeBytes, d.Type, d.UploadedByUserId, d.UploadDate, d.Active, d.GeneratedByAI, d.ReviewedByUserId, d.ReviewedAt);
+    d.Id, d.CaseId, d.FileName, d.ContentType, d.SizeBytes, d.Type, d.UploadedByUserId, d.UploadDate, d.Active, d.GeneratedByAI, d.ReviewedByUserId, d.ReviewedAt, d.Approved);
 
         [HttpPost]
         [RequestSizeLimit(10 * 1024 * 1024)]
@@ -80,15 +80,31 @@ namespace LegalManager.Presentation.Controllers
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
         }
 
-        [HttpPatch("{id}/review")]
-        public ActionResult<DocumentResponse> Review([FromRoute] Guid id, [FromBody] ReviewDocumentRequest request)
+        [HttpPatch("{id}/approve")]
+        public ActionResult<DocumentResponse> Approve([FromRoute] Guid id, [FromBody] ReviewDocumentRequest request)
         {
             try
             {
                 if (request == null)
                     return BadRequest("El cuerpo de la solicitud es obligatorio.");
 
-                var document = documentService.Review(id, request.ReviewedByUserId);
+                var document = documentService.Approve(id, request.ReviewedByUserId);
+                if (document == null) return NotFound($"No existe un documento con el id {id}.");
+                return Ok(ToResponse(document));
+            }
+            catch (ArgumentException ex) { return BadRequest(ex.Message); }
+            catch (InvalidOperationException ex) { return Conflict(ex.Message); }
+        }
+
+        [HttpPatch("{id}/discard")]
+        public ActionResult<DocumentResponse> Discard([FromRoute] Guid id, [FromBody] ReviewDocumentRequest request)
+        {
+            try
+            {
+                if (request == null)
+                    return BadRequest("El cuerpo de la solicitud es obligatorio.");
+
+                var document = documentService.Discard(id, request.ReviewedByUserId);
                 if (document == null) return NotFound($"No existe un documento con el id {id}.");
                 return Ok(ToResponse(document));
             }

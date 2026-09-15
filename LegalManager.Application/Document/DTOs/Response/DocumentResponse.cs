@@ -14,5 +14,6 @@ namespace LegalManager.Application.DTOs
         bool Active,
         bool GeneratedByAI,
         Guid? ReviewedByUserId,
-        DateOnly? ReviewedAt);
+        DateOnly? ReviewedAt,
+        bool? Approved);
 }

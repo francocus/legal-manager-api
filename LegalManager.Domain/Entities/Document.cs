@@ -26,6 +26,7 @@ namespace LegalManager.Domain.Entities
         public bool GeneratedByAI { get; private set; }
         public Guid? ReviewedByUserId { get; private set; }
         public DateOnly? ReviewedAt { get; private set; }
+        public bool? Approved { get; private set; }
 
         private Document()
         {
@@ -94,7 +95,7 @@ namespace LegalManager.Domain.Entities
             };
         }
 
-        public void Review(Guid reviewedByUserId)
+        public void Approve(Guid reviewedByUserId)
         {
             if (reviewedByUserId == Guid.Empty)
                 throw new ArgumentException("El usuario que revisa es obligatorio.", nameof(reviewedByUserId));
@@ -107,6 +108,24 @@ namespace LegalManager.Domain.Entities
 
             ReviewedByUserId = reviewedByUserId;
             ReviewedAt = DateOnly.FromDateTime(DateTime.Now);
+            Approved = true;
+        }
+
+        public void Discard(Guid reviewedByUserId)
+        {
+            if (reviewedByUserId == Guid.Empty)
+                throw new ArgumentException("El usuario que revisa es obligatorio.", nameof(reviewedByUserId));
+
+            if (!GeneratedByAI)
+                throw new InvalidOperationException("Solo los documentos generados por IA requieren revisión.");
+
+            if (ReviewedAt != null)
+                throw new InvalidOperationException("El documento ya fue revisado.");
+
+            ReviewedByUserId = reviewedByUserId;
+            ReviewedAt = DateOnly.FromDateTime(DateTime.Now);
+            Approved = false;
+            Active = false;
         }
 
         public void Deactivate()

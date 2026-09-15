@@ -15,7 +15,8 @@ namespace LegalManager.Application.Interfaces
 
         (Stream Stream, string ContentType, string FileName)? Download(Guid id);
 
-        Document? Review(Guid documentId, Guid reviewedByUserId);
+        Document? Approve(Guid documentId, Guid reviewedByUserId);
+        Document? Discard(Guid documentId, Guid reviewedByUserId);
 
         bool Delete(Guid id);
     }
