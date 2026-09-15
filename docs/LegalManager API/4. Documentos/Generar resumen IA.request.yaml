@@ -1,0 +1,13 @@
+$kind: http-request
+name: Generar resumen IA
+url: "{{baseUrl}}/api/document/case/{{caseId}}/generate-summary"
+method: POST
+queryParams:
+  generatedByUserId: "{{lawyerId}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('201 Created', () => pm.response.to.have.status(201));
+      pm.test('Documento generado por IA', () => pm.expect(pm.response.json().generatedByAI).to.eql(true));
+      pm.collectionVariables.set('documentId', pm.response.json().id);
+order: 5000

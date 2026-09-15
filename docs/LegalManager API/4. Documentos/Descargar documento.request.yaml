@@ -1,0 +1,8 @@
+$kind: http-request
+name: Descargar documento
+url: "{{baseUrl}}/api/document/{{uploadedDocumentId}}/download"
+method: GET
+scripts:
+  - type: afterResponse
+    code: pm.test('200 OK', () => pm.response.to.have.status(200));
+order: 4000

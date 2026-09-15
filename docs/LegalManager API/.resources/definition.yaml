@@ -1,9 +1,5 @@
 $kind: collection
-description: "Colección de pruebas para la API de Legal Manager. Ejecutá las carpetas en orden: los ids (Guid) se capturan automáticamente de las respuestas y se reutilizan en los siguientes requests."
+description: "Documentos de los expedientes: subida, listado, descarga y resumen IA con revisión humana obligatoria."
 variables:
-  baseUrl: http://localhost:5133
-  clientId: ""
-  lawyerId: ""
-  lawyer2Id: ""
-  caseId: ""
-  appointmentId: ""
+  uploadedDocumentId: ""
+  documentId: ""

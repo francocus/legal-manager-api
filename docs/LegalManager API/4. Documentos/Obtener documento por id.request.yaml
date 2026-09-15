@@ -1,0 +1,10 @@
+$kind: http-request
+name: Obtener documento por id
+url: "{{baseUrl}}/api/document/{{uploadedDocumentId}}"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+      pm.test('Respuesta es un documento', () => pm.expect(pm.response.json()).to.have.property('id'));
+order: 3000

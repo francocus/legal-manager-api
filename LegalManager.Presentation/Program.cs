@@ -14,15 +14,19 @@ var connectionString = builder.Configuration.GetConnectionString("LegalManagerDb
 builder.Services.AddDbContext<LegalManagerDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-// Infrastructure: la implementacion concreta se elige aca, en el arranque.
 builder.Services.AddScoped<IUserRepository, UsersRepository>();
 builder.Services.AddScoped<ICaseRepository, CasesRepository>();
 builder.Services.AddScoped<IAppointmentRepository, AppointmentsRepository>();
+builder.Services.AddScoped<IDocumentRepository, DocumentsRepository>();
 
-// Application: casos de uso.
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ICaseService, CaseService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
+builder.Services.AddScoped<IDocumentService>(sp => new DocumentService(
+    sp.GetRequiredService<IDocumentRepository>(),
+    sp.GetRequiredService<ICaseRepository>(),
+    sp.GetRequiredService<IUserRepository>(),
+    builder.Configuration["DocumentStorage:RootPath"] ?? Path.Combine(AppContext.BaseDirectory, "DocumentStorage")));
 
 builder.Services.AddControllers()
     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));

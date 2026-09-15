@@ -12,7 +12,7 @@
         public DateOnly Date { get; private set; }
         public TimeOnly Time { get; private set; }
         public TimeOnly EndTime { get; private set; }
-        public string Reason { get; private set; }
+        public string? Reason { get; private set; }
         public AppointmentStatus Status { get; private set; }
         public AppointmentStatus EffectiveStatus =>
             Status == AppointmentStatus.Confirmado && Date.ToDateTime(Time) < DateTime.Now
@@ -32,7 +32,7 @@
             Reason = string.Empty;
         }
 
-        public Appointment(string title, DateOnly date, TimeOnly time, TimeOnly endTime, string reason, string? area, string? location, string? notes, Guid clientId, Guid lawyerId, Guid? caseId)
+        public Appointment(string title, DateOnly date, TimeOnly time, TimeOnly endTime, string? reason, string? area, string? location, string? notes, Guid clientId, Guid lawyerId, Guid? caseId)
         {
             if (string.IsNullOrWhiteSpace(title))
                 throw new ArgumentException("El título es obligatorio.", nameof(title));

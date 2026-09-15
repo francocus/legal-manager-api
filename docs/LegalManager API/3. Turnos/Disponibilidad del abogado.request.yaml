@@ -1,5 +1,5 @@
 $kind: http-request
-url: "{{baseUrl}}/api/appointment/availability?lawyerId={{lawyerId}}&date=2026-09-15"
+url: "{{baseUrl}}/api/appointment/availability"
 method: GET
 queryParams:
   lawyerId: "{{lawyerId}}"

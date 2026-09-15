@@ -4,6 +4,7 @@ using LegalManager.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LegalManager.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(LegalManagerDbContext))]
-    partial class LegalManagerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260915184939_AddDocuments")]
+    partial class AddDocuments
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -27,12 +30,12 @@ namespace LegalManager.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("CaseId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("LawyerId")
+                    b.Property<Guid>("lawyersId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.HasKey("CaseId", "LawyerId");
+                    b.HasKey("CaseId", "lawyersId");
 
-                    b.HasIndex("LawyerId");
+                    b.HasIndex("lawyersId");
 
                     b.ToTable("CaseLawyer");
                 });
@@ -71,6 +74,7 @@ namespace LegalManager.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Reason")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Status")
@@ -121,6 +125,7 @@ namespace LegalManager.Infrastructure.Persistence.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Description")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateOnly>("LastUpdate")
@@ -157,9 +162,6 @@ namespace LegalManager.Infrastructure.Persistence.Migrations
                     b.Property<bool>("Active")
                         .HasColumnType("bit");
 
-                    b.Property<bool?>("Approved")
-                        .HasColumnType("bit");
-
                     b.Property<Guid>("CaseId")
                         .HasColumnType("uniqueidentifier");
 
@@ -174,15 +176,6 @@ namespace LegalManager.Infrastructure.Persistence.Migrations
                     b.Property<string>("FilePath")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("GeneratedByAI")
-                        .HasColumnType("bit");
-
-                    b.Property<DateOnly?>("ReviewedAt")
-                        .HasColumnType("date");
-
-                    b.Property<Guid?>("ReviewedByUserId")
-                        .HasColumnType("uniqueidentifier");
 
                     b.Property<long>("SizeBytes")
                         .HasColumnType("bigint");
@@ -199,8 +192,6 @@ namespace LegalManager.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CaseId");
-
-                    b.HasIndex("ReviewedByUserId");
 
                     b.HasIndex("UploadedByUserId");
 
@@ -289,13 +280,13 @@ namespace LegalManager.Infrastructure.Persistence.Migrations
                     b.HasOne("LegalManager.Domain.Entities.Case", null)
                         .WithMany()
                         .HasForeignKey("CaseId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("LegalManager.Domain.Entities.Lawyer", null)
                         .WithMany()
-                        .HasForeignKey("LawyerId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasForeignKey("lawyersId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
@@ -341,11 +332,6 @@ namespace LegalManager.Infrastructure.Persistence.Migrations
                         .HasForeignKey("CaseId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("LegalManager.Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("ReviewedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("LegalManager.Domain.Entities.User", null)
                         .WithMany()

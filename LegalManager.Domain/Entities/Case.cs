@@ -10,7 +10,7 @@
         public DateOnly StartDate { get; private set; }
         public DateOnly LastUpdate { get; private set; }
         public DateOnly? ClosingDate { get; private set; }
-        public string Description { get; private set; }
+        public string? Description { get; private set; }
         public string? Notes { get; private set; }
         public Guid ClientId { get; private set; }
         public Guid CreatedByUserId { get; private set; }
@@ -23,10 +23,10 @@
             CaseNumber = string.Empty;
             Title = string.Empty;
             Area = string.Empty;
-            Description = string.Empty;
+            Description = null;
         }
 
-        public Case(string caseNumber, string title, string area, DateOnly startDate, string description, string? notes, Guid clientId, Lawyer initialLawyer, Guid createdByUserId)
+        public Case(string caseNumber, string title, string area, DateOnly startDate, string? description, string? notes, Guid clientId, Lawyer initialLawyer, Guid createdByUserId)
         {
             if (string.IsNullOrWhiteSpace(caseNumber))
                 throw new ArgumentException("El número de expediente es obligatorio.", nameof(caseNumber));
@@ -36,9 +36,6 @@
 
             if (string.IsNullOrWhiteSpace(area))
                 throw new ArgumentException("El área es obligatoria.", nameof(area));
-
-            if (string.IsNullOrWhiteSpace(description))
-                throw new ArgumentException("La descripción es obligatoria.", nameof(description));
 
             if (clientId == Guid.Empty)
                 throw new ArgumentException("El expediente necesita un cliente asignado.", nameof(clientId));
@@ -64,16 +61,13 @@
             Active = true;
         }
 
-        public void UpdateDetails(string title, string area, string description, string? notes)
+        public void UpdateDetails(string title, string area, string? description, string? notes)
         {
             if (string.IsNullOrWhiteSpace(title))
                 throw new ArgumentException("El título es obligatorio.", nameof(title));
 
             if (string.IsNullOrWhiteSpace(area))
                 throw new ArgumentException("El área es obligatoria.", nameof(area));
-
-            if (string.IsNullOrWhiteSpace(description))
-                throw new ArgumentException("La descripción es obligatoria.", nameof(description));
 
             if (Status == CaseStatus.Cerrado)
                 throw new InvalidOperationException("No se puede modificar un expediente cerrado.");
