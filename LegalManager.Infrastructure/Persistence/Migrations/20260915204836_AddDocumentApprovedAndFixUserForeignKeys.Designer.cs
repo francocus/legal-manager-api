@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LegalManager.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(LegalManagerDbContext))]
-    [Migration("20260915203651_AddDocumentApprovedFlagAndReviewedByFk")]
-    partial class AddDocumentApprovedFlagAndReviewedByFk
+    [Migration("20260915204836_AddDocumentApprovedAndFixUserForeignKeys")]
+    partial class AddDocumentApprovedAndFixUserForeignKeys
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -205,6 +205,8 @@ namespace LegalManager.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("ReviewedByUserId");
 
+                    b.HasIndex("UploadedByUserId");
+
                     b.ToTable("Documents");
                 });
 
@@ -347,6 +349,12 @@ namespace LegalManager.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("ReviewedByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("LegalManager.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("LegalManager.Domain.Entities.Admin", b =>

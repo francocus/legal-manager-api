@@ -5,18 +5,16 @@
 namespace LegalManager.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class AddDocumentReviewedByForeignKey : Migration
+    public partial class AddDocumentApprovedAndFixUserForeignKeys : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_Documents_Users_UploadedByUserId",
-                table: "Documents");
-
-            migrationBuilder.DropIndex(
-                name: "IX_Documents_UploadedByUserId",
-                table: "Documents");
+            migrationBuilder.AddColumn<bool>(
+                name: "Approved",
+                table: "Documents",
+                type: "bit",
+                nullable: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Documents_ReviewedByUserId",
@@ -43,18 +41,9 @@ namespace LegalManager.Infrastructure.Persistence.Migrations
                 name: "IX_Documents_ReviewedByUserId",
                 table: "Documents");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Documents_UploadedByUserId",
-                table: "Documents",
-                column: "UploadedByUserId");
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_Documents_Users_UploadedByUserId",
-                table: "Documents",
-                column: "UploadedByUserId",
-                principalTable: "Users",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Restrict);
+            migrationBuilder.DropColumn(
+                name: "Approved",
+                table: "Documents");
         }
     }
 }

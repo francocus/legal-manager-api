@@ -202,6 +202,8 @@ namespace LegalManager.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("ReviewedByUserId");
 
+                    b.HasIndex("UploadedByUserId");
+
                     b.ToTable("Documents");
                 });
 
@@ -344,6 +346,12 @@ namespace LegalManager.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("ReviewedByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("LegalManager.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("LegalManager.Domain.Entities.Admin", b =>
