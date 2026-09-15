@@ -5,19 +5,11 @@ using LegalManager.Domain.Interfaces;
 
 namespace LegalManager.Application.Services
 {
-    public class UserService : IUserService
+    public class UserService(
+        IUserRepository usersRepository,
+        ICaseRepository casesRepository,
+        IAppointmentRepository appointmentsRepository) : IUserService
     {
-        private readonly IUserRepository usersRepository;
-        private readonly ICaseRepository casesRepository;
-        private readonly IAppointmentRepository appointmentsRepository;
-
-        public UserService(IUserRepository usersRepository, ICaseRepository casesRepository, IAppointmentRepository appointmentsRepository)
-        {
-            this.usersRepository = usersRepository;
-            this.casesRepository = casesRepository;
-            this.appointmentsRepository = appointmentsRepository;
-        }
-
         private void EnsureUnique(string email, string dni, Guid? excludeId = null)
         {
             var users = usersRepository.GetAll();

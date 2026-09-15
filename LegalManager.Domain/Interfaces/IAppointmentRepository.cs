@@ -10,7 +10,7 @@ namespace LegalManager.Domain.Interfaces
 
         Appointment? GetById(Guid id);
 
-        bool HasScheduleConflict(Guid lawyerId, DateOnly date, TimeOnly time, TimeOnly endTime);
+        bool HasScheduleConflict(Guid lawyerId, DateOnly date, TimeOnly time);
 
         void Save();
     }

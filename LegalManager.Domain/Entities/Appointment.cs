@@ -2,10 +2,8 @@
 {
     public class Appointment
     {
-        public static readonly IReadOnlyList<TimeOnly> ValidSlots = Array.AsReadOnly(new TimeOnly[]
-        {
-            new(9, 0), new(10, 30), new(12, 0), new(14, 0), new(15, 30), new(17, 0)
-        });
+        public static readonly IReadOnlyList<TimeOnly> ValidSlots =
+            [new(9, 0), new(10, 30), new(12, 0), new(14, 0), new(15, 30), new(17, 0)];
 
         public Guid Id { get; private set; }
         public string Title { get; private set; }
@@ -109,7 +107,7 @@
             Active = false;
         }
 
-        public bool OverlapsWith(DateOnly date, TimeOnly time, TimeOnly endTime)
+        public bool OverlapsWith(DateOnly date, TimeOnly time)
             => Active && Status != AppointmentStatus.Cancelado && Date == date && Time == time;
     }
 }

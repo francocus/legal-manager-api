@@ -20,7 +20,7 @@
 
             BarNumber = barNumber;
             Phone = phone;
-            Specialties = (specialties ?? Enumerable.Empty<string>()).ToList().AsReadOnly();
+            Specialties = (specialties ?? []).ToList().AsReadOnly();
         }
 
         public void UpdateBarNumber(string barNumber)
@@ -38,7 +38,7 @@
 
         public void UpdateSpecialties(IEnumerable<string> specialties)
         {
-            var cleaned = specialties?.Where(s => !string.IsNullOrWhiteSpace(s)).ToList() ?? new List<string>();
+            var cleaned = specialties?.Where(s => !string.IsNullOrWhiteSpace(s)).ToList() ?? [];
 
             if (cleaned.Count == 0)
                 throw new ArgumentException("Se requiere al menos una especialidad.", nameof(specialties));
