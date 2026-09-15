@@ -1,0 +1,15 @@
+$kind: http-request
+name: Revisar resumen IA
+url: "{{baseUrl}}/api/document/{{documentId}}/review"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"reviewedByUserId":"{{lawyerId}}"}'
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+      pm.test('Documento revisado', () => pm.expect(pm.response.json().reviewedByUserId).to.eql(pm.collectionVariables.get('lawyerId')));
+order: 6000

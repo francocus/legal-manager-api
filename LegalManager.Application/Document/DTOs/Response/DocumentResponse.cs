@@ -11,5 +11,8 @@ namespace LegalManager.Application.DTOs
         DocumentType Type,
         Guid UploadedByUserId,
         DateOnly UploadDate,
-        bool Active);
+        bool Active,
+        bool GeneratedByAI,
+        Guid? ReviewedByUserId,
+        DateOnly? ReviewedAt);
 }

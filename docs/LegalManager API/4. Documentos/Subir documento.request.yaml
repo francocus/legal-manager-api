@@ -1,0 +1,26 @@
+$kind: http-request
+name: Subir documento
+url: "{{baseUrl}}/api/document"
+method: POST
+body:
+  type: formdata
+  content:
+    - key: caseId
+      value: "{{caseId}}"
+      type: text
+    - key: type
+      value: Escrito
+      type: text
+    - key: uploadedByUserId
+      value: "{{lawyerId}}"
+      type: text
+    - key: file
+      type: file
+      src: ./subir.pdf
+      description: "PDF de prueba. Colocá uno en esa ruta o elegí el archivo al ejecutar."
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('201 Created', () => pm.response.to.have.status(201));
+      pm.collectionVariables.set('uploadedDocumentId', pm.response.json().id);
+order: 1000

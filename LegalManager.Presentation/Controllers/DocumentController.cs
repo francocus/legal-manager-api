@@ -17,7 +17,7 @@ namespace LegalManager.Presentation.Controllers
         }
 
         private static DocumentResponse ToResponse(Document d) => new(
-            d.Id, d.CaseId, d.FileName, d.ContentType, d.SizeBytes, d.Type, d.UploadedByUserId, d.UploadDate, d.Active);
+            d.Id, d.CaseId, d.FileName, d.ContentType, d.SizeBytes, d.Type, d.UploadedByUserId, d.UploadDate, d.Active, d.GeneratedByAI, d.ReviewedByUserId, d.ReviewedAt);
 
         [HttpPost]
         [RequestSizeLimit(10 * 1024 * 1024)]
@@ -65,6 +65,34 @@ namespace LegalManager.Presentation.Controllers
                 if (result == null) return NotFound($"No existe un documento con el id {id}.");
                 return File(result.Value.Stream, result.Value.ContentType, result.Value.FileName);
             }
+            catch (InvalidOperationException ex) { return Conflict(ex.Message); }
+        }
+
+        [HttpPost("case/{caseId}/generate-summary")]
+        public ActionResult<DocumentResponse> GenerateAiSummary([FromRoute] Guid caseId, [FromQuery] Guid generatedByUserId)
+        {
+            try
+            {
+                var document = documentService.GenerateAiSummary(caseId, generatedByUserId);
+                return CreatedAtAction(nameof(GetById), new { id = document.Id }, ToResponse(document));
+            }
+            catch (ArgumentException ex) { return BadRequest(ex.Message); }
+            catch (InvalidOperationException ex) { return Conflict(ex.Message); }
+        }
+
+        [HttpPatch("{id}/review")]
+        public ActionResult<DocumentResponse> Review([FromRoute] Guid id, [FromBody] ReviewDocumentRequest request)
+        {
+            try
+            {
+                if (request == null)
+                    return BadRequest("El cuerpo de la solicitud es obligatorio.");
+
+                var document = documentService.Review(id, request.ReviewedByUserId);
+                if (document == null) return NotFound($"No existe un documento con el id {id}.");
+                return Ok(ToResponse(document));
+            }
+            catch (ArgumentException ex) { return BadRequest(ex.Message); }
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
         }
 

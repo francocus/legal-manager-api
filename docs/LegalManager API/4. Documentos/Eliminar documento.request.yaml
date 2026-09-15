@@ -1,0 +1,8 @@
+$kind: http-request
+name: Eliminar documento
+url: "{{baseUrl}}/api/document/{{uploadedDocumentId}}"
+method: DELETE
+scripts:
+  - type: afterResponse
+    code: pm.test('204 No Content', () => pm.response.to.have.status(204));
+order: 7000

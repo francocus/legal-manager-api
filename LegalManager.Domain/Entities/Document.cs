@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace LegalManager.Domain.Entities
 {
     public enum DocumentType
@@ -21,6 +23,9 @@ namespace LegalManager.Domain.Entities
         public Guid UploadedByUserId { get; private set; }
         public DateOnly UploadDate { get; private set; }
         public bool Active { get; private set; }
+        public bool GeneratedByAI { get; private set; }
+        public Guid? ReviewedByUserId { get; private set; }
+        public DateOnly? ReviewedAt { get; private set; }
 
         private Document()
         {
@@ -59,6 +64,49 @@ namespace LegalManager.Domain.Entities
             UploadedByUserId = uploadedByUserId;
             UploadDate = DateOnly.FromDateTime(DateTime.Now);
             Active = true;
+            GeneratedByAI = false;
+        }
+
+        public static Document CreateAiSummary(Guid caseId, string fileName, string filePath, string content, Guid generatedByUserId)
+        {
+            if (caseId == Guid.Empty)
+                throw new ArgumentException("El documento necesita un expediente asociado.", nameof(caseId));
+
+            if (string.IsNullOrWhiteSpace(fileName))
+                throw new ArgumentException("El nombre del archivo es obligatorio.", nameof(fileName));
+
+            if (generatedByUserId == Guid.Empty)
+                throw new ArgumentException("El documento necesita un usuario que lo genere.", nameof(generatedByUserId));
+
+            return new Document
+            {
+                Id = Guid.NewGuid(),
+                CaseId = caseId,
+                FileName = fileName,
+                FilePath = filePath,
+                ContentType = "application/pdf",
+                SizeBytes = Encoding.UTF8.GetByteCount(content),
+                Type = DocumentType.Generado,
+                UploadedByUserId = generatedByUserId,
+                UploadDate = DateOnly.FromDateTime(DateTime.Now),
+                Active = true,
+                GeneratedByAI = true
+            };
+        }
+
+        public void Review(Guid reviewedByUserId)
+        {
+            if (reviewedByUserId == Guid.Empty)
+                throw new ArgumentException("El usuario que revisa es obligatorio.", nameof(reviewedByUserId));
+
+            if (!GeneratedByAI)
+                throw new InvalidOperationException("Solo los documentos generados por IA requieren revisión.");
+
+            if (ReviewedAt != null)
+                throw new InvalidOperationException("El documento ya fue revisado.");
+
+            ReviewedByUserId = reviewedByUserId;
+            ReviewedAt = DateOnly.FromDateTime(DateTime.Now);
         }
 
         public void Deactivate()

@@ -1,0 +1,13 @@
+$kind: http-request
+name: "NEGATIVO: revisar documento manual (409)"
+url: "{{baseUrl}}/api/document/{{uploadedDocumentId}}/review"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"reviewedByUserId":"{{lawyerId}}"}'
+scripts:
+  - type: afterResponse
+    code: pm.test('409 Conflict', () => pm.response.to.have.status(409));
+order: 6500
