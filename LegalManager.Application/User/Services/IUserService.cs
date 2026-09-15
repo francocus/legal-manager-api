@@ -1,37 +1,36 @@
 using LegalManager.Application.DTOs;
-using LegalManager.Domain.Entities;
 
 namespace LegalManager.Application.Interfaces
 {
     public interface IUserService
     {
-        Client CreateClient(CreateClientRequest request);
+        UserResponse CreateClient(CreateClientRequest request);
 
-        Lawyer CreateLawyer(CreateLawyerRequest request);
+        UserResponse CreateLawyer(CreateLawyerRequest request);
 
-        Admin CreateAdmin(CreateAdminRequest request);
+        UserResponse CreateAdmin(CreateAdminRequest request);
 
-        IReadOnlyList<User> GetAll();
+        IReadOnlyList<UserResponse> GetAll();
 
-        IReadOnlyList<User> GetClients();
+        IReadOnlyList<UserResponse> GetClients();
 
-        IReadOnlyList<User> GetLawyers();
+        IReadOnlyList<UserResponse> GetLawyers();
 
-        IReadOnlyList<User> GetAdmins();
+        IReadOnlyList<UserResponse> GetAdmins();
 
-        User? GetById(Guid id);
+        UserResponse? GetById(Guid id);
 
-        User? Update(Guid id, UpdateUserRequest request);
+        UserResponse? Update(Guid id, UpdateUserRequest request);
 
-        User? UpdateClientPhone(Guid id, string? phone);
+        UserResponse? UpdateClientPhone(Guid id, string? phone);
 
-        User? UpdateLawyerPhone(Guid id, string? phone);
+        UserResponse? UpdateLawyerPhone(Guid id, string? phone);
 
-        User? UpdateClientAddress(Guid id, string? address);
+        UserResponse? UpdateClientAddress(Guid id, string? address);
 
-        User? UpdateBarNumber(Guid id, string barNumber);
+        UserResponse? UpdateBarNumber(Guid id, string barNumber);
 
-        User? UpdateSpecialties(Guid id, IEnumerable<string> specialties);
+        UserResponse? UpdateSpecialties(Guid id, IEnumerable<string> specialties);
 
         bool Delete(Guid id);
     }

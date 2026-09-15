@@ -10,7 +10,7 @@ namespace LegalManager.Application.Services
         IUserRepository usersRepository,
         IAppointmentRepository appointmentsRepository) : ICaseService
     {
-        public Case Create(CreateCaseRequest request)
+        public CaseResponse Create(CreateCaseRequest request)
         {
             if (casesRepository.GetAll().Any(c => c.CaseNumber == request.CaseNumber))
                 throw new InvalidOperationException("Ya existe un expediente con ese número.");
@@ -29,36 +29,40 @@ namespace LegalManager.Application.Services
             var caseItem = new Case(request.CaseNumber, request.Title, request.Area, request.StartDate, request.Description, request.Notes, request.ClientId, (Lawyer)initialLawyer, request.CreatedByUserId);
             casesRepository.Add(caseItem);
             casesRepository.Save();
-            return caseItem;
+            return CaseResponse.Desde(caseItem);
         }
 
-        public IReadOnlyList<Case> GetAll() => casesRepository.GetAll();
+        public IReadOnlyList<CaseResponse> GetAll() => casesRepository.GetAll().Select(CaseResponse.Desde).ToList();
 
-        public Case? GetById(Guid id) => casesRepository.GetById(id);
-
-        public Case? Update(Guid id, UpdateCaseRequest request)
+        public CaseResponse? GetById(Guid id)
         {
-            var caseItem = GetById(id);
+            var caseItem = casesRepository.GetById(id);
+            return caseItem == null ? null : CaseResponse.Desde(caseItem);
+        }
+
+        public CaseResponse? Update(Guid id, UpdateCaseRequest request)
+        {
+            var caseItem = casesRepository.GetById(id);
             if (caseItem == null) return null;
 
             caseItem.UpdateDetails(request.Title, request.Area, request.Description, request.Notes);
             casesRepository.Save();
-            return caseItem;
+            return CaseResponse.Desde(caseItem);
         }
 
-        public Case? ChangeStatus(Guid id, ChangeStatusRequest request)
+        public CaseResponse? ChangeStatus(Guid id, ChangeStatusRequest request)
         {
-            var caseItem = GetById(id);
+            var caseItem = casesRepository.GetById(id);
             if (caseItem == null) return null;
 
             caseItem.ChangeStatus(request.Status);
             casesRepository.Save();
-            return caseItem;
+            return CaseResponse.Desde(caseItem);
         }
 
-        public Case? AddLawyer(Guid id, AddLawyerRequest request)
+        public CaseResponse? AddLawyer(Guid id, AddLawyerRequest request)
         {
-            var caseItem = GetById(id);
+            var caseItem = casesRepository.GetById(id);
             if (caseItem == null) return null;
 
             var lawyer = usersRepository.GetById(request.LawyerId);
@@ -67,12 +71,12 @@ namespace LegalManager.Application.Services
 
             caseItem.AddLawyer((Lawyer)lawyer);
             casesRepository.Save();
-            return caseItem;
+            return CaseResponse.Desde(caseItem);
         }
 
-        public Case? RemoveLawyer(Guid id, RemoveLawyerRequest request)
+        public CaseResponse? RemoveLawyer(Guid id, RemoveLawyerRequest request)
         {
-            var caseItem = GetById(id);
+            var caseItem = casesRepository.GetById(id);
             if (caseItem == null) return null;
 
             if (usersRepository.GetById(request.LawyerId) is not Lawyer)
@@ -80,12 +84,12 @@ namespace LegalManager.Application.Services
 
             caseItem.RemoveLawyer(request.LawyerId);
             casesRepository.Save();
-            return caseItem;
+            return CaseResponse.Desde(caseItem);
         }
 
         public bool Delete(Guid id)
         {
-            var caseItem = GetById(id);
+            var caseItem = casesRepository.GetById(id);
             if (caseItem == null) return false;
 
             var hasActiveAppointments = appointmentsRepository.GetAll()

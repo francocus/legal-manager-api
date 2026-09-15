@@ -11,7 +11,7 @@ public class DocumentService(
         IUserRepository usersRepository,
 string rootStoragePath) : IDocumentService
     {
-        public Document Upload(UploadDocumentRequest request)
+public DocumentResponse Upload(UploadDocumentRequest request)
         {
             var caseItem = casesRepository.GetById(request.CaseId);
             if (caseItem == null)
@@ -38,19 +38,23 @@ string rootStoragePath) : IDocumentService
                 request.FileContent.CopyTo(stream);
             }
 
-            var document = new Document(request.CaseId, request.FileName, fullPath, request.ContentType, request.Length, request.Type, request.UploadedByUserId);
+var document = new Document(request.CaseId, request.FileName, fullPath, request.ContentType, request.Length, request.Type, request.UploadedByUserId);
             documentsRepository.Add(document);
             documentsRepository.Save();
-            return document;
+            return DocumentResponse.Desde(document);
         }
 
-        public IReadOnlyList<Document> GetByCaseId(Guid caseId) => documentsRepository.GetByCaseId(caseId);
+public IReadOnlyList<DocumentResponse> GetByCaseId(Guid caseId) => documentsRepository.GetByCaseId(caseId).Select(DocumentResponse.Desde).ToList();
 
-        public Document? GetById(Guid id) => documentsRepository.GetById(id);
-
-        public (Stream Stream, string ContentType, string FileName)? Download(Guid id)
+        public DocumentResponse? GetById(Guid id)
         {
-            var document = GetById(id);
+            var document = documentsRepository.GetById(id);
+            return document == null ? null : DocumentResponse.Desde(document);
+        }
+
+public (Stream Stream, string ContentType, string FileName)? Download(Guid id)
+        {
+            var document = documentsRepository.GetById(id);
             if (document == null) return null;
 
             if (!File.Exists(document.FilePath))
@@ -60,7 +64,7 @@ string rootStoragePath) : IDocumentService
             return (stream, document.ContentType, document.FileName);
         }
 
-        public Document GenerateAiSummary(Guid caseId, Guid generatedByUserId)
+public DocumentResponse GenerateAiSummary(Guid caseId, Guid generatedByUserId)
         {
             var caseItem = casesRepository.GetById(caseId);
             if (caseItem == null)
@@ -80,30 +84,30 @@ string rootStoragePath) : IDocumentService
             var fullPath = Path.Combine(caseFolder, storedFileName);
             File.WriteAllText(fullPath, summary);
 
-            var document = Document.CreateAiSummary(caseId, fileName, fullPath, summary, generatedByUserId);
+var document = Document.CreateAiSummary(caseId, fileName, fullPath, summary, generatedByUserId);
             documentsRepository.Add(document);
             documentsRepository.Save();
-            return document;
+            return DocumentResponse.Desde(document);
         }
 
-        public Document? Approve(Guid documentId, Guid reviewedByUserId)
+        public DocumentResponse? Approve(Guid documentId, Guid reviewedByUserId)
         {
             var document = documentsRepository.GetById(documentId);
             if (document == null) return null;
 
             document.Approve(reviewedByUserId);
             documentsRepository.Save();
-            return document;
+            return DocumentResponse.Desde(document);
         }
 
-        public Document? Discard(Guid documentId, Guid reviewedByUserId)
+        public DocumentResponse? Discard(Guid documentId, Guid reviewedByUserId)
         {
             var document = documentsRepository.GetById(documentId);
             if (document == null) return null;
 
             document.Discard(reviewedByUserId);
             documentsRepository.Save();
-            return document;
+            return DocumentResponse.Desde(document);
         }
 
         private string ComposeSummaryText(Case caseItem)
@@ -121,9 +125,9 @@ string rootStoragePath) : IDocumentService
                    $" Descripción: {caseItem.Description}.{notes}";
         }
 
-        public bool Delete(Guid id)
+public bool Delete(Guid id)
         {
-            var document = GetById(id);
+            var document = documentsRepository.GetById(id);
             if (document == null) return false;
 
             document.Deactivate();

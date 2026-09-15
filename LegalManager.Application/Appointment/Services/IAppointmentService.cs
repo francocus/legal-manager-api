@@ -1,23 +1,22 @@
 using LegalManager.Application.DTOs;
-using LegalManager.Domain.Entities;
 
 namespace LegalManager.Application.Interfaces
 {
     public interface IAppointmentService
     {
-        Appointment Create(CreateAppointmentRequest request);
+        AppointmentResponse Create(CreateAppointmentRequest request);
 
-        IReadOnlyList<Appointment> GetAll();
+        IReadOnlyList<AppointmentResponse> GetAll();
 
         IReadOnlyList<TimeOnly> GetAvailability(Guid lawyerId, DateOnly date);
 
-        Appointment? GetById(Guid id);
+        AppointmentResponse? GetById(Guid id);
 
-        Appointment? Confirm(Guid id);
+        AppointmentResponse? Confirm(Guid id);
 
-        Appointment? Cancel(Guid id);
+        AppointmentResponse? Cancel(Guid id);
 
-        Appointment? Reschedule(Guid id, RescheduleAppointmentRequest request);
+        AppointmentResponse? Reschedule(Guid id, RescheduleAppointmentRequest request);
 
         bool Delete(Guid id);
     }
