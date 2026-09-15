@@ -22,61 +22,65 @@ namespace LegalManager.Application.Services
                 throw new InvalidOperationException("Ya existe un usuario con ese DNI.");
         }
 
-        public Client CreateClient(CreateClientRequest request)
+        public UserResponse CreateClient(CreateClientRequest request)
         {
             EnsureUnique(request.Email, request.Dni);
 
             var client = new Client(request.FirstName, request.LastName, request.Dni, request.Email, request.Password, request.Phone, request.Address);
             usersRepository.Add(client);
             usersRepository.Save();
-            return client;
+            return UserResponse.Desde(client);
         }
 
-        public Lawyer CreateLawyer(CreateLawyerRequest request)
+        public UserResponse CreateLawyer(CreateLawyerRequest request)
         {
             EnsureUnique(request.Email, request.Dni);
 
             var lawyer = new Lawyer(request.FirstName, request.LastName, request.Dni, request.Email, request.Password, request.BarNumber, request.Phone, request.Specialties);
             usersRepository.Add(lawyer);
             usersRepository.Save();
-            return lawyer;
+            return UserResponse.Desde(lawyer);
         }
 
-        public Admin CreateAdmin(CreateAdminRequest request)
+        public UserResponse CreateAdmin(CreateAdminRequest request)
         {
             EnsureUnique(request.Email, request.Dni);
 
             var admin = new Admin(request.FirstName, request.LastName, request.Dni, request.Email, request.Password);
             usersRepository.Add(admin);
             usersRepository.Save();
-            return admin;
+            return UserResponse.Desde(admin);
         }
 
-        public IReadOnlyList<User> GetAll() => usersRepository.GetAll();
+        public IReadOnlyList<UserResponse> GetAll() => usersRepository.GetAll().Select(UserResponse.Desde).ToList();
 
-        public IReadOnlyList<User> GetClients() => usersRepository.GetAll().OfType<Client>().ToList().AsReadOnly();
+        public IReadOnlyList<UserResponse> GetClients() => usersRepository.GetAll().OfType<Client>().Select(UserResponse.Desde).ToList().AsReadOnly();
 
-        public IReadOnlyList<User> GetLawyers() => usersRepository.GetAll().OfType<Lawyer>().ToList().AsReadOnly();
+        public IReadOnlyList<UserResponse> GetLawyers() => usersRepository.GetAll().OfType<Lawyer>().Select(UserResponse.Desde).ToList().AsReadOnly();
 
-        public IReadOnlyList<User> GetAdmins() => usersRepository.GetAll().OfType<Admin>().ToList().AsReadOnly();
+        public IReadOnlyList<UserResponse> GetAdmins() => usersRepository.GetAll().OfType<Admin>().Select(UserResponse.Desde).ToList().AsReadOnly();
 
-        public User? GetById(Guid id) => usersRepository.GetById(id);
-
-        public User? Update(Guid id, UpdateUserRequest request)
+        public UserResponse? GetById(Guid id)
         {
-            var user = GetById(id);
+            var user = usersRepository.GetById(id);
+            return user == null ? null : UserResponse.Desde(user);
+        }
+
+        public UserResponse? Update(Guid id, UpdateUserRequest request)
+        {
+            var user = usersRepository.GetById(id);
             if (user == null) return null;
 
             EnsureUnique(request.Email, request.Dni, id);
 
             user.UpdateDetails(request.FirstName, request.LastName, request.Dni, request.Email);
             usersRepository.Save();
-            return user;
+            return UserResponse.Desde(user);
         }
 
-        public User? UpdateClientPhone(Guid id, string? phone)
+        public UserResponse? UpdateClientPhone(Guid id, string? phone)
         {
-            var user = GetById(id);
+            var user = usersRepository.GetById(id);
             if (user == null) return null;
 
             if (user is not Client client)
@@ -84,12 +88,12 @@ namespace LegalManager.Application.Services
 
             client.UpdatePhone(phone);
             usersRepository.Save();
-            return client;
+            return UserResponse.Desde(client);
         }
 
-        public User? UpdateLawyerPhone(Guid id, string? phone)
+        public UserResponse? UpdateLawyerPhone(Guid id, string? phone)
         {
-            var user = GetById(id);
+            var user = usersRepository.GetById(id);
             if (user == null) return null;
 
             if (user is not Lawyer lawyer)
@@ -97,12 +101,12 @@ namespace LegalManager.Application.Services
 
             lawyer.UpdatePhone(phone);
             usersRepository.Save();
-            return lawyer;
+            return UserResponse.Desde(lawyer);
         }
 
-        public User? UpdateClientAddress(Guid id, string? address)
+        public UserResponse? UpdateClientAddress(Guid id, string? address)
         {
-            var user = GetById(id);
+            var user = usersRepository.GetById(id);
             if (user == null) return null;
 
             if (user is not Client client)
@@ -110,12 +114,12 @@ namespace LegalManager.Application.Services
 
             client.UpdateAddress(address);
             usersRepository.Save();
-            return client;
+            return UserResponse.Desde(client);
         }
 
-        public User? UpdateBarNumber(Guid id, string barNumber)
+        public UserResponse? UpdateBarNumber(Guid id, string barNumber)
         {
-            var user = GetById(id);
+            var user = usersRepository.GetById(id);
             if (user == null) return null;
 
             if (user is not Lawyer lawyer)
@@ -123,12 +127,12 @@ namespace LegalManager.Application.Services
 
             lawyer.UpdateBarNumber(barNumber);
             usersRepository.Save();
-            return lawyer;
+            return UserResponse.Desde(lawyer);
         }
 
-        public User? UpdateSpecialties(Guid id, IEnumerable<string> specialties)
+        public UserResponse? UpdateSpecialties(Guid id, IEnumerable<string> specialties)
         {
-            var user = GetById(id);
+            var user = usersRepository.GetById(id);
             if (user == null) return null;
 
             if (user is not Lawyer lawyer)
@@ -136,12 +140,12 @@ namespace LegalManager.Application.Services
 
             lawyer.UpdateSpecialties(specialties);
             usersRepository.Save();
-            return lawyer;
+            return UserResponse.Desde(lawyer);
         }
 
         public bool Delete(Guid id)
         {
-            var user = GetById(id);
+            var user = usersRepository.GetById(id);
             if (user == null) return false;
 
             var hasActiveCases = casesRepository.GetAll()

@@ -15,5 +15,10 @@ namespace LegalManager.Application.DTOs
         bool GeneratedByAI,
         Guid? ReviewedByUserId,
         DateOnly? ReviewedAt,
-        bool? Approved);
+        bool? Approved,
+        bool IsPendingReview)
+    {
+        public static DocumentResponse Desde(Document d) => new(
+            d.Id, d.CaseId, d.FileName, d.ContentType, d.SizeBytes, d.Type, d.UploadedByUserId, d.UploadDate, d.Active, d.GeneratedByAI, d.ReviewedByUserId, d.ReviewedAt, d.Approved, d.IsPendingReview);
+    }
 }

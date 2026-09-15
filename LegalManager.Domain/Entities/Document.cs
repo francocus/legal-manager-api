@@ -27,6 +27,7 @@ namespace LegalManager.Domain.Entities
         public Guid? ReviewedByUserId { get; private set; }
         public DateOnly? ReviewedAt { get; private set; }
         public bool? Approved { get; private set; }
+        public bool IsPendingReview => GeneratedByAI && ReviewedAt == null;
 
         private Document()
         {

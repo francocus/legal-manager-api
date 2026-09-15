@@ -16,10 +16,7 @@ namespace LegalManager.Presentation.Controllers
             this.documentService = documentService;
         }
 
-        private static DocumentResponse ToResponse(Document d) => new(
-    d.Id, d.CaseId, d.FileName, d.ContentType, d.SizeBytes, d.Type, d.UploadedByUserId, d.UploadDate, d.Active, d.GeneratedByAI, d.ReviewedByUserId, d.ReviewedAt, d.Approved);
-
-        [HttpPost]
+[HttpPost]
         [RequestSizeLimit(10 * 1024 * 1024)]
         public ActionResult<DocumentResponse> Upload([FromForm] Guid caseId, [FromForm] DocumentType type, [FromForm] Guid uploadedByUserId, IFormFile file)
         {
@@ -38,7 +35,7 @@ namespace LegalManager.Presentation.Controllers
                 };
 
                 var document = documentService.Upload(request);
-                return CreatedAtAction(nameof(GetById), new { id = document.Id }, ToResponse(document));
+                return CreatedAtAction(nameof(GetById), new { id = document.Id }, document);
             }
             catch (ArgumentException ex) { return BadRequest(ex.Message); }
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
@@ -46,14 +43,14 @@ namespace LegalManager.Presentation.Controllers
 
         [HttpGet("case/{caseId}")]
         public ActionResult<IReadOnlyList<DocumentResponse>> GetByCaseId([FromRoute] Guid caseId)
-            => Ok(documentService.GetByCaseId(caseId).Select(ToResponse).ToList());
+            => Ok(documentService.GetByCaseId(caseId));
 
         [HttpGet("{id}")]
         public ActionResult<DocumentResponse> GetById([FromRoute] Guid id)
         {
             var document = documentService.GetById(id);
             if (document == null) return NotFound($"No existe un documento con el id {id}.");
-            return Ok(ToResponse(document));
+            return Ok(document);
         }
 
         [HttpGet("{id}/download")]
@@ -74,7 +71,7 @@ namespace LegalManager.Presentation.Controllers
             try
             {
                 var document = documentService.GenerateAiSummary(caseId, generatedByUserId);
-                return CreatedAtAction(nameof(GetById), new { id = document.Id }, ToResponse(document));
+                return CreatedAtAction(nameof(GetById), new { id = document.Id }, document);
             }
             catch (ArgumentException ex) { return BadRequest(ex.Message); }
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
@@ -90,7 +87,7 @@ namespace LegalManager.Presentation.Controllers
 
                 var document = documentService.Approve(id, request.ReviewedByUserId);
                 if (document == null) return NotFound($"No existe un documento con el id {id}.");
-                return Ok(ToResponse(document));
+                return Ok(document);
             }
             catch (ArgumentException ex) { return BadRequest(ex.Message); }
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
@@ -106,7 +103,7 @@ namespace LegalManager.Presentation.Controllers
 
                 var document = documentService.Discard(id, request.ReviewedByUserId);
                 if (document == null) return NotFound($"No existe un documento con el id {id}.");
-                return Ok(ToResponse(document));
+                return Ok(document);
             }
             catch (ArgumentException ex) { return BadRequest(ex.Message); }
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }

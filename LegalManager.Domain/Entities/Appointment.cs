@@ -10,6 +10,7 @@
         public DateOnly Date { get; private set; }
         public TimeOnly Time { get; private set; }
         public TimeOnly EndTime { get; private set; }
+        public int DurationMinutes => (int)(EndTime - Time).TotalMinutes;
         public string? Reason { get; private set; }
         public AppointmentStatus Status { get; private set; }
         public AppointmentStatus EffectiveStatus =>

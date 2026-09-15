@@ -1,23 +1,22 @@
 using LegalManager.Application.DTOs;
-using LegalManager.Domain.Entities;
 
 namespace LegalManager.Application.Interfaces
 {
     public interface ICaseService
     {
-        Case Create(CreateCaseRequest request);
+        CaseResponse Create(CreateCaseRequest request);
 
-        IReadOnlyList<Case> GetAll();
+        IReadOnlyList<CaseResponse> GetAll();
 
-        Case? GetById(Guid id);
+        CaseResponse? GetById(Guid id);
 
-        Case? Update(Guid id, UpdateCaseRequest request);
+        CaseResponse? Update(Guid id, UpdateCaseRequest request);
 
-        Case? ChangeStatus(Guid id, ChangeStatusRequest request);
+        CaseResponse? ChangeStatus(Guid id, ChangeStatusRequest request);
 
-        Case? AddLawyer(Guid id, AddLawyerRequest request);
+        CaseResponse? AddLawyer(Guid id, AddLawyerRequest request);
 
-        Case? RemoveLawyer(Guid id, RemoveLawyerRequest request);
+        CaseResponse? RemoveLawyer(Guid id, RemoveLawyerRequest request);
 
         bool Delete(Guid id);
     }

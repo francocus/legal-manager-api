@@ -1,25 +1,13 @@
 ﻿using LegalManager.Application.DTOs;
 using LegalManager.Application.Interfaces;
-using LegalManager.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LegalManager.Presentation.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class CaseController : ControllerBase
+    public class CaseController(ICaseService caseService) : ControllerBase
     {
-        private readonly ICaseService caseService;
-
-        public CaseController(ICaseService caseService)
-        {
-            this.caseService = caseService;
-        }
-
-        private static CaseResponse ToResponse(Case c) => new(
-            c.Id, c.CaseNumber, c.Title, c.Area, c.Status,
-            c.StartDate, c.LastUpdate, c.ClosingDate,
-            c.Description, c.Notes, c.ClientId, c.CreatedByUserId, c.LawyerIds, c.Active);
 
         [HttpPost]
         public ActionResult<CaseResponse> Create([FromBody] CreateCaseRequest request)
@@ -27,7 +15,7 @@ namespace LegalManager.Presentation.Controllers
             try
             {
                 var caseItem = caseService.Create(request);
-                return CreatedAtAction(nameof(GetById), new { id = caseItem.Id }, ToResponse(caseItem));
+                return CreatedAtAction(nameof(GetById), new { id = caseItem.Id }, caseItem);
             }
             catch (ArgumentException ex) { return BadRequest(ex.Message); }
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
@@ -37,8 +25,7 @@ namespace LegalManager.Presentation.Controllers
         public ActionResult<IReadOnlyList<CaseResponse>> GetAll()
         {
             var cases = caseService.GetAll();
-            if (!cases.Any()) return NotFound("No hay elementos en la lista.");
-            return Ok(cases.Select(ToResponse).ToList());
+            return Ok(cases);
         }
 
         [HttpGet("{id}")]
@@ -46,7 +33,7 @@ namespace LegalManager.Presentation.Controllers
         {
             var caseItem = caseService.GetById(id);
             if (caseItem == null) return NotFound($"No existe un elemento con el id {id}.");
-            return Ok(ToResponse(caseItem));
+            return Ok(caseItem);
         }
 
         [HttpPut("{id}")]
@@ -56,7 +43,7 @@ namespace LegalManager.Presentation.Controllers
             {
                 var caseItem = caseService.Update(id, request);
                 if (caseItem == null) return NotFound($"No existe un elemento con el id {id}.");
-                return Ok(ToResponse(caseItem));
+                return Ok(caseItem);
             }
             catch (ArgumentException ex) { return BadRequest(ex.Message); }
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
@@ -69,7 +56,7 @@ namespace LegalManager.Presentation.Controllers
             {
                 var caseItem = caseService.ChangeStatus(id, request);
                 if (caseItem == null) return NotFound($"No existe un elemento con el id {id}.");
-                return Ok(ToResponse(caseItem));
+                return Ok(caseItem);
             }
             catch (ArgumentException ex) { return BadRequest(ex.Message); }
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
@@ -82,7 +69,7 @@ namespace LegalManager.Presentation.Controllers
             {
                 var caseItem = caseService.AddLawyer(id, request);
                 if (caseItem == null) return NotFound($"No existe un elemento con el id {id}.");
-                return Ok(ToResponse(caseItem));
+                return Ok(caseItem);
             }
             catch (ArgumentException ex) { return BadRequest(ex.Message); }
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
@@ -95,7 +82,7 @@ namespace LegalManager.Presentation.Controllers
             {
                 var caseItem = caseService.RemoveLawyer(id, request);
                 if (caseItem == null) return NotFound($"No existe un elemento con el id {id}.");
-                return Ok(ToResponse(caseItem));
+                return Ok(caseItem);
             }
             catch (ArgumentException ex) { return BadRequest(ex.Message); }
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }

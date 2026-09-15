@@ -1,24 +1,13 @@
 ﻿using LegalManager.Application.DTOs;
 using LegalManager.Application.Interfaces;
-using LegalManager.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LegalManager.Presentation.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class AppointmentController : ControllerBase
+    public class AppointmentController(IAppointmentService appointmentService) : ControllerBase
     {
-        private readonly IAppointmentService appointmentService;
-
-        public AppointmentController(IAppointmentService appointmentService)
-        {
-            this.appointmentService = appointmentService;
-        }
-
-        private static AppointmentResponse ToResponse(Appointment a) => new(
-            a.Id, a.Title, a.Date, a.Time, a.EndTime, a.Reason, a.Status, a.EffectiveStatus,
-            a.Area, a.Location, a.Notes, a.ClientId, a.LawyerId, a.CaseId, a.Active);
 
         [HttpPost]
         public ActionResult<AppointmentResponse> Create([FromBody] CreateAppointmentRequest request)
@@ -26,7 +15,7 @@ namespace LegalManager.Presentation.Controllers
             try
             {
                 var appointment = appointmentService.Create(request);
-                return CreatedAtAction(nameof(GetById), new { id = appointment.Id }, ToResponse(appointment));
+                return CreatedAtAction(nameof(GetById), new { id = appointment.Id }, appointment);
             }
             catch (ArgumentException ex) { return BadRequest(ex.Message); }
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
@@ -36,8 +25,7 @@ namespace LegalManager.Presentation.Controllers
         public ActionResult<IReadOnlyList<AppointmentResponse>> GetAll()
         {
             var appointments = appointmentService.GetAll();
-            if (!appointments.Any()) return NotFound("No hay elementos en la lista.");
-            return Ok(appointments.Select(ToResponse).ToList());
+            return Ok(appointments);
         }
 
         [HttpGet("availability")]
@@ -55,7 +43,7 @@ namespace LegalManager.Presentation.Controllers
         {
             var appointment = appointmentService.GetById(id);
             if (appointment == null) return NotFound($"No existe un elemento con el id {id}.");
-            return Ok(ToResponse(appointment));
+            return Ok(appointment);
         }
 
         [HttpPatch("{id}/confirm")]
@@ -65,7 +53,7 @@ namespace LegalManager.Presentation.Controllers
             {
                 var appointment = appointmentService.Confirm(id);
                 if (appointment == null) return NotFound($"No existe un elemento con el id {id}.");
-                return Ok(ToResponse(appointment));
+                return Ok(appointment);
             }
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
         }
@@ -77,7 +65,7 @@ namespace LegalManager.Presentation.Controllers
             {
                 var appointment = appointmentService.Cancel(id);
                 if (appointment == null) return NotFound($"No existe un elemento con el id {id}.");
-                return Ok(ToResponse(appointment));
+                return Ok(appointment);
             }
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
         }
@@ -89,7 +77,7 @@ namespace LegalManager.Presentation.Controllers
             {
                 var appointment = appointmentService.Reschedule(id, request);
                 if (appointment == null) return NotFound($"No existe un elemento con el id {id}.");
-                return Ok(ToResponse(appointment));
+                return Ok(appointment);
             }
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
         }

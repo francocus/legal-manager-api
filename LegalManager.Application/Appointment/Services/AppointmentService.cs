@@ -10,7 +10,7 @@ namespace LegalManager.Application.Services
         IUserRepository usersRepository,
         ICaseRepository casesRepository) : IAppointmentService
     {
-        public Appointment Create(CreateAppointmentRequest request)
+        public AppointmentResponse Create(CreateAppointmentRequest request)
         {
             if (usersRepository.GetById(request.ClientId) is not Client)
                 throw new ArgumentException("El cliente indicado no es válido.");
@@ -33,10 +33,10 @@ namespace LegalManager.Application.Services
             var appointment = new Appointment(request.Title, request.Date, request.Time, request.EndTime, request.Reason, area, request.Location, request.Notes, request.ClientId, request.LawyerId, request.CaseId);
             appointmentsRepository.Add(appointment);
             appointmentsRepository.Save();
-            return appointment;
+            return AppointmentResponse.Desde(appointment);
         }
 
-        public IReadOnlyList<Appointment> GetAll() => appointmentsRepository.GetAll();
+        public IReadOnlyList<AppointmentResponse> GetAll() => appointmentsRepository.GetAll().Select(AppointmentResponse.Desde).ToList();
 
         public IReadOnlyList<TimeOnly> GetAvailability(Guid lawyerId, DateOnly date)
         {
@@ -48,31 +48,35 @@ namespace LegalManager.Application.Services
                 .ToList();
         }
 
-        public Appointment? GetById(Guid id) => appointmentsRepository.GetById(id);
-
-        public Appointment? Confirm(Guid id)
+        public AppointmentResponse? GetById(Guid id)
         {
-            var appointment = GetById(id);
+            var appointment = appointmentsRepository.GetById(id);
+            return appointment == null ? null : AppointmentResponse.Desde(appointment);
+        }
+
+        public AppointmentResponse? Confirm(Guid id)
+        {
+            var appointment = appointmentsRepository.GetById(id);
             if (appointment == null) return null;
 
             appointment.Confirm();
             appointmentsRepository.Save();
-            return appointment;
+            return AppointmentResponse.Desde(appointment);
         }
 
-        public Appointment? Cancel(Guid id)
+        public AppointmentResponse? Cancel(Guid id)
         {
-            var appointment = GetById(id);
+            var appointment = appointmentsRepository.GetById(id);
             if (appointment == null) return null;
 
             appointment.Cancel();
             appointmentsRepository.Save();
-            return appointment;
+            return AppointmentResponse.Desde(appointment);
         }
 
-        public Appointment? Reschedule(Guid id, RescheduleAppointmentRequest request)
+        public AppointmentResponse? Reschedule(Guid id, RescheduleAppointmentRequest request)
         {
-            var appointment = GetById(id);
+            var appointment = appointmentsRepository.GetById(id);
             if (appointment == null) return null;
 
             if (appointmentsRepository.HasScheduleConflict(appointment.LawyerId, request.Date, request.Time))
@@ -80,12 +84,12 @@ namespace LegalManager.Application.Services
 
             appointment.Reschedule(request.Date, request.Time, request.EndTime);
             appointmentsRepository.Save();
-            return appointment;
+            return AppointmentResponse.Desde(appointment);
         }
 
         public bool Delete(Guid id)
         {
-            var appointment = GetById(id);
+            var appointment = appointmentsRepository.GetById(id);
             if (appointment == null) return false;
 
             appointment.Deactivate();
