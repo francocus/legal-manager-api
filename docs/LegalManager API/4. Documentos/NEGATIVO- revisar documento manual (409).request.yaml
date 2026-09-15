@@ -1,6 +1,6 @@
 $kind: http-request
 name: "NEGATIVO: revisar documento manual (409)"
-url: "{{baseUrl}}/api/document/{{uploadedDocumentId}}/review"
+url: "{{baseUrl}}/api/document/{{uploadedDocumentId}}/approve"
 method: PATCH
 headers:
   Content-Type: application/json
