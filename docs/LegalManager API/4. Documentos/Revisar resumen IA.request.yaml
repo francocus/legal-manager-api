@@ -1,6 +1,6 @@
 $kind: http-request
 name: Revisar resumen IA
-url: "{{baseUrl}}/api/document/{{documentId}}/review"
+url: "{{baseUrl}}/api/document/{{documentId}}/approve"
 method: PATCH
 headers:
   Content-Type: application/json
@@ -11,5 +11,6 @@ scripts:
   - type: afterResponse
     code: |-
       pm.test('200 OK', () => pm.response.to.have.status(200));
-      pm.test('Documento revisado', () => pm.expect(pm.response.json().reviewedByUserId).to.eql(pm.collectionVariables.get('lawyerId')));
+      pm.test('Documento aprobado', () => pm.expect(pm.response.json().approved).to.eql(true));
+      pm.test('Revisado por el abogado', () => pm.expect(pm.response.json().reviewedByUserId).to.eql(pm.collectionVariables.get('lawyerId')));
 order: 6000
