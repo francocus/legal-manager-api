@@ -5,13 +5,13 @@ using LegalManager.Domain.Interfaces;
 
 namespace LegalManager.Application.Services
 {
-public class DocumentService(
+    public class DocumentService(
         IDocumentRepository documentsRepository,
         ICaseRepository casesRepository,
-        IUserRepository usersRepository,
-string rootStoragePath) : IDocumentService
+        ICurrentUser currentUser,
+        string rootStoragePath) : IDocumentService
     {
-public DocumentResponse Upload(UploadDocumentRequest request)
+        public DocumentResponse Upload(UploadDocumentRequest request)
         {
             var caseItem = casesRepository.GetById(request.CaseId);
             if (caseItem == null)
@@ -20,8 +20,7 @@ public DocumentResponse Upload(UploadDocumentRequest request)
             if (caseItem.Status == CaseStatus.Cerrado)
                 throw new InvalidOperationException("No se pueden agregar documentos a un expediente cerrado.");
 
-            if (usersRepository.GetById(request.UploadedByUserId) == null)
-                throw new ArgumentException("El usuario que sube el documento no es válido.");
+            EnsureCanWrite(caseItem);
 
             if (request.FileContent == null || request.Length == 0)
                 throw new ArgumentException("Debe adjuntarse un archivo.");
@@ -38,24 +37,37 @@ public DocumentResponse Upload(UploadDocumentRequest request)
                 request.FileContent.CopyTo(stream);
             }
 
-var document = new Document(request.CaseId, request.FileName, fullPath, request.ContentType, request.Length, request.Type, request.UploadedByUserId);
+            var document = new Document(request.CaseId, request.FileName, fullPath, request.ContentType, request.Length, request.Type, currentUser.Id);
             documentsRepository.Add(document);
             documentsRepository.Save();
             return DocumentResponse.Desde(document);
         }
 
-public IReadOnlyList<DocumentResponse> GetByCaseId(Guid caseId) => documentsRepository.GetByCaseId(caseId).Select(DocumentResponse.Desde).ToList();
+        public IReadOnlyList<DocumentResponse> GetByCaseId(Guid caseId)
+        {
+            var caseItem = casesRepository.GetById(caseId);
+            if (caseItem != null)
+                EnsureCanRead(caseItem);
+
+            return documentsRepository.GetByCaseId(caseId).Select(DocumentResponse.Desde).ToList();
+        }
 
         public DocumentResponse? GetById(Guid id)
         {
             var document = documentsRepository.GetById(id);
-            return document == null ? null : DocumentResponse.Desde(document);
+            if (document == null) return null;
+
+            EnsureDocumentAccess(document);
+
+            return DocumentResponse.Desde(document);
         }
 
-public (Stream Stream, string ContentType, string FileName)? Download(Guid id)
+        public (Stream Stream, string ContentType, string FileName)? Download(Guid id)
         {
             var document = documentsRepository.GetById(id);
             if (document == null) return null;
+
+            EnsureDocumentAccess(document);
 
             if (!File.Exists(document.FilePath))
                 throw new InvalidOperationException("El archivo del documento no se encuentra en el servidor.");
@@ -64,14 +76,13 @@ public (Stream Stream, string ContentType, string FileName)? Download(Guid id)
             return (stream, document.ContentType, document.FileName);
         }
 
-public DocumentResponse GenerateAiSummary(Guid caseId, Guid generatedByUserId)
+        public DocumentResponse GenerateAiSummary(Guid caseId)
         {
             var caseItem = casesRepository.GetById(caseId);
             if (caseItem == null)
                 throw new ArgumentException("El expediente indicado no existe.");
 
-            if (usersRepository.GetById(generatedByUserId) == null)
-                throw new ArgumentException("El usuario que genera el resumen no es válido.");
+            EnsureCanWrite(caseItem);
 
             var summary = ComposeSummaryText(caseItem);
 
@@ -84,30 +95,46 @@ public DocumentResponse GenerateAiSummary(Guid caseId, Guid generatedByUserId)
             var fullPath = Path.Combine(caseFolder, storedFileName);
             File.WriteAllText(fullPath, summary);
 
-var document = Document.CreateAiSummary(caseId, fileName, fullPath, summary, generatedByUserId);
+            var document = Document.CreateAiSummary(caseId, fileName, fullPath, summary, currentUser.Id);
             documentsRepository.Add(document);
             documentsRepository.Save();
             return DocumentResponse.Desde(document);
         }
 
-        public DocumentResponse? Approve(Guid documentId, Guid reviewedByUserId)
+        public DocumentResponse? Approve(Guid documentId)
         {
             var document = documentsRepository.GetById(documentId);
             if (document == null) return null;
 
-            document.Approve(reviewedByUserId);
+            EnsureDocumentWrite(document);
+
+            document.Approve(currentUser.Id);
             documentsRepository.Save();
             return DocumentResponse.Desde(document);
         }
 
-        public DocumentResponse? Discard(Guid documentId, Guid reviewedByUserId)
+        public DocumentResponse? Discard(Guid documentId)
         {
             var document = documentsRepository.GetById(documentId);
             if (document == null) return null;
 
-            document.Discard(reviewedByUserId);
+            EnsureDocumentWrite(document);
+
+            document.Discard(currentUser.Id);
             documentsRepository.Save();
             return DocumentResponse.Desde(document);
+        }
+
+        public bool Delete(Guid id)
+        {
+            var document = documentsRepository.GetById(id);
+            if (document == null) return false;
+
+            EnsureDocumentWrite(document);
+
+            document.Deactivate();
+            documentsRepository.Save();
+            return true;
         }
 
         private string ComposeSummaryText(Case caseItem)
@@ -125,14 +152,41 @@ var document = Document.CreateAiSummary(caseId, fileName, fullPath, summary, gen
                    $" Descripción: {caseItem.Description}.{notes}";
         }
 
-public bool Delete(Guid id)
+        private void EnsureDocumentAccess(Document document)
         {
-            var document = documentsRepository.GetById(id);
-            if (document == null) return false;
+            var caseItem = casesRepository.GetById(document.CaseId);
+            if (caseItem == null) return;
 
-            document.Deactivate();
-            documentsRepository.Save();
-            return true;
+            EnsureCanRead(caseItem);
+        }
+
+        private void EnsureDocumentWrite(Document document)
+        {
+            var caseItem = casesRepository.GetById(document.CaseId);
+            if (caseItem == null)
+                throw new ArgumentException("El expediente indicado no existe.");
+
+            EnsureCanWrite(caseItem);
+        }
+
+        private void EnsureCanWrite(Case caseItem)
+        {
+            if (currentUser.IsAdmin) return;
+
+            if (currentUser.IsLawyer && caseItem.LawyerIds.Contains(currentUser.Id)) return;
+
+            throw new ForbiddenException("Solo el administrador o un abogado que gestiona el expediente pueden realizar esta operación.");
+        }
+
+        private void EnsureCanRead(Case caseItem)
+        {
+            if (currentUser.IsAdmin) return;
+
+            if (currentUser.IsLawyer && caseItem.LawyerIds.Contains(currentUser.Id)) return;
+
+            if (currentUser.IsClient && caseItem.ClientId == currentUser.Id) return;
+
+            throw new ForbiddenException("No tiene acceso a este expediente.");
         }
     }
 }

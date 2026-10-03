@@ -1,14 +1,16 @@
 ﻿using LegalManager.Application.DTOs;
 using LegalManager.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LegalManager.Presentation.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Policy = Policies.AllRoles)]
     public class CaseController(ICaseService caseService) : ControllerBase
     {
-
+        [Authorize(Policy = Policies.AdminOrLawyer)]
         [HttpPost]
         public ActionResult<CaseResponse> Create([FromBody] CreateCaseRequest request)
         {
@@ -36,6 +38,7 @@ namespace LegalManager.Presentation.Controllers
             return Ok(caseItem);
         }
 
+        [Authorize(Policy = Policies.AdminOrLawyer)]
         [HttpPut("{id}")]
         public ActionResult<CaseResponse> Update([FromRoute] Guid id, [FromBody] UpdateCaseRequest request)
         {
@@ -49,6 +52,7 @@ namespace LegalManager.Presentation.Controllers
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
         }
 
+        [Authorize(Policy = Policies.AdminOrLawyer)]
         [HttpPatch("{id}/status")]
         public ActionResult<CaseResponse> ChangeStatus([FromRoute] Guid id, [FromBody] ChangeStatusRequest request)
         {
@@ -62,6 +66,7 @@ namespace LegalManager.Presentation.Controllers
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
         }
 
+        [Authorize(Policy = Policies.AdminOrLawyer)]
         [HttpPatch("{id}/lawyers/add")]
         public ActionResult<CaseResponse> AddLawyer([FromRoute] Guid id, [FromBody] AddLawyerRequest request)
         {
@@ -75,6 +80,7 @@ namespace LegalManager.Presentation.Controllers
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
         }
 
+        [Authorize(Policy = Policies.AdminOrLawyer)]
         [HttpPatch("{id}/lawyers/remove")]
         public ActionResult<CaseResponse> RemoveLawyer([FromRoute] Guid id, [FromBody] RemoveLawyerRequest request)
         {
@@ -88,6 +94,7 @@ namespace LegalManager.Presentation.Controllers
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
         }
 
+        [Authorize(Policy = Policies.AdminsOnly)]
         [HttpDelete("{id}")]
         public ActionResult Delete([FromRoute] Guid id)
         {

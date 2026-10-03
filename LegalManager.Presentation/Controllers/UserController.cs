@@ -1,14 +1,16 @@
 ﻿using LegalManager.Application.DTOs;
 using LegalManager.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LegalManager.Presentation.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Policy = Policies.AllRoles)]
     public class UserController(IUserService userService) : ControllerBase
     {
-
+        [AllowAnonymous]
         [HttpPost("client")]
         public ActionResult<UserResponse> CreateClient([FromBody] CreateClientRequest request)
         {
@@ -21,6 +23,7 @@ namespace LegalManager.Presentation.Controllers
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
         }
 
+        [Authorize(Policy = Policies.AdminsOnly)]
         [HttpPost("lawyer")]
         public ActionResult<UserResponse> CreateLawyer([FromBody] CreateLawyerRequest request)
         {
@@ -33,6 +36,7 @@ namespace LegalManager.Presentation.Controllers
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
         }
 
+        [Authorize(Policy = Policies.AdminsOnly)]
         [HttpPost("admin")]
         public ActionResult<UserResponse> CreateAdmin([FromBody] CreateAdminRequest request)
         {
@@ -45,6 +49,7 @@ namespace LegalManager.Presentation.Controllers
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
         }
 
+        [Authorize(Policy = Policies.AdminsOnly)]
         [HttpGet]
         public ActionResult<IReadOnlyList<UserResponse>> GetAll()
         {
@@ -52,6 +57,7 @@ namespace LegalManager.Presentation.Controllers
             return Ok(users);
         }
 
+        [Authorize(Policy = Policies.AdminOrLawyer)]
         [HttpGet("clients")]
         public ActionResult<IReadOnlyList<UserResponse>> GetClients()
             => Ok(userService.GetClients());
@@ -60,6 +66,7 @@ namespace LegalManager.Presentation.Controllers
         public ActionResult<IReadOnlyList<UserResponse>> GetLawyers()
             => Ok(userService.GetLawyers());
 
+        [Authorize(Policy = Policies.AdminsOnly)]
         [HttpGet("admins")]
         public ActionResult<IReadOnlyList<UserResponse>> GetAdmins()
             => Ok(userService.GetAdmins());
@@ -72,6 +79,7 @@ namespace LegalManager.Presentation.Controllers
             return Ok(user);
         }
 
+        [Authorize(Policy = Policies.AdminsOnly)]
         [HttpPut("{id}")]
         public ActionResult<UserResponse> Update([FromRoute] Guid id, [FromBody] UpdateUserRequest request)
         {
@@ -121,6 +129,7 @@ namespace LegalManager.Presentation.Controllers
             catch (ArgumentException ex) { return BadRequest(ex.Message); }
         }
 
+        [Authorize(Policy = Policies.AdminsOnly)]
         [HttpPatch("lawyer/{id}/bar-number")]
         public ActionResult<UserResponse> UpdateBarNumber([FromRoute] Guid id, [FromBody] UpdateBarNumberRequest request)
         {
@@ -133,6 +142,7 @@ namespace LegalManager.Presentation.Controllers
             catch (ArgumentException ex) { return BadRequest(ex.Message); }
         }
 
+        [Authorize(Policy = Policies.AdminsOnly)]
         [HttpPatch("lawyer/{id}/specialties")]
         public ActionResult<UserResponse> UpdateSpecialties([FromRoute] Guid id, [FromBody] UpdateSpecialtiesRequest request)
         {
@@ -145,6 +155,7 @@ namespace LegalManager.Presentation.Controllers
             catch (ArgumentException ex) { return BadRequest(ex.Message); }
         }
 
+        [Authorize(Policy = Policies.AdminsOnly)]
         [HttpDelete("{id}")]
         public ActionResult Delete([FromRoute] Guid id)
         {

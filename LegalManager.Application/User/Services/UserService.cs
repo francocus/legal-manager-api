@@ -9,7 +9,8 @@ namespace LegalManager.Application.Services
         IUserRepository usersRepository,
         ICaseRepository casesRepository,
         IAppointmentRepository appointmentsRepository,
-        IPasswordHasher passwordHasher) : IUserService
+        IPasswordHasher passwordHasher,
+        ICurrentUser currentUser) : IUserService
     {
         private string HashPassword(string password)
         {
@@ -72,7 +73,11 @@ namespace LegalManager.Application.Services
         public UserResponse? GetById(Guid id)
         {
             var user = usersRepository.GetById(id);
-            return user == null ? null : UserResponse.Desde(user);
+            if (user == null) return null;
+
+            EnsureCanRead(user);
+
+            return UserResponse.Desde(user);
         }
 
         public UserResponse? Update(Guid id, UpdateUserRequest request)
@@ -92,6 +97,8 @@ namespace LegalManager.Application.Services
             var user = usersRepository.GetById(id);
             if (user == null) return null;
 
+            EnsureCanEditContact(user);
+
             if (user is not Client client)
                 throw new ArgumentException("El usuario indicado no es un cliente.");
 
@@ -105,6 +112,8 @@ namespace LegalManager.Application.Services
             var user = usersRepository.GetById(id);
             if (user == null) return null;
 
+            EnsureCanEditContact(user);
+
             if (user is not Lawyer lawyer)
                 throw new ArgumentException("El usuario indicado no es un abogado.");
 
@@ -117,6 +126,8 @@ namespace LegalManager.Application.Services
         {
             var user = usersRepository.GetById(id);
             if (user == null) return null;
+
+            EnsureCanEditContact(user);
 
             if (user is not Client client)
                 throw new ArgumentException("El usuario indicado no es un cliente.");
@@ -157,6 +168,9 @@ namespace LegalManager.Application.Services
             var user = usersRepository.GetById(id);
             if (user == null) return false;
 
+            if (user.Id == currentUser.Id)
+                throw new ForbiddenException("Un usuario no puede darse de baja a sí mismo.");
+
             var hasActiveCases = casesRepository.GetAll()
                 .Any(c => (c.ClientId == id || c.LawyerIds.Contains(id)) && c.Status != CaseStatus.Cerrado);
 
@@ -170,6 +184,36 @@ namespace LegalManager.Application.Services
             user.Deactivate();
             usersRepository.Save();
             return true;
+        }
+
+        private void EnsureCanRead(User user)
+        {
+            if (currentUser.IsAdmin) return;
+
+            if (user.Id == currentUser.Id) return;
+
+            if (currentUser.IsLawyer && user is Client && IsClientLinkedToLawyer(user.Id)) return;
+
+            if (currentUser.IsClient && user is Lawyer) return;
+
+            throw new ForbiddenException("No tiene acceso a este usuario.");
+        }
+
+        private void EnsureCanEditContact(User user)
+        {
+            if (currentUser.IsAdmin) return;
+
+            if (user.Id == currentUser.Id) return;
+
+            throw new ForbiddenException("Solo puede modificar sus propios datos de contacto.");
+        }
+
+        private bool IsClientLinkedToLawyer(Guid clientId)
+        {
+            if (casesRepository.GetAll().Any(c => c.ClientId == clientId && c.LawyerIds.Contains(currentUser.Id)))
+                return true;
+
+            return appointmentsRepository.GetAll().Any(a => a.ClientId == clientId && a.LawyerId == currentUser.Id);
         }
     }
 }

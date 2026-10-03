@@ -6,7 +6,7 @@ namespace LegalManager.Application.Interfaces
     {
         DocumentResponse Upload(UploadDocumentRequest request);
 
-        DocumentResponse GenerateAiSummary(Guid caseId, Guid generatedByUserId);
+        DocumentResponse GenerateAiSummary(Guid caseId);
 
         IReadOnlyList<DocumentResponse> GetByCaseId(Guid caseId);
 
@@ -14,9 +14,9 @@ namespace LegalManager.Application.Interfaces
 
         (Stream Stream, string ContentType, string FileName)? Download(Guid id);
 
-        DocumentResponse? Approve(Guid documentId, Guid reviewedByUserId);
+        DocumentResponse? Approve(Guid documentId);
 
-        DocumentResponse? Discard(Guid documentId, Guid reviewedByUserId);
+        DocumentResponse? Discard(Guid documentId);
 
         bool Delete(Guid id);
     }

@@ -8,7 +8,8 @@ namespace LegalManager.Application.Services
     public class CaseService(
         ICaseRepository casesRepository,
         IUserRepository usersRepository,
-        IAppointmentRepository appointmentsRepository) : ICaseService
+        IAppointmentRepository appointmentsRepository,
+        ICurrentUser currentUser) : ICaseService
     {
         public CaseResponse Create(CreateCaseRequest request)
         {
@@ -22,28 +23,44 @@ namespace LegalManager.Application.Services
             if (initialLawyer is not Lawyer)
                 throw new ArgumentException("El abogado indicado no es válido.");
 
-            var createdBy = usersRepository.GetById(request.CreatedByUserId);
-            if (createdBy is not Lawyer && createdBy is not Admin)
-                throw new ArgumentException("El expediente solo puede ser creado por un abogado o un administrador.");
+            if (currentUser.IsLawyer && request.LawyerId != currentUser.Id)
+                throw new ForbiddenException("Un abogado solo puede crear expedientes a su propio nombre.");
 
-            var caseItem = new Case(request.CaseNumber, request.Title, request.Area, request.StartDate, request.Description, request.Notes, request.ClientId, (Lawyer)initialLawyer, request.CreatedByUserId);
+            var caseItem = new Case(request.CaseNumber, request.Title, request.Area, request.StartDate, request.Description, request.Notes, request.ClientId, (Lawyer)initialLawyer, currentUser.Id);
             casesRepository.Add(caseItem);
             casesRepository.Save();
             return CaseResponse.Desde(caseItem);
         }
 
-        public IReadOnlyList<CaseResponse> GetAll() => casesRepository.GetAll().Select(CaseResponse.Desde).ToList();
+        public IReadOnlyList<CaseResponse> GetAll()
+        {
+            var cases = casesRepository.GetAll();
+
+            if (currentUser.IsAdmin)
+                return cases.Select(CaseResponse.Desde).ToList();
+
+            if (currentUser.IsLawyer)
+                return cases.Where(c => c.LawyerIds.Contains(currentUser.Id)).Select(CaseResponse.Desde).ToList();
+
+            return cases.Where(c => c.ClientId == currentUser.Id).Select(CaseResponse.Desde).ToList();
+        }
 
         public CaseResponse? GetById(Guid id)
         {
             var caseItem = casesRepository.GetById(id);
-            return caseItem == null ? null : CaseResponse.Desde(caseItem);
+            if (caseItem == null) return null;
+
+            EnsureCanAccess(caseItem);
+
+            return CaseResponse.Desde(caseItem);
         }
 
         public CaseResponse? Update(Guid id, UpdateCaseRequest request)
         {
             var caseItem = casesRepository.GetById(id);
             if (caseItem == null) return null;
+
+            EnsureCanManage(caseItem);
 
             caseItem.UpdateDetails(request.Title, request.Area, request.Description, request.Notes);
             casesRepository.Save();
@@ -55,6 +72,8 @@ namespace LegalManager.Application.Services
             var caseItem = casesRepository.GetById(id);
             if (caseItem == null) return null;
 
+            EnsureCanManage(caseItem);
+
             caseItem.ChangeStatus(request.Status);
             casesRepository.Save();
             return CaseResponse.Desde(caseItem);
@@ -64,6 +83,8 @@ namespace LegalManager.Application.Services
         {
             var caseItem = casesRepository.GetById(id);
             if (caseItem == null) return null;
+
+            EnsureCanManage(caseItem);
 
             var lawyer = usersRepository.GetById(request.LawyerId);
             if (lawyer is not Lawyer)
@@ -78,6 +99,8 @@ namespace LegalManager.Application.Services
         {
             var caseItem = casesRepository.GetById(id);
             if (caseItem == null) return null;
+
+            EnsureCanManage(caseItem);
 
             if (usersRepository.GetById(request.LawyerId) is not Lawyer)
                 throw new ArgumentException("El abogado indicado no es válido.");
@@ -102,6 +125,26 @@ namespace LegalManager.Application.Services
             caseItem.Deactivate();
             casesRepository.Save();
             return true;
+        }
+
+        private void EnsureCanManage(Case caseItem)
+        {
+            if (currentUser.IsAdmin) return;
+
+            if (currentUser.IsLawyer && caseItem.LawyerIds.Contains(currentUser.Id)) return;
+
+            throw new ForbiddenException("Solo el administrador o un abogado que gestiona el expediente pueden modificarlo.");
+        }
+
+        private void EnsureCanAccess(Case caseItem)
+        {
+            if (currentUser.IsAdmin) return;
+
+            if (currentUser.IsLawyer && caseItem.LawyerIds.Contains(currentUser.Id)) return;
+
+            if (currentUser.IsClient && caseItem.ClientId == currentUser.Id) return;
+
+            throw new ForbiddenException("No tiene acceso a este expediente.");
         }
     }
 }
