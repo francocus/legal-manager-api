@@ -19,7 +19,8 @@ BASE: 8675ad7 (Added auth packages)
 - [x] Fase A — paridad con el profe
 - [x] Fase B — usuario actual + reglas de pertenencia
 - [x] Fase C — seed del primer admin
-- [ ] Fase D — Postman
+- [x] Fase D — Postman
+- [x] Fase E — el DNI solo para admin y el propio usuario
 
 ## Fase A: complete
 Archivos: Domain/Entities/{User,Client,Lawyer,Admin}.cs (Password->PasswordHash),
@@ -50,9 +51,9 @@ Verificacion (app real contra SQL Server local, http://localhost:5199):
 
 Nota: `GET /api/user` sin token da 200 todavia — correcto, las policies por endpoint
 son de la Fase B. El 401 se verifica ahi.
-- [ ] Fase B — usuario actual + reglas de pertenencia
-- [ ] Fase C — seed del primer admin
-- [ ] Fase D — Postman
+- [x] Fase B — usuario actual + reglas de pertenencia
+- [x] Fase C — seed del primer admin
+- [x] Fase D — Postman
 ## Fase B: complete
 Archivos: Application/Auth/Services/ICurrentUser.cs, Application/ForbiddenException.cs,
 Presentation/Security/{CurrentUser,ForbiddenExceptionMiddleware}.cs,
@@ -84,7 +85,7 @@ Fallos iniciales que resultaron ser bugs DEL SCRIPT (no de la app), por sihay qu
 9. Approve/Discard solo sobre documentos GeneratedByAI (minuta: "sujeto a revision").
 10. Invoke-WebRequest deja ErrorDetails vacio en 403: verificar el cuerpo con curl.
 
-Confirmado por curl que los 403 llevan el mensaje en espa�ol:
+Confirmado por curl que los 403 llevan el mensaje en español:
 "No tiene acceso a este expediente." / "No tiene acceso a este usuario." /
 "Solo el administrador o un abogado que gestiona el expediente pueden realizar esta operacion." /
 "Un usuario no puede darse de baja a si mismo."
@@ -110,11 +111,57 @@ un expediente ajeno (403).
 
 TRAMPA DE ENCODING (2 veces me comio el archivo): PowerShell 5.1 lee los .ps1 como ANSI,
 asi que un literal acentuado en el script?? al JSON queda doble-codificado
-("Coloc�" -> "Colocá"). Resolver: [IO.File]::ReadAllText(path, [Text.Encoding]::UTF8)
-y WriteAllText con UTF8Encoding($false). Verificar con Contains('�') == $false.
+("Colocá" -> "ColocÃ¡"). Resolver: [IO.File]::ReadAllText(path, [Text.Encoding]::UTF8)
+y WriteAllText con UTF8Encoding($false). Verificar con Contains([char]0xFFFD) == $false.
+
+## Fase E: complete — el DNI deja de ser dato público
+Archivos: Application/User/DTOs/Response/UserResponse.cs (`Dni` -> `string?`,
+`Desde(User)` -> `Desde(User, bool includeDni)`),
+Application/User/Services/UserService.cs (helper `CanSeeDni(user) => currentUser.IsAdmin
+|| user.Id == currentUser.Id`, aplicado en los 14 call sites, incluidos los 4 listados).
+Sin controllers, policies, entidades ni migracion.
+
+Ruling de negocio (el usuario pidio "lo mejor para el modelo de negocio real"):
+un cliente PUEDE pedir turno a un abogado no vinculado (201) -> SE MANTIENE, ahora con
+motivo. La consulta inicial ES el evento que crea el vinculo (linea 72) y el veto real ya
+existe: el turno nace Pendiente (linea 64) y lo confirma el abogado. Un 403 dejaria al
+cliente autorregistrado (`POST /api/user/client` es anonimo) sin nada que hacer hasta que
+un admin le cree un expediente, y mataria el camino que la linea 72 describe. El abogado, en
+cambio, si agenda solo para clientes vinculados (lineas 80 y 125): esa asimetria es la
+coherente.
+
+Dato de la minuta que NO dice lo que yo decia: la linea 92 habilita el TELEFONO como dato de
+contacto visible, y la 94 pide unicidad de email y DNI pero no dice que sean visibles. No
+dice que el DNI sea publico, asi que ocultarlo es la lectura defensible.
+
+Correccion de un error previo del ledger: ESTADO.md §14 decia que `UserResponse` exponia
+`BarNumber`. NO lo expone. El record es Id, FirstName, LastName, FullName, Dni, Email,
+RegistrationDate, Type, Phone, Address. `BarNumber` y `Specialties` tampoco estan. Bullet
+corregido.
+
+Verificacion (app real, https://localhost:7233): 25 asserts, TODOS pasan.
+Evidencia cruda, mismo endpoint y mismo abogado:
+  cliente -> {"id":"4815...","fullName":"Dni Abog","dni":null,"email":"...","phone":"11-9999"}
+  admin   -> {"id":"4815...","fullName":"Dni Abog","dni":"902686492","email":"...","phone":"11-9999"}
+Matriz: admin ve DNI en lista y en GET /user/{id}; cliente ve dni null en ambos, pero phone y
+email siguen visibles (§92); cliente ve su propio DNI; abogado ve su DNI en su fila de
+GET /lawyers y null en las otras; abogado -> GET /user/{cliente no vinculado} = 403 (sin
+cambio); POST /api/user/client anonimo -> dni null; turno a abogado no vinculado -> 201
+(confirma que no se movio). `dotnet build` 0 warnings 0 errores.
+
+TRAMPAS NUEVAS DEL HARNESS (ninguna era bug de la app):
+11. PowerShell 5.1 SE COME las comillas dobles internas al splatear argumentos a un
+    exe nativo: `curl.exe -d '{"a":"b"}'` llega como `{a:b}` -> 400 "'a' is an invalid start
+    of a property name". Fix: armar el JSON con ConvertTo-Json, escribirlo a un archivo UTF-8
+    sin BOM y pasarlo con `-d "@archivo"`. Sirve para CADA body, no solo el que falla.
+12. `Appointment.ValidSlots` son 09:00 / 10:30 / 12:00 / 14:00 / 15:30 / 17:00. Un `time`
+    fuera de la lista da 400 con el mensaje "Horario invalido...".
+13. Un 403 sin sesion previa (por ejemplo el 403 de un abogado mirando un cliente no
+    vinculado) devuelve cuerpo de texto plano en espanol -> `ConvertFrom-Json` tira
+    "Primitivo JSON no valido". Guardar el status y solo parsear cuando sea 2xx.
 
 ## Commits
 d5a0bf8 feat: autenticacion JWT con login, hashing y policies por rol
 c674c24 feat: autorizacion por rol con reglas de pertenencia de la minuta
 32a275e feat: seed idempotente del primer administrador
-(+ el de Fase D al final)
+(+ el de Fase D y el de Fase E al final)

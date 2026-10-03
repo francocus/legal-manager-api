@@ -39,7 +39,7 @@ namespace LegalManager.Application.Services
             var client = new Client(request.FirstName, request.LastName, request.Dni, request.Email, HashPassword(request.Password), request.Phone, request.Address);
             usersRepository.Add(client);
             usersRepository.Save();
-            return UserResponse.Desde(client);
+            return UserResponse.Desde(client, CanSeeDni(client));
         }
 
         public UserResponse CreateLawyer(CreateLawyerRequest request)
@@ -49,7 +49,7 @@ namespace LegalManager.Application.Services
             var lawyer = new Lawyer(request.FirstName, request.LastName, request.Dni, request.Email, HashPassword(request.Password), request.BarNumber, request.Phone, request.Specialties);
             usersRepository.Add(lawyer);
             usersRepository.Save();
-            return UserResponse.Desde(lawyer);
+            return UserResponse.Desde(lawyer, CanSeeDni(lawyer));
         }
 
         public UserResponse CreateAdmin(CreateAdminRequest request)
@@ -59,16 +59,16 @@ namespace LegalManager.Application.Services
             var admin = new Admin(request.FirstName, request.LastName, request.Dni, request.Email, HashPassword(request.Password));
             usersRepository.Add(admin);
             usersRepository.Save();
-            return UserResponse.Desde(admin);
+            return UserResponse.Desde(admin, CanSeeDni(admin));
         }
 
-        public IReadOnlyList<UserResponse> GetAll() => usersRepository.GetAll().Select(UserResponse.Desde).ToList();
+        public IReadOnlyList<UserResponse> GetAll() => usersRepository.GetAll().Select(u => UserResponse.Desde(u, CanSeeDni(u))).ToList();
 
-        public IReadOnlyList<UserResponse> GetClients() => usersRepository.GetAll().OfType<Client>().Select(UserResponse.Desde).ToList().AsReadOnly();
+        public IReadOnlyList<UserResponse> GetClients() => usersRepository.GetAll().OfType<Client>().Select(u => UserResponse.Desde(u, CanSeeDni(u))).ToList().AsReadOnly();
 
-        public IReadOnlyList<UserResponse> GetLawyers() => usersRepository.GetAll().OfType<Lawyer>().Select(UserResponse.Desde).ToList().AsReadOnly();
+        public IReadOnlyList<UserResponse> GetLawyers() => usersRepository.GetAll().OfType<Lawyer>().Select(u => UserResponse.Desde(u, CanSeeDni(u))).ToList().AsReadOnly();
 
-        public IReadOnlyList<UserResponse> GetAdmins() => usersRepository.GetAll().OfType<Admin>().Select(UserResponse.Desde).ToList().AsReadOnly();
+        public IReadOnlyList<UserResponse> GetAdmins() => usersRepository.GetAll().OfType<Admin>().Select(u => UserResponse.Desde(u, CanSeeDni(u))).ToList().AsReadOnly();
 
         public UserResponse? GetById(Guid id)
         {
@@ -77,7 +77,7 @@ namespace LegalManager.Application.Services
 
             EnsureCanRead(user);
 
-            return UserResponse.Desde(user);
+            return UserResponse.Desde(user, CanSeeDni(user));
         }
 
         public UserResponse? Update(Guid id, UpdateUserRequest request)
@@ -89,7 +89,7 @@ namespace LegalManager.Application.Services
 
             user.UpdateDetails(request.FirstName, request.LastName, request.Dni, request.Email);
             usersRepository.Save();
-            return UserResponse.Desde(user);
+            return UserResponse.Desde(user, CanSeeDni(user));
         }
 
         public UserResponse? UpdateClientPhone(Guid id, string? phone)
@@ -104,7 +104,7 @@ namespace LegalManager.Application.Services
 
             client.UpdatePhone(phone);
             usersRepository.Save();
-            return UserResponse.Desde(client);
+            return UserResponse.Desde(client, CanSeeDni(client));
         }
 
         public UserResponse? UpdateLawyerPhone(Guid id, string? phone)
@@ -119,7 +119,7 @@ namespace LegalManager.Application.Services
 
             lawyer.UpdatePhone(phone);
             usersRepository.Save();
-            return UserResponse.Desde(lawyer);
+            return UserResponse.Desde(lawyer, CanSeeDni(lawyer));
         }
 
         public UserResponse? UpdateClientAddress(Guid id, string? address)
@@ -134,7 +134,7 @@ namespace LegalManager.Application.Services
 
             client.UpdateAddress(address);
             usersRepository.Save();
-            return UserResponse.Desde(client);
+            return UserResponse.Desde(client, CanSeeDni(client));
         }
 
         public UserResponse? UpdateBarNumber(Guid id, string barNumber)
@@ -147,7 +147,7 @@ namespace LegalManager.Application.Services
 
             lawyer.UpdateBarNumber(barNumber);
             usersRepository.Save();
-            return UserResponse.Desde(lawyer);
+            return UserResponse.Desde(lawyer, CanSeeDni(lawyer));
         }
 
         public UserResponse? UpdateSpecialties(Guid id, IEnumerable<string> specialties)
@@ -160,7 +160,7 @@ namespace LegalManager.Application.Services
 
             lawyer.UpdateSpecialties(specialties);
             usersRepository.Save();
-            return UserResponse.Desde(lawyer);
+            return UserResponse.Desde(lawyer, CanSeeDni(lawyer));
         }
 
         public bool Delete(Guid id)
@@ -185,6 +185,8 @@ namespace LegalManager.Application.Services
             usersRepository.Save();
             return true;
         }
+
+        private bool CanSeeDni(User user) => currentUser.IsAdmin || user.Id == currentUser.Id;
 
         private void EnsureCanRead(User user)
         {
