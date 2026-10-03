@@ -49,13 +49,18 @@ namespace LegalManager.Application.Services
             if (caseItem != null)
                 EnsureCanRead(caseItem);
 
-            return documentsRepository.GetByCaseId(caseId).Select(DocumentResponse.Desde).ToList();
+            return documentsRepository.GetByCaseId(caseId)
+                .Where(document => !IsHiddenFromClient(document))
+                .Select(DocumentResponse.Desde)
+                .ToList();
         }
 
         public DocumentResponse? GetById(Guid id)
         {
             var document = documentsRepository.GetById(id);
             if (document == null) return null;
+
+            if (IsHiddenFromClient(document)) return null;
 
             EnsureDocumentAccess(document);
 
@@ -66,6 +71,8 @@ namespace LegalManager.Application.Services
         {
             var document = documentsRepository.GetById(id);
             if (document == null) return null;
+
+            if (IsHiddenFromClient(document)) return null;
 
             EnsureDocumentAccess(document);
 
@@ -159,6 +166,12 @@ namespace LegalManager.Application.Services
 
             EnsureCanRead(caseItem);
         }
+
+        // Un borrador de la IA todavia no fue revisado por ningun abogado: el cliente no debe
+        // poder ver ni descargar algo que la firma todavia no aprobo. Se filtra en silencio, sin
+        // lanzar 403, porque un 403 confirmaria que el documento existe.
+        private bool IsHiddenFromClient(Document document)
+            => currentUser.IsClient && document.IsPendingReview;
 
         private void EnsureDocumentWrite(Document document)
         {
