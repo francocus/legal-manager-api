@@ -7,10 +7,11 @@ using LegalManager.Domain.Interfaces;
 using LegalManager.Infrastructure.ExternalServices;
 using LegalManager.Infrastructure.Persistence;
 using LegalManager.Infrastructure.Repositories;
+using LegalManager.Presentation;
+using LegalManager.Presentation.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using LegalManager.Presentation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,10 +32,12 @@ builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddScoped<IDocumentService>(sp => new DocumentService(
     sp.GetRequiredService<IDocumentRepository>(),
     sp.GetRequiredService<ICaseRepository>(),
-    sp.GetRequiredService<IUserRepository>(),
+    sp.GetRequiredService<ICurrentUser>(),
     builder.Configuration["DocumentStorage:RootPath"] ?? Path.Combine(AppContext.BaseDirectory, "DocumentStorage")));
 
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
@@ -81,12 +84,16 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
+SeedInitialAdmin(app);
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
 
 app.UseHttpsRedirection();
+
+app.UseMiddleware<ForbiddenExceptionMiddleware>();
 
 app.UseAuthentication();
 
@@ -95,3 +102,37 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// Crea el primer administrador si no hay ninguno. Sin el no existe forma de
+// obtener un token de admin, porque POST /api/user/admin exige rol Admin.
+static void SeedInitialAdmin(WebApplication app)
+{
+    var seed = app.Configuration.GetSection("SeedAdmin");
+    var email = seed["Email"];
+    var password = seed["Password"];
+
+    if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+        return;
+
+    using var scope = app.Services.CreateScope();
+
+    var usersRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
+
+    if (usersRepository.GetAll().Any(u => u is Admin))
+        return;
+
+    var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+    var admin = new Admin(
+        seed["FirstName"] ?? "Admin",
+        seed["LastName"] ?? "LegalManager",
+        seed["Dni"] ?? "00000000",
+        email,
+        passwordHasher.Hash(password));
+
+    usersRepository.Add(admin);
+    usersRepository.Save();
+
+    logger.LogInformation("Admin inicial creado con el email {Email}.", admin.Email);
+}
