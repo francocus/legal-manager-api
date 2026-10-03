@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{baseUrl}}/api/user"
+method: GET
+auth: none
+description: "Sin cabecera Bearer la API responde 401."
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('401 Unauthorized', () => pm.response.to.have.status(401));
+order: 1000

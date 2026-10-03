@@ -5,7 +5,8 @@ headers:
   Content-Type: application/json
 body:
   type: json
-  content: '{"caseNumber":"EXP-001","title":"Divorcio","area":"civil","startDate":"2026-09-08","description":"Divorcio express","notes":"","clientId":"{{clientId}}","lawyerId":"{{lawyerId}}","createdByUserId":"{{lawyerId}}"}'
+  content: '{"caseNumber":"EXP-001","title":"Divorcio","area":"civil","startDate":"2026-09-08","description":"Divorcio express","notes":"","clientId":"{{clientId}}","lawyerId":"{{lawyerId}}"}'
+description: "Solo admin o abogado (policy AdminOrLawyer). Si sos cliente, 403. `createdByUserId` sale del token, no se manda. Si el token es de un abogado, `lawyerId` tiene que ser el suyo o da 403."
 scripts:
   - type: afterResponse
     code: |-

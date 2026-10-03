@@ -11,9 +11,6 @@ body:
     - key: type
       value: Escrito
       type: text
-    - key: uploadedByUserId
-      value: "{{lawyerId}}"
-      type: text
     - key: file
       type: file
       src: ./subir.pdf

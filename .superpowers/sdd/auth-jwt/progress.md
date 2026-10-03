@@ -95,3 +95,26 @@ un cliente PUEDE pedir turno con un abogado no vinculado (201). La minuta dice
 confirma que el vinculo cliente-abogado nace de un expediente O de un turno.
 Lo que SI se restringe: el cliente no puede agendar en nombre de otro (403) ni sobre
 un expediente ajeno (403).
+
+## Fase D: complete
+- docs/LegalManager API.postman_collection.json: auth bearer a nivel coleccion ({{token}}),
+  carpeta "0. Autenticacion" (Sin token 401 + Login admin/abogado/cliente que setea token),
+  variables baseUrl/credenciales, y se SACARON los ids que mandaba el cliente
+  (createdByUserId del case, uploadedByUserId del upload, ?generatedByUserId,
+  body de approve). "Crear cliente" queda auth:none. Total 41 requests.
+- docs/LegalManager API/0. Autenticacion/*.request.yaml: carpeta espejo nueva.
+- 5 .request.yaml actualizados para que no queden desincronizados.
+- docs/ESTADO.md: nueva seccion 10 (auth), endpoints con politicas, migracion del
+  rename, PasswordHash, limitaciones reales (sin refresh token, el DNI de los
+  abogados expuesto a clientes).
+
+TRAMPA DE ENCODING (2 veces me comio el archivo): PowerShell 5.1 lee los .ps1 como ANSI,
+asi que un literal acentuado en el script?? al JSON queda doble-codificado
+("Coloc·" -> "Coloc√°"). Resolver: [IO.File]::ReadAllText(path, [Text.Encoding]::UTF8)
+y WriteAllText con UTF8Encoding($false). Verificar con Contains('√') == $false.
+
+## Commits
+d5a0bf8 feat: autenticacion JWT con login, hashing y policies por rol
+c674c24 feat: autorizacion por rol con reglas de pertenencia de la minuta
+32a275e feat: seed idempotente del primer administrador
+(+ el de Fase D al final)
