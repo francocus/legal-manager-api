@@ -368,3 +368,13 @@ postman/
 
 # Documento de estado del sistema (contexto local, no se sube)
 docs/ESTADO.md
+
+# Agentes y skills (herramientas locales de IA, no se suben)
+.agents/
+.agents/**
+skills-lock.json
+.claude/skills/
+.claude/agents/
+.opencode/skills/
+.opencode/agents/
+AGENTS.local.md
