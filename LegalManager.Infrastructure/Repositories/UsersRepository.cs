@@ -14,6 +14,13 @@ namespace LegalManager.Infrastructure.Repositories
         public User? GetById(Guid id)
             => context.Users.FirstOrDefault(u => u.Id == id && u.Active);
 
+        public User? GetByEmail(string email)
+        {
+            var normalized = (email ?? string.Empty).Trim().ToLower();
+
+            return context.Users.FirstOrDefault(u => u.Active && u.Email.Trim().ToLower() == normalized);
+        }
+
         public void Save() => context.SaveChanges();
     }
 }

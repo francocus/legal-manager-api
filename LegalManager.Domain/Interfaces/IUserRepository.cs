@@ -10,6 +10,8 @@ namespace LegalManager.Domain.Interfaces
 
         User? GetById(Guid id);
 
+        User? GetByEmail(string email);
+
         void Save();
     }
 }

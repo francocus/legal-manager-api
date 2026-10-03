@@ -8,8 +8,17 @@ namespace LegalManager.Application.Services
     public class UserService(
         IUserRepository usersRepository,
         ICaseRepository casesRepository,
-        IAppointmentRepository appointmentsRepository) : IUserService
+        IAppointmentRepository appointmentsRepository,
+        IPasswordHasher passwordHasher) : IUserService
     {
+        private string HashPassword(string password)
+        {
+            if (string.IsNullOrWhiteSpace(password))
+                throw new ArgumentException("La contraseña es obligatoria.", nameof(password));
+
+            return passwordHasher.Hash(password);
+        }
+
         private void EnsureUnique(string email, string dni, Guid? excludeId = null)
         {
             var users = usersRepository.GetAll();
@@ -26,7 +35,7 @@ namespace LegalManager.Application.Services
         {
             EnsureUnique(request.Email, request.Dni);
 
-            var client = new Client(request.FirstName, request.LastName, request.Dni, request.Email, request.Password, request.Phone, request.Address);
+            var client = new Client(request.FirstName, request.LastName, request.Dni, request.Email, HashPassword(request.Password), request.Phone, request.Address);
             usersRepository.Add(client);
             usersRepository.Save();
             return UserResponse.Desde(client);
@@ -36,7 +45,7 @@ namespace LegalManager.Application.Services
         {
             EnsureUnique(request.Email, request.Dni);
 
-            var lawyer = new Lawyer(request.FirstName, request.LastName, request.Dni, request.Email, request.Password, request.BarNumber, request.Phone, request.Specialties);
+            var lawyer = new Lawyer(request.FirstName, request.LastName, request.Dni, request.Email, HashPassword(request.Password), request.BarNumber, request.Phone, request.Specialties);
             usersRepository.Add(lawyer);
             usersRepository.Save();
             return UserResponse.Desde(lawyer);
@@ -46,7 +55,7 @@ namespace LegalManager.Application.Services
         {
             EnsureUnique(request.Email, request.Dni);
 
-            var admin = new Admin(request.FirstName, request.LastName, request.Dni, request.Email, request.Password);
+            var admin = new Admin(request.FirstName, request.LastName, request.Dni, request.Email, HashPassword(request.Password));
             usersRepository.Add(admin);
             usersRepository.Save();
             return UserResponse.Desde(admin);

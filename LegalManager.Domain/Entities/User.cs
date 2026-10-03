@@ -8,7 +8,7 @@
         public string FullName => $"{FirstName} {LastName}";
         public string Dni { get; private set; }
         public string Email { get; private set; }
-        public string Password { get; private set; }
+        public string PasswordHash { get; private set; }
         public DateOnly RegistrationDate { get; private set; }
         public bool Active { get; private set; }
 
@@ -18,10 +18,10 @@
             LastName = string.Empty;
             Dni = string.Empty;
             Email = string.Empty;
-            Password = string.Empty;
+            PasswordHash = string.Empty;
         }
 
-        protected User(string firstName, string lastName, string dni, string email, string password)
+        protected User(string firstName, string lastName, string dni, string email, string passwordHash)
             : this()
         {
             if (string.IsNullOrWhiteSpace(firstName))
@@ -36,12 +36,15 @@
             if (string.IsNullOrWhiteSpace(email))
                 throw new ArgumentException("El email es obligatorio.", nameof(email));
 
+            if (string.IsNullOrWhiteSpace(passwordHash))
+                throw new ArgumentException("El hash de la contraseña es obligatorio.", nameof(passwordHash));
+
             Id = Guid.NewGuid();
             FirstName = firstName;
             LastName = lastName;
             Dni = dni;
             Email = email;
-            Password = password;
+            PasswordHash = passwordHash;
             RegistrationDate = DateOnly.FromDateTime(DateTime.Now);
             Active = true;
         }
