@@ -95,6 +95,17 @@ namespace LegalManager.Infrastructure.Persistence
             modelBuilder.Entity<Appointment>()
                 .Ignore(a => a.EffectiveStatus);
 
+            // Un abogado no puede tener dos turnos en el mismo slot (minuta: conflicto de agenda).
+            // El chequeo en memoria de HasScheduleConflict da el error lindo, pero dos requests
+            // simultaneos pueden pasar los dos; este indice es el que realmente lo cierra.
+            // Filtro: un turno cancelado (Status 2) libera el slot. "Finalizado" no se persiste
+            // nunca (EffectiveStatus se calcula), asi que solo hay 0, 1 y 2 en base.
+            modelBuilder.Entity<Appointment>()
+                .HasIndex(a => new { a.LawyerId, a.Date, a.Time })
+                .IsUnique()
+                .HasDatabaseName("UX_Appointments_Lawyer_Slot")
+                .HasFilter("[Active] = 1 AND [Status] <> 2");
+
             modelBuilder.Entity<Appointment>()
                 .HasOne<User>()
                 .WithMany()
