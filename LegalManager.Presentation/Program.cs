@@ -66,6 +66,34 @@ builder.Services
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
         };
+
+        // Revocacion efectiva sin refresh token: si el usuario fue dado de baja o desactivado
+        // entre la emision y el uso del token, rechazamos la peticion con 401 en OnTokenValidated.
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = context =>
+            {
+                var idValue = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                             ?? context.Principal?.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
+
+                if (!Guid.TryParse(idValue, out var userId))
+                {
+                    context.Fail("token inválido");
+                    return Task.CompletedTask;
+                }
+
+                var usersRepository = context.HttpContext.RequestServices.GetRequiredService<IUserRepository>();
+                var user = usersRepository.GetById(userId);
+
+                if (user == null || !user.Active)
+                {
+                    context.Fail("usuario inactivo o no existe");
+                    return Task.CompletedTask;
+                }
+
+                return Task.CompletedTask;
+            }
+        };
     });
 
 builder.Services.AddAuthorization(options =>
