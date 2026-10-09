@@ -1,0 +1,19 @@
+$kind: http-request
+name: Login (abogado)
+url: "{{baseUrl}}/api/auth/login"
+method: POST
+auth: none
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: '{"email":"{{lawyerEmail}}","password":"{{lawyerPassword}}"}'
+description: "Devuelve el token JWT y lo deja en la variable {{token}}."
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200 OK', () => pm.response.to.have.status(200));
+      pm.test('devuelve token', () => pm.expect(pm.response.json().token).to.be.a('string').and.not.empty);
+      pm.collectionVariables.set('token', pm.response.json().token);
+      pm.collectionVariables.set('lawyerToken', pm.response.json().token);
+order: 3000

@@ -2,11 +2,7 @@ $kind: http-request
 name: Revisar resumen IA
 url: "{{baseUrl}}/api/document/{{documentId}}/approve"
 method: PATCH
-headers:
-  Content-Type: application/json
-body:
-  type: json
-  content: '{"reviewedByUserId":"{{lawyerId}}"}'
+description: "Sin body: el revisador sale del token. Solo admin o abogado (policy AdminOrLawyer) y solo sobre un expediente que gestione. Solo aplica a documentos generados por IA."
 scripts:
   - type: afterResponse
     code: |-

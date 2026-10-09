@@ -1,24 +1,20 @@
 using LegalManager.Application.DTOs;
 using LegalManager.Application.Interfaces;
 using LegalManager.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LegalManager.Presentation.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class DocumentController : ControllerBase
+    [Authorize(Policy = Policies.AllRoles)]
+    public class DocumentController(IDocumentService documentService) : ControllerBase
     {
-        private readonly IDocumentService documentService;
-
-        public DocumentController(IDocumentService documentService)
-        {
-            this.documentService = documentService;
-        }
-
-[HttpPost]
+        [Authorize(Policy = Policies.AdminOrLawyer)]
+        [HttpPost]
         [RequestSizeLimit(10 * 1024 * 1024)]
-        public ActionResult<DocumentResponse> Upload([FromForm] Guid caseId, [FromForm] DocumentType type, [FromForm] Guid uploadedByUserId, IFormFile file)
+        public ActionResult<DocumentResponse> Upload([FromForm] Guid caseId, [FromForm] DocumentType type, IFormFile file)
         {
             try
             {
@@ -27,7 +23,6 @@ namespace LegalManager.Presentation.Controllers
                 {
                     CaseId = caseId,
                     Type = type,
-                    UploadedByUserId = uploadedByUserId,
                     FileContent = stream,
                     FileName = file.FileName,
                     ContentType = file.ContentType,
@@ -65,27 +60,26 @@ namespace LegalManager.Presentation.Controllers
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
         }
 
+        [Authorize(Policy = Policies.AdminOrLawyer)]
         [HttpPost("case/{caseId}/generate-summary")]
-        public ActionResult<DocumentResponse> GenerateAiSummary([FromRoute] Guid caseId, [FromQuery] Guid generatedByUserId)
+        public ActionResult<DocumentResponse> GenerateAiSummary([FromRoute] Guid caseId)
         {
             try
             {
-                var document = documentService.GenerateAiSummary(caseId, generatedByUserId);
+                var document = documentService.GenerateAiSummary(caseId);
                 return CreatedAtAction(nameof(GetById), new { id = document.Id }, document);
             }
             catch (ArgumentException ex) { return BadRequest(ex.Message); }
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
         }
 
+        [Authorize(Policy = Policies.AdminOrLawyer)]
         [HttpPatch("{id}/approve")]
-        public ActionResult<DocumentResponse> Approve([FromRoute] Guid id, [FromBody] ReviewDocumentRequest request)
+        public ActionResult<DocumentResponse> Approve([FromRoute] Guid id)
         {
             try
             {
-                if (request == null)
-                    return BadRequest("El cuerpo de la solicitud es obligatorio.");
-
-                var document = documentService.Approve(id, request.ReviewedByUserId);
+                var document = documentService.Approve(id);
                 if (document == null) return NotFound($"No existe un documento con el id {id}.");
                 return Ok(document);
             }
@@ -93,15 +87,13 @@ namespace LegalManager.Presentation.Controllers
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
         }
 
+        [Authorize(Policy = Policies.AdminOrLawyer)]
         [HttpPatch("{id}/discard")]
-        public ActionResult<DocumentResponse> Discard([FromRoute] Guid id, [FromBody] ReviewDocumentRequest request)
+        public ActionResult<DocumentResponse> Discard([FromRoute] Guid id)
         {
             try
             {
-                if (request == null)
-                    return BadRequest("El cuerpo de la solicitud es obligatorio.");
-
-                var document = documentService.Discard(id, request.ReviewedByUserId);
+                var document = documentService.Discard(id);
                 if (document == null) return NotFound($"No existe un documento con el id {id}.");
                 return Ok(document);
             }
@@ -109,6 +101,7 @@ namespace LegalManager.Presentation.Controllers
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
         }
 
+        [Authorize(Policy = Policies.AdminOrLawyer)]
         [HttpDelete("{id}")]
         public ActionResult Delete([FromRoute] Guid id)
         {

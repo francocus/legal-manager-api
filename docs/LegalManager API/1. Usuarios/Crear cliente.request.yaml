@@ -1,6 +1,8 @@
 $kind: http-request
 url: "{{baseUrl}}/api/user/client"
 method: POST
+auth: none
+description: "AllowAnonymous: sirve para el autorregistro y para el alta hecha por un admin."
 headers:
   Content-Type: application/json
 body:

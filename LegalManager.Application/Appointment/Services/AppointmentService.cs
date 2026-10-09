@@ -8,7 +8,8 @@ namespace LegalManager.Application.Services
     public class AppointmentService(
         IAppointmentRepository appointmentsRepository,
         IUserRepository usersRepository,
-        ICaseRepository casesRepository) : IAppointmentService
+        ICaseRepository casesRepository,
+        ICurrentUser currentUser) : IAppointmentService
     {
         public AppointmentResponse Create(CreateAppointmentRequest request)
         {
@@ -26,6 +27,8 @@ namespace LegalManager.Application.Services
                     throw new ArgumentException("El expediente indicado no existe.");
             }
 
+            EnsureCanCreate(request, relatedCase);
+
             if (appointmentsRepository.HasScheduleConflict(request.LawyerId, request.Date, request.Time))
                 throw new InvalidOperationException("El abogado ya tiene un turno en ese horario.");
 
@@ -36,7 +39,18 @@ namespace LegalManager.Application.Services
             return AppointmentResponse.Desde(appointment);
         }
 
-        public IReadOnlyList<AppointmentResponse> GetAll() => appointmentsRepository.GetAll().Select(AppointmentResponse.Desde).ToList();
+        public IReadOnlyList<AppointmentResponse> GetAll()
+        {
+            var appointments = appointmentsRepository.GetAll();
+
+            if (currentUser.IsAdmin)
+                return appointments.Select(AppointmentResponse.Desde).ToList();
+
+            if (currentUser.IsLawyer)
+                return appointments.Where(a => a.LawyerId == currentUser.Id).Select(AppointmentResponse.Desde).ToList();
+
+            return appointments.Where(a => a.ClientId == currentUser.Id).Select(AppointmentResponse.Desde).ToList();
+        }
 
         public IReadOnlyList<TimeOnly> GetAvailability(Guid lawyerId, DateOnly date)
         {
@@ -51,13 +65,19 @@ namespace LegalManager.Application.Services
         public AppointmentResponse? GetById(Guid id)
         {
             var appointment = appointmentsRepository.GetById(id);
-            return appointment == null ? null : AppointmentResponse.Desde(appointment);
+            if (appointment == null) return null;
+
+            EnsureCanAccess(appointment);
+
+            return AppointmentResponse.Desde(appointment);
         }
 
         public AppointmentResponse? Confirm(Guid id)
         {
             var appointment = appointmentsRepository.GetById(id);
             if (appointment == null) return null;
+
+            EnsureCanAccess(appointment);
 
             appointment.Confirm();
             appointmentsRepository.Save();
@@ -69,6 +89,8 @@ namespace LegalManager.Application.Services
             var appointment = appointmentsRepository.GetById(id);
             if (appointment == null) return null;
 
+            EnsureCanAccess(appointment);
+
             appointment.Cancel();
             appointmentsRepository.Save();
             return AppointmentResponse.Desde(appointment);
@@ -78,6 +100,8 @@ namespace LegalManager.Application.Services
         {
             var appointment = appointmentsRepository.GetById(id);
             if (appointment == null) return null;
+
+            EnsureCanAccess(appointment);
 
             if (appointmentsRepository.HasScheduleConflict(appointment.LawyerId, request.Date, request.Time))
                 throw new InvalidOperationException("El abogado ya tiene un turno en ese horario.");
@@ -95,6 +119,57 @@ namespace LegalManager.Application.Services
             appointment.Deactivate();
             appointmentsRepository.Save();
             return true;
+        }
+
+        private void EnsureCanCreate(CreateAppointmentRequest request, Case? relatedCase)
+        {
+            if (currentUser.IsAdmin) return;
+
+            if (currentUser.IsClient)
+            {
+                if (request.ClientId != currentUser.Id)
+                    throw new ForbiddenException("Un cliente solo puede pedir turnos a su propio nombre.");
+
+                if (relatedCase != null && relatedCase.ClientId != currentUser.Id)
+                    throw new ForbiddenException("No tiene acceso al expediente indicado.");
+
+                return;
+            }
+
+            if (currentUser.IsLawyer)
+            {
+                if (request.LawyerId != currentUser.Id)
+                    throw new ForbiddenException("Un abogado solo puede agendar turnos a su propio nombre.");
+
+                if (!IsClientLinked(request.ClientId, relatedCase))
+                    throw new ForbiddenException("El abogado solo puede agendar turnos para clientes vinculados a él.");
+
+                return;
+            }
+
+            throw new ForbiddenException("No tiene permisos para crear turnos.");
+        }
+
+        private bool IsClientLinked(Guid clientId, Case? relatedCase)
+        {
+            if (relatedCase != null && relatedCase.LawyerIds.Contains(currentUser.Id))
+                return true;
+
+            if (casesRepository.GetAll().Any(c => c.ClientId == clientId && c.LawyerIds.Contains(currentUser.Id)))
+                return true;
+
+            return appointmentsRepository.GetAll().Any(a => a.ClientId == clientId && a.LawyerId == currentUser.Id);
+        }
+
+        private void EnsureCanAccess(Appointment appointment)
+        {
+            if (currentUser.IsAdmin) return;
+
+            if (currentUser.IsLawyer && appointment.LawyerId == currentUser.Id) return;
+
+            if (currentUser.IsClient && appointment.ClientId == currentUser.Id) return;
+
+            throw new ForbiddenException("No tiene acceso a este turno.");
         }
     }
 }

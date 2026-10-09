@@ -8,8 +8,18 @@ namespace LegalManager.Application.Services
     public class UserService(
         IUserRepository usersRepository,
         ICaseRepository casesRepository,
-        IAppointmentRepository appointmentsRepository) : IUserService
+        IAppointmentRepository appointmentsRepository,
+        IPasswordHasher passwordHasher,
+        ICurrentUser currentUser) : IUserService
     {
+        private string HashPassword(string password)
+        {
+            if (string.IsNullOrWhiteSpace(password))
+                throw new ArgumentException("La contraseña es obligatoria.", nameof(password));
+
+            return passwordHasher.Hash(password);
+        }
+
         private void EnsureUnique(string email, string dni, Guid? excludeId = null)
         {
             var users = usersRepository.GetAll();
@@ -26,44 +36,48 @@ namespace LegalManager.Application.Services
         {
             EnsureUnique(request.Email, request.Dni);
 
-            var client = new Client(request.FirstName, request.LastName, request.Dni, request.Email, request.Password, request.Phone, request.Address);
+            var client = new Client(request.FirstName, request.LastName, request.Dni, request.Email, HashPassword(request.Password), request.Phone, request.Address);
             usersRepository.Add(client);
             usersRepository.Save();
-            return UserResponse.Desde(client);
+            return UserResponse.Desde(client, CanSeePrivateData(client));
         }
 
         public UserResponse CreateLawyer(CreateLawyerRequest request)
         {
             EnsureUnique(request.Email, request.Dni);
 
-            var lawyer = new Lawyer(request.FirstName, request.LastName, request.Dni, request.Email, request.Password, request.BarNumber, request.Phone, request.Specialties);
+            var lawyer = new Lawyer(request.FirstName, request.LastName, request.Dni, request.Email, HashPassword(request.Password), request.BarNumber, request.Phone, request.Specialties);
             usersRepository.Add(lawyer);
             usersRepository.Save();
-            return UserResponse.Desde(lawyer);
+            return UserResponse.Desde(lawyer, CanSeePrivateData(lawyer));
         }
 
         public UserResponse CreateAdmin(CreateAdminRequest request)
         {
             EnsureUnique(request.Email, request.Dni);
 
-            var admin = new Admin(request.FirstName, request.LastName, request.Dni, request.Email, request.Password);
+            var admin = new Admin(request.FirstName, request.LastName, request.Dni, request.Email, HashPassword(request.Password));
             usersRepository.Add(admin);
             usersRepository.Save();
-            return UserResponse.Desde(admin);
+            return UserResponse.Desde(admin, CanSeePrivateData(admin));
         }
 
-        public IReadOnlyList<UserResponse> GetAll() => usersRepository.GetAll().Select(UserResponse.Desde).ToList();
+        public IReadOnlyList<UserResponse> GetAll() => usersRepository.GetAll().Select(u => UserResponse.Desde(u, CanSeePrivateData(u))).ToList();
 
-        public IReadOnlyList<UserResponse> GetClients() => usersRepository.GetAll().OfType<Client>().Select(UserResponse.Desde).ToList().AsReadOnly();
+        public IReadOnlyList<UserResponse> GetClients() => usersRepository.GetAll().OfType<Client>().Select(u => UserResponse.Desde(u, CanSeePrivateData(u))).ToList().AsReadOnly();
 
-        public IReadOnlyList<UserResponse> GetLawyers() => usersRepository.GetAll().OfType<Lawyer>().Select(UserResponse.Desde).ToList().AsReadOnly();
+        public IReadOnlyList<UserResponse> GetLawyers() => usersRepository.GetAll().OfType<Lawyer>().Select(u => UserResponse.Desde(u, CanSeePrivateData(u))).ToList().AsReadOnly();
 
-        public IReadOnlyList<UserResponse> GetAdmins() => usersRepository.GetAll().OfType<Admin>().Select(UserResponse.Desde).ToList().AsReadOnly();
+        public IReadOnlyList<UserResponse> GetAdmins() => usersRepository.GetAll().OfType<Admin>().Select(u => UserResponse.Desde(u, CanSeePrivateData(u))).ToList().AsReadOnly();
 
         public UserResponse? GetById(Guid id)
         {
             var user = usersRepository.GetById(id);
-            return user == null ? null : UserResponse.Desde(user);
+            if (user == null) return null;
+
+            EnsureCanRead(user);
+
+            return UserResponse.Desde(user, CanSeePrivateData(user));
         }
 
         public UserResponse? Update(Guid id, UpdateUserRequest request)
@@ -75,7 +89,7 @@ namespace LegalManager.Application.Services
 
             user.UpdateDetails(request.FirstName, request.LastName, request.Dni, request.Email);
             usersRepository.Save();
-            return UserResponse.Desde(user);
+            return UserResponse.Desde(user, CanSeePrivateData(user));
         }
 
         public UserResponse? UpdateClientPhone(Guid id, string? phone)
@@ -83,12 +97,14 @@ namespace LegalManager.Application.Services
             var user = usersRepository.GetById(id);
             if (user == null) return null;
 
+            EnsureCanEditContact(user);
+
             if (user is not Client client)
                 throw new ArgumentException("El usuario indicado no es un cliente.");
 
             client.UpdatePhone(phone);
             usersRepository.Save();
-            return UserResponse.Desde(client);
+            return UserResponse.Desde(client, CanSeePrivateData(client));
         }
 
         public UserResponse? UpdateLawyerPhone(Guid id, string? phone)
@@ -96,12 +112,14 @@ namespace LegalManager.Application.Services
             var user = usersRepository.GetById(id);
             if (user == null) return null;
 
+            EnsureCanEditContact(user);
+
             if (user is not Lawyer lawyer)
                 throw new ArgumentException("El usuario indicado no es un abogado.");
 
             lawyer.UpdatePhone(phone);
             usersRepository.Save();
-            return UserResponse.Desde(lawyer);
+            return UserResponse.Desde(lawyer, CanSeePrivateData(lawyer));
         }
 
         public UserResponse? UpdateClientAddress(Guid id, string? address)
@@ -109,12 +127,14 @@ namespace LegalManager.Application.Services
             var user = usersRepository.GetById(id);
             if (user == null) return null;
 
+            EnsureCanEditContact(user);
+
             if (user is not Client client)
                 throw new ArgumentException("El usuario indicado no es un cliente.");
 
             client.UpdateAddress(address);
             usersRepository.Save();
-            return UserResponse.Desde(client);
+            return UserResponse.Desde(client, CanSeePrivateData(client));
         }
 
         public UserResponse? UpdateBarNumber(Guid id, string barNumber)
@@ -127,7 +147,7 @@ namespace LegalManager.Application.Services
 
             lawyer.UpdateBarNumber(barNumber);
             usersRepository.Save();
-            return UserResponse.Desde(lawyer);
+            return UserResponse.Desde(lawyer, CanSeePrivateData(lawyer));
         }
 
         public UserResponse? UpdateSpecialties(Guid id, IEnumerable<string> specialties)
@@ -140,13 +160,16 @@ namespace LegalManager.Application.Services
 
             lawyer.UpdateSpecialties(specialties);
             usersRepository.Save();
-            return UserResponse.Desde(lawyer);
+            return UserResponse.Desde(lawyer, CanSeePrivateData(lawyer));
         }
 
         public bool Delete(Guid id)
         {
             var user = usersRepository.GetById(id);
             if (user == null) return false;
+
+            if (user.Id == currentUser.Id)
+                throw new ForbiddenException("Un usuario no puede darse de baja a sí mismo.");
 
             var hasActiveCases = casesRepository.GetAll()
                 .Any(c => (c.ClientId == id || c.LawyerIds.Contains(id)) && c.Status != CaseStatus.Cerrado);
@@ -161,6 +184,40 @@ namespace LegalManager.Application.Services
             user.Deactivate();
             usersRepository.Save();
             return true;
+        }
+
+        // Un solo predicado para los dos datos privados del usuario (Dni y Email): o los ve
+        // el admin, o los ve el propio usuario. Ningun otro los ve en ningun endpoint.
+        private bool CanSeePrivateData(User user) => currentUser.IsAdmin || user.Id == currentUser.Id;
+
+        private void EnsureCanRead(User user)
+        {
+            if (currentUser.IsAdmin) return;
+
+            if (user.Id == currentUser.Id) return;
+
+            if (currentUser.IsLawyer && user is Client && IsClientLinkedToLawyer(user.Id)) return;
+
+            if (currentUser.IsClient && user is Lawyer) return;
+
+            throw new ForbiddenException("No tiene acceso a este usuario.");
+        }
+
+        private void EnsureCanEditContact(User user)
+        {
+            if (currentUser.IsAdmin) return;
+
+            if (user.Id == currentUser.Id) return;
+
+            throw new ForbiddenException("Solo puede modificar sus propios datos de contacto.");
+        }
+
+        private bool IsClientLinkedToLawyer(Guid clientId)
+        {
+            if (casesRepository.GetAll().Any(c => c.ClientId == clientId && c.LawyerIds.Contains(currentUser.Id)))
+                return true;
+
+            return appointmentsRepository.GetAll().Any(a => a.ClientId == clientId && a.LawyerId == currentUser.Id);
         }
     }
 }

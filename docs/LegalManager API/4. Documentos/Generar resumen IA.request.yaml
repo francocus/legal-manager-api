@@ -2,8 +2,7 @@ $kind: http-request
 name: Generar resumen IA
 url: "{{baseUrl}}/api/document/case/{{caseId}}/generate-summary"
 method: POST
-queryParams:
-  generatedByUserId: "{{lawyerId}}"
+description: "Solo admin o abogado (policy AdminOrLawyer) y solo sobre un expediente que gestione. El generador sale del token."
 scripts:
   - type: afterResponse
     code: |-

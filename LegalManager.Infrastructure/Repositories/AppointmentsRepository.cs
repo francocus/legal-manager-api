@@ -1,6 +1,8 @@
 ﻿using LegalManager.Domain.Entities;
 using LegalManager.Domain.Interfaces;
 using LegalManager.Infrastructure.Persistence;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 
 namespace LegalManager.Infrastructure.Repositories
 {
@@ -21,6 +23,22 @@ namespace LegalManager.Infrastructure.Repositories
                 && a.Date == date
                 && a.Time == time);
 
-        public void Save() => context.SaveChanges();
+        public void Save()
+        {
+            try
+            {
+                context.SaveChanges();
+            }
+            catch (DbUpdateException ex) when (IsUniqueViolation(ex))
+            {
+                // El indice unico UX_Appointments_Lawyer_Slot salto: dos requests simultaneos
+                // agarraron el mismo slot. Se traduce al mismo InvalidOperationException que
+                // produce el chequeo en memoria, para que el controller responda 409 igual.
+                throw new InvalidOperationException("El abogado ya tiene un turno en ese horario.");
+            }
+        }
+
+        private static bool IsUniqueViolation(DbUpdateException ex)
+            => ex.InnerException is SqlException { Number: 2601 or 2627 };
     }
 }

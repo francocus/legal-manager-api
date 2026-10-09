@@ -1,11 +1,13 @@
 ﻿using LegalManager.Application.DTOs;
 using LegalManager.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LegalManager.Presentation.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Policy = Policies.AllRoles)]
     public class AppointmentController(IAppointmentService appointmentService) : ControllerBase
     {
 
@@ -82,6 +84,7 @@ namespace LegalManager.Presentation.Controllers
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
         }
 
+        [Authorize(Policy = Policies.AdminsOnly)]
         [HttpDelete("{id}")]
         public ActionResult Delete([FromRoute] Guid id)
         {
