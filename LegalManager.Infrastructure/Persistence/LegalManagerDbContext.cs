@@ -18,7 +18,7 @@ namespace LegalManager.Infrastructure.Persistence
         {
             base.OnModelCreating(modelBuilder);
 
-            modelBuilder.Entity<User>().ToTable("Users");
+            modelBuilder.Entity<User>().UseTpcMappingStrategy();
             modelBuilder.Entity<Client>().ToTable("Clients");
             modelBuilder.Entity<Lawyer>().ToTable("Lawyers");
             modelBuilder.Entity<Admin>().ToTable("Admins");
@@ -81,7 +81,7 @@ namespace LegalManager.Infrastructure.Persistence
                 .AutoInclude();
 
             modelBuilder.Entity<Case>()
-                .HasOne<User>()
+                .HasOne<Client>()
                 .WithMany()
                 .HasForeignKey(c => c.ClientId)
                 .OnDelete(DeleteBehavior.Restrict);
@@ -107,13 +107,13 @@ namespace LegalManager.Infrastructure.Persistence
                 .HasFilter("[Active] = 1 AND [Status] <> 2");
 
             modelBuilder.Entity<Appointment>()
-                .HasOne<User>()
+                .HasOne<Client>()
                 .WithMany()
                 .HasForeignKey(a => a.ClientId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Appointment>()
-                .HasOne<User>()
+                .HasOne<Lawyer>()
                 .WithMany()
                 .HasForeignKey(a => a.LawyerId)
                 .OnDelete(DeleteBehavior.Restrict);
