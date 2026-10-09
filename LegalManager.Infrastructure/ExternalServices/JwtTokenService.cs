@@ -7,14 +7,9 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace LegalManager.Infrastructure.ExternalServices
 {
-    public class JwtTokenService : ITokenService
+    public class JwtTokenService(IOptions<JwtSettings> options) : ITokenService
     {
-        private readonly JwtSettings settings;
-
-        public JwtTokenService(IOptions<JwtSettings> settings)
-        {
-            this.settings = settings.Value;
-        }
+        private readonly JwtSettings settings = options.Value;
 
         public string GenerateToken(Guid userId, string email, string role)
         {

@@ -9,15 +9,8 @@ namespace LegalManager.Presentation.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize(Policy = Policies.AllRoles)]
-    public class DocumentController : ControllerBase
+    public class DocumentController(IDocumentService documentService) : ControllerBase
     {
-        private readonly IDocumentService documentService;
-
-        public DocumentController(IDocumentService documentService)
-        {
-            this.documentService = documentService;
-        }
-
         [Authorize(Policy = Policies.AdminOrLawyer)]
         [HttpPost]
         [RequestSizeLimit(10 * 1024 * 1024)]
