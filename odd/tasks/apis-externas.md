@@ -19,8 +19,8 @@ Reemplazar el stub de `DocumentService.GenerateAiSummary` por una integración r
 
 | # | Tarea | Estado |
 |---|-------|--------|
-| 1 | Paquetes de resiliencia Polly en Infrastructure | en progreso |
-| 2 | Config `Llm` en appsettings + `LlmResilienceOptions` | pendiente |
+| 1 | Paquetes de resiliencia Polly en Infrastructure | ✅ hecha |
+| 2 | Config `Llm` en appsettings + `LlmResilienceOptions` | en progreso (appsettings listo) |
 | 3 | Clase estática `LlmPolicies` (retry + circuit breaker) | pendiente |
 | 4 | Interfaz `IAiSummaryClient` en Application + excepción de negocio | pendiente |
 | 5 | Registro `AddHttpClient` con policies en `Program.cs` | pendiente |
@@ -43,4 +43,12 @@ Reemplazar el stub de `DocumentService.GenerateAiSummary` por una integración r
 
 ## Registro de commits
 
-- `ab02e7b` docs: agregar plan de integración con APIs externas a ESTADO.md (pre-feature)
+- `ab02e7b` docs: agregar plan de integración con APIs externas a ESTADO.md (pre-feature, en master)
+- Rama de la feature: `feat/apis-externas`
+- `0aa8ca0` chore: iniciar feature apis-externas con documento ODD de tareas
+- `6eaeb59` build: agregar Polly y Microsoft.Extensions.Http.Polly para resiliencia (tarea 1; incluyó bump de Microsoft.Extensions.Options 10.0.12 → 10.0.13 por NU1605)
+- `4c64569` feat: agregar configuracion Llm (OpenCode Go) con opciones de resiliencia (appsettings.json; ApiKey queda fuera, por user-secrets/env)
+
+## Proveedor elegido
+
+OpenCode Go (suscripción $10/mes de OpenCode): API compatible con OpenAI en `https://opencode.ai/inference/go/openai/v1/chat/completions`, auth por API key de la consola de OpenCode. Modelo default: `glm-5.3-flash` (rápido, buen español, límite $60/mes incluido); alternativas free por tiempo limitado configurables desde appsettings (minimax-m3.1-flash-free, longcat-2.5-preview-free).
