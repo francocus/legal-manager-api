@@ -6,6 +6,8 @@ namespace LegalManager.Domain.Interfaces
     {
         void Add(Document document);
 
+        Task SaveAsync(CancellationToken cancellationToken = default);
+
         IReadOnlyList<Document> GetAll();
 
         IReadOnlyList<Document> GetByCaseId(Guid caseId);

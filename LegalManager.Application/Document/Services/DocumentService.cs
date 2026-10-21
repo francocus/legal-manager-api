@@ -8,6 +8,7 @@ namespace LegalManager.Application.Services
     public class DocumentService(
         IDocumentRepository documentsRepository,
         ICaseRepository casesRepository,
+        IAiSummaryService aiSummaryService,
         ICurrentUser currentUser,
         string rootStoragePath) : IDocumentService
     {
@@ -83,7 +84,7 @@ namespace LegalManager.Application.Services
             return (stream, document.ContentType, document.FileName);
         }
 
-        public DocumentResponse GenerateAiSummary(Guid caseId)
+        public async Task<DocumentResponse> GenerateAiSummaryAsync(Guid caseId, CancellationToken cancellationToken = default)
         {
             var caseItem = casesRepository.GetById(caseId);
             if (caseItem == null)
@@ -91,7 +92,8 @@ namespace LegalManager.Application.Services
 
             EnsureCanWrite(caseItem);
 
-            var summary = ComposeSummaryText(caseItem);
+            var caseContext = ComposeSummaryText(caseItem);
+            var summary = await aiSummaryService.GenerateSummaryAsync(caseContext, cancellationToken);
 
             var caseFolder = Path.Combine(rootStoragePath, caseId.ToString());
             Directory.CreateDirectory(caseFolder);
@@ -104,7 +106,7 @@ namespace LegalManager.Application.Services
 
             var document = Document.CreateAiSummary(caseId, fileName, fullPath, summary, currentUser.Id);
             documentsRepository.Add(document);
-            documentsRepository.Save();
+            await documentsRepository.SaveAsync(cancellationToken);
             return DocumentResponse.Desde(document);
         }
 
@@ -146,7 +148,8 @@ namespace LegalManager.Application.Services
 
         private string ComposeSummaryText(Case caseItem)
         {
-            // TODO: reemplazar por una llamada real a un proveedor de LLM (Gemini, GPT, etc.)
+            // Case context handed to the LLM: built exclusively from data already registered
+            // on the case, so the prompt can enforce a no-invented-facts summary.
             var closing = caseItem.ClosingDate.HasValue
                 ? $" Fue cerrado el {caseItem.ClosingDate:dd/MM/yyyy}."
                 : string.Empty;

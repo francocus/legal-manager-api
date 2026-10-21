@@ -1,5 +1,6 @@
 using LegalManager.Application.DTOs;
 using LegalManager.Application.Interfaces;
+using LegalManager.Domain;
 using LegalManager.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -62,15 +63,19 @@ namespace LegalManager.Presentation.Controllers
 
         [Authorize(Policy = Policies.AdminOrLawyer)]
         [HttpPost("case/{caseId}/generate-summary")]
-        public ActionResult<DocumentResponse> GenerateAiSummary([FromRoute] Guid caseId)
+        public async Task<ActionResult<DocumentResponse>> GenerateAiSummary([FromRoute] Guid caseId, CancellationToken cancellationToken)
         {
             try
             {
-                var document = documentService.GenerateAiSummary(caseId);
+                var document = await documentService.GenerateAiSummaryAsync(caseId, cancellationToken);
                 return CreatedAtAction(nameof(GetById), new { id = document.Id }, document);
             }
             catch (ArgumentException ex) { return BadRequest(ex.Message); }
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
+            // The LLM failure is upstream of this API, so it maps to 502 at this action,
+            // following the same per-action error handling used across the controller and
+            // leaving every other exception handling untouched.
+            catch (AiSummaryUnavailableException ex) { return StatusCode(StatusCodes.Status502BadGateway, ex.Message); }
         }
 
         [Authorize(Policy = Policies.AdminOrLawyer)]

@@ -6,7 +6,7 @@ namespace LegalManager.Application.Interfaces
     {
         DocumentResponse Upload(UploadDocumentRequest request);
 
-        DocumentResponse GenerateAiSummary(Guid caseId);
+        Task<DocumentResponse> GenerateAiSummaryAsync(Guid caseId, CancellationToken cancellationToken = default);
 
         IReadOnlyList<DocumentResponse> GetByCaseId(Guid caseId);
 

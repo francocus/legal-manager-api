@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json.Serialization;
 using LegalManager.Application.Interfaces;
@@ -37,8 +38,41 @@ builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddScoped<IDocumentService>(sp => new DocumentService(
     sp.GetRequiredService<IDocumentRepository>(),
     sp.GetRequiredService<ICaseRepository>(),
+    sp.GetRequiredService<IAiSummaryService>(),
     sp.GetRequiredService<ICurrentUser>(),
     builder.Configuration["DocumentStorage:RootPath"] ?? Path.Combine(AppContext.BaseDirectory, "DocumentStorage")));
+
+// External LLM (OpenCode Go, OpenAI-compatible API): options bound from appsettings;
+// the ApiKey is supplied only through user-secrets ("Llm:ApiKey"), never hardcoded.
+builder.Services.Configure<LlmOptions>(builder.Configuration.GetSection(LlmOptions.SectionName));
+builder.Services.Configure<LlmResilienceOptions>(builder.Configuration.GetSection(LlmResilienceOptions.SectionName));
+
+var llmSettings = builder.Configuration.GetSection(LlmOptions.SectionName).Get<LlmOptions>()
+    ?? throw new InvalidOperationException("Falta la sección 'Llm' en appsettings.json.");
+
+if (string.IsNullOrWhiteSpace(llmSettings.ApiKey))
+    throw new InvalidOperationException("Falta la API key 'Llm:ApiKey'. Ejecutá: dotnet user-secrets set \"Llm:ApiKey\" \"<key>\".");
+
+var llmResilience = builder.Configuration.GetSection(LlmResilienceOptions.SectionName).Get<LlmResilienceOptions>()
+    ?? throw new InvalidOperationException("Falta la sección 'Llm:Resilience' en appsettings.json.");
+
+builder.Services
+    .AddHttpClient<IAiSummaryService, OpenCodeAiSummaryService>(client =>
+    {
+        client.BaseAddress = new Uri(llmSettings.BaseUrl);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", llmSettings.ApiKey);
+        client.DefaultRequestHeaders.Add("x-opencode-session", llmSettings.SessionId);
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("LegalManagerApi/1.0");
+
+        // HttpClient.Timeout must stay infinite: it would wrap the whole retry chain.
+        // The per-attempt deadline is enforced by the innermost Polly timeout policy.
+        client.Timeout = Timeout.InfiniteTimeSpan;
+    })
+    // Outermost to innermost: retry wraps circuit breaker wraps per-attempt timeout,
+    // so the breaker counts failures per attempt and each attempt has its own deadline.
+    .AddPolicyHandler(LlmPolicies.GetRetryPolicy(llmResilience))
+    .AddPolicyHandler(LlmPolicies.GetCircuitBreakerPolicy(llmResilience))
+    .AddPolicyHandler(LlmPolicies.GetTimeoutPolicy(llmResilience));
 
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
 
