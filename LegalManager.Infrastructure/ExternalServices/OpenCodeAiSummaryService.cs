@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using LegalManager.Domain;
 using LegalManager.Domain.Interfaces;
 using Microsoft.Extensions.Options;
+using Polly.CircuitBreaker;
 using Polly.Timeout;
 
 namespace LegalManager.Infrastructure.ExternalServices
@@ -47,6 +48,10 @@ namespace LegalManager.Infrastructure.ExternalServices
             catch (AiSummaryUnavailableException)
             {
                 throw;
+            }
+            catch (BrokenCircuitException)
+            {
+                throw new AiSummaryUnavailableException("El servicio de IA está temporalmente fuera de servicio (circuit breaker abierto). Volvé a intentar en unos minutos.");
             }
             catch (TimeoutRejectedException)
             {
