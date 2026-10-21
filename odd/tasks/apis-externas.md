@@ -27,7 +27,7 @@ Reemplazar el stub de `DocumentService.GenerateAiSummary` por una integración r
 | 6 | Implementación `OpenCodeAiSummaryService` en `Infrastructure/ExternalServices` | ✅ hecha |
 | 7 | Async del flujo resumen (repos/servicio/controller) | ✅ hecha |
 | 8 | Fallo del LLM integrado al error handling (catch 502 en el controller) | ✅ hecha |
-| 9 | Verificación: build + pruebas manuales Postman (demo retry/breaker) | build ✅ (0 errores); demo manual pendiente (instrucciones en docs/ESTADO.md) |
+| 9 | Verificación: build + pruebas manuales Postman (demo retry/breaker) | ✅ hecha: build 0 errores + pruebas ejecutadas (camino feliz 201 en 6.4s con LLM real; BaseUrl caída 502/502/502 con breaker). Evidencia en tests/resumen-ia/ |
 | 10 | Actualizar `docs/ESTADO.md` con lo implementado | ✅ hecha |
 
 ## Restricciones y convenciones
