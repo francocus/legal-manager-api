@@ -5,6 +5,13 @@ namespace LegalManager.Infrastructure.ExternalServices
 {
     public static class LlmPolicies
     {
+        // Per-attempt deadline: lives between the circuit breaker and the HTTP send, unlike
+        // HttpClient.Timeout, which would wrap the whole retry chain.
+        public static IAsyncPolicy<HttpResponseMessage> GetTimeoutPolicy(LlmResilienceOptions options)
+        {
+            return Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(options.TimeoutSeconds));
+        }
+
         public static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy(LlmResilienceOptions options)
         {
             return Policy
