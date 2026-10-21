@@ -20,7 +20,7 @@ Reemplazar el stub de `DocumentService.GenerateAiSummary` por una integración r
 | # | Tarea | Estado |
 |---|-------|--------|
 | 1 | Paquetes de resiliencia Polly en Infrastructure | ✅ hecha |
-| 2 | Config `Llm` en appsettings + `LlmResilienceOptions` | en progreso (appsettings listo) |
+| 2 | Config `Llm` en appsettings + `LlmResilienceOptions` | ✅ hecha |
 | 3 | Clase estática `LlmPolicies` (retry + circuit breaker) | pendiente |
 | 4 | Interfaz `IAiSummaryClient` en Application + excepción de negocio | pendiente |
 | 5 | Registro `AddHttpClient` con policies en `Program.cs` | pendiente |
