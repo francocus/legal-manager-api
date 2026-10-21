@@ -3,7 +3,7 @@
 **Fecha:** 2026-10-13
 **Asignación:** Franco → Agus (WhatsApp 13/10): "las APIs externas y lo de async".
 **Contexto de cursada:** comunicación API→API y patrones/estrategias ante inestabilidad de las APIs externas.
-**Referencia cátedra:** gabrielgolzman/austral-book-champions-api @ `Feat-external-api`.
+**Referencia cátedra:** `AgustinBaezRep/GestionComplejo2C` (repo del profesor, ejemplo Open-Meteo: `IWeatherService` en `Domain/Interfaces`, cliente tipado con `AddHttpClient`, `WeatherSettings`). Su estrategia ante inestabilidad es solo el `Timeout` del HttpClient; decisión del usuario (21/10): mantener Polly como mejora (retry + circuit breaker) sobre esa base.
 
 ## Objetivo
 
@@ -21,10 +21,10 @@ Reemplazar el stub de `DocumentService.GenerateAiSummary` por una integración r
 |---|-------|--------|
 | 1 | Paquetes de resiliencia Polly en Infrastructure | ✅ hecha |
 | 2 | Config `Llm` en appsettings + `LlmResilienceOptions` | ✅ hecha |
-| 3 | Clase estática `LlmPolicies` (retry + circuit breaker) | pendiente |
-| 4 | Interfaz `IAiSummaryClient` en Application + excepción de negocio | pendiente |
-| 5 | Registro `AddHttpClient` con policies en `Program.cs` | pendiente |
-| 6 | Implementación del cliente LLM en `Infrastructure/ExternalServices` | pendiente |
+| 3 | Clase estática `LlmPolicies` (retry + circuit breaker) | ✅ hecha |
+| 4 | Interfaz `IAiSummaryService` en `Domain/Interfaces` + excepción de negocio | pendiente |
+| 5 | Registro `AddHttpClient` tipado con policies en `Program.cs` (estilo cátedra) | pendiente |
+| 6 | Implementación `OpenCodeAiSummaryService` en `Infrastructure/ExternalServices` | pendiente |
 | 7 | Async del flujo resumen (repos/servicio/controller) | pendiente |
 | 8 | Fallo del LLM integrado al middleware de errores | pendiente |
 | 9 | Verificación: build + pruebas manuales Postman (demo retry/breaker) | pendiente |
@@ -33,7 +33,7 @@ Reemplazar el stub de `DocumentService.GenerateAiSummary` por una integración r
 ## Restricciones y convenciones
 
 - Políticas y cliente van en `LegalManager.Infrastructure` (patrón cátedra; la propia `ExternalServices/` ya aloja JwtTokenService y BCryptPasswordHasher).
-- La interfaz del puerto va en Application (la capa no conoce al vendor).
+- La interfaz del puerto va en `Domain/Interfaces` (misma convención que `IPasswordHasher`/`ITokenService` en este repo y `IWeatherService` en la cátedra); Application y Application services solo la consumen.
 - ApiKey: por user-secrets / variables de entorno, nunca commiteada (mismo criterio que `Jwt:Key`).
 - Serialización con System.Text.Json (convención del proyecto, no Newtonsoft).
 - Retry solo sobre 5xx/408/429/errores de red, no sobre 400/401/403.
