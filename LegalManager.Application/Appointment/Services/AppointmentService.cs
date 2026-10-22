@@ -29,11 +29,12 @@ namespace LegalManager.Application.Services
 
             EnsureCanCreate(request, relatedCase);
 
-            if (appointmentsRepository.HasScheduleConflict(request.LawyerId, request.Date, request.Time))
-                throw new InvalidOperationException("El abogado ya tiene un turno en ese horario.");
-
             var area = relatedCase != null ? relatedCase.Area : request.Area;
             var appointment = new Appointment(request.Title, request.Date, request.Time, request.EndTime, request.Reason, area, request.Location, request.Notes, request.ClientId, request.LawyerId, request.CaseId);
+
+            if (appointmentsRepository.HasScheduleConflict(request.LawyerId, request.Date, request.Time, request.EndTime))
+                throw new InvalidOperationException("El abogado ya tiene un turno en ese horario.");
+
             appointmentsRepository.Add(appointment);
             appointmentsRepository.Save();
             return AppointmentResponse.Desde(appointment);
@@ -58,7 +59,8 @@ namespace LegalManager.Application.Services
                 throw new ArgumentException("El abogado indicado no es válido.");
 
             return Appointment.ValidSlots
-                .Where(slot => !appointmentsRepository.HasScheduleConflict(lawyerId, date, slot))
+                .Where(slot => !appointmentsRepository.HasScheduleConflict(
+                    lawyerId, date, slot, slot.AddMinutes(Appointment.SlotDurationMinutes)))
                 .ToList();
         }
 
@@ -103,10 +105,14 @@ namespace LegalManager.Application.Services
 
             EnsureCanAccess(appointment);
 
-            if (appointmentsRepository.HasScheduleConflict(appointment.LawyerId, request.Date, request.Time))
+            // El turno se valida y muta primero (la entidad valida slot y ventana), y el
+            // chequeo de conflicto excluye el propio turno: reprogramar al mismo horario
+            // (por ejemplo para extender EndTime) es una operacion valida.
+            appointment.Reschedule(request.Date, request.Time, request.EndTime);
+
+            if (appointmentsRepository.HasScheduleConflict(appointment.LawyerId, request.Date, request.Time, request.EndTime, excludingAppointmentId: id))
                 throw new InvalidOperationException("El abogado ya tiene un turno en ese horario.");
 
-            appointment.Reschedule(request.Date, request.Time, request.EndTime);
             appointmentsRepository.Save();
             return AppointmentResponse.Desde(appointment);
         }

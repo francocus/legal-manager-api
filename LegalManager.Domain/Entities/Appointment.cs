@@ -5,6 +5,9 @@
         public static readonly IReadOnlyList<TimeOnly> ValidSlots =
             [new(9, 0), new(10, 30), new(12, 0), new(14, 0), new(15, 30), new(17, 0)];
 
+        // Duracion del slot: 90 minutos, derivada de la grilla para no duplicar la constante.
+        public static int SlotDurationMinutes => (int)(ValidSlots[1] - ValidSlots[0]).TotalMinutes;
+
         public Guid Id { get; private set; }
         public string Title { get; private set; }
         public DateOnly Date { get; private set; }
@@ -44,6 +47,9 @@
 
             if (!ValidSlots.Contains(time))
                 throw new ArgumentException($"Horario inválido. Valores permitidos: {string.Join(", ", ValidSlots)}.", nameof(time));
+
+            if (endTime <= time)
+                throw new ArgumentException("La hora de fin debe ser posterior a la hora de inicio.", nameof(endTime));
 
             Id = Guid.NewGuid();
             Title = title;
@@ -88,6 +94,9 @@
             if (!ValidSlots.Contains(newTime))
                 throw new ArgumentException($"Horario inválido. Valores permitidos: {string.Join(", ", ValidSlots)}.", nameof(newTime));
 
+            if (newEndTime <= newTime)
+                throw new ArgumentException("La hora de fin debe ser posterior a la hora de inicio.", nameof(newEndTime));
+
             Date = newDate;
             Time = newTime;
             EndTime = newEndTime;
@@ -107,8 +116,5 @@
 
             Active = false;
         }
-
-        public bool OverlapsWith(DateOnly date, TimeOnly time)
-            => Active && Status != AppointmentStatus.Cancelado && Date == date && Time == time;
     }
 }
