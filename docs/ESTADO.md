@@ -173,6 +173,9 @@ Implementado en la rama `feat/apis-externas` (commits `6eaeb59`, `4c64569`, `5e8
 | `LegalManager.Infrastructure/Migrations/` | Migraciones EF Core: `InitialCreate` y `AddUniqueEmailDniIndexes` |
 | `LegalManager.Application/*/Services/` | Servicios con lógica de negocio asincrónica y reglas de la minuta |
 | `LegalManager.Presentation/Security/CurrentUser.cs` | Lee el JWT del contexto HTTP y expone `Id`, `IsAdmin`, `IsLawyer`, `IsClient` |
+| `.github/workflows/deploy.yml` | Pipeline de CI/CD para GitHub Actions (build, migraciones y deploy a Azure) |
+| `docs/CICD.md` | Guía de configuración de Azure App Service, Azure SQL, GitHub Secrets y pipeline |
+| `docs/ASINCRONISMO.md` | Guía conceptual de arquitectura asincrónica y manejo del thread pool |
 | `docs/minuta.md` | Requisitos, reglas de negocio y matriz de permisos del proyecto |
 | `docs/diagrama-clases.png` | Diagrama de clases conceptual |
 | `docs/LegalManager API.postman_collection.json` | Colección Postman con el 100% de los endpoints, login y variables |
