@@ -1,9 +1,0 @@
-$kind: http-request
-url: "{{baseUrl}}/api/case/{{caseId}}/status"
-method: PATCH
-headers:
-  Content-Type: application/json
-body:
-  type: json
-  content: '{"status":"Pendiente"}'
-order: 5000

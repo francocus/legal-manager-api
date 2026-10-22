@@ -1,5 +1,0 @@
-$kind: collection
-description: "Documentos de los expedientes: subida, listado, descarga y resumen IA con revisión humana obligatoria."
-variables:
-  uploadedDocumentId: ""
-  documentId: ""

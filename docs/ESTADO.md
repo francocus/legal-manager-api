@@ -1,8 +1,8 @@
 # Estado del Sistema — LegalManager API
 
-**Última actualización:** 21/10/2026  
-**Rama activa:** `feat/apis-externas`  
-**Último commit:** `190a273` (feat: conectar resumen IA con async end-to-end y error 502)
+**Última actualización:** 22/10/2026  
+**Rama activa:** `master`  
+**Último commit:** `a16cd57` (chore(config): limpiar variables de appsettings base, ampliar .gitignore y salvaguardar arranque)
 
 ---
 
@@ -36,7 +36,7 @@ El backend de la API está prácticamente terminado y funcional. Todos los módu
 ### ✅ Módulo de Expedientes (`Case`)
 - CRUD completo con baja lógica
 - Vinculación obligatoria a un Cliente y al menos un Abogado
-- Agregar/quitar abogados responsables (`PUT /api/case/{id}/add-lawyer`, `/remove-lawyer`)
+- Agregar/quitar abogados responsables (`PATCH /api/case/{id}/lawyers/add`, `/lawyers/remove`)
 - No se puede quitar el último abogado responsable
 - Cambio de estado (`activo`, `pendiente`, `cerrado`) con registro de fecha de cierre
 - Un expediente cerrado no puede modificarse ni recibir documentos
@@ -109,7 +109,7 @@ El backend de la API está prácticamente terminado y funcional. Todos los módu
 
 | Tarea | Prioridad | Notas |
 |-------|-----------|-------|
-| Migrar a código asíncrono | Media | El flujo de resumen IA ya es async end-to-end (commit `190a273`). El resto usa `ToList`/`SaveChanges` síncronos; lo idiomático es `ToListAsync`/`SaveChangesAsync` para liberar el thread del servidor mientras espera la BD (mejor escalabilidad bajo carga) |
+| Migrar a código asíncrono | ✅ Completada | Migrado a async end-to-end (commit `741ba24`): Repositorios EF Core (`ToListAsync`, `SaveChangesAsync`), Servicios de Aplicación y Controllers con `Task` y propagación de `CancellationToken`. |
 | Generación de constancias por plantilla (QuestPDF) | Media | Mencionado en la minuta como funcionalidad de "generación automática" |
 | Frontend (React 19) | Alta | Conectar con esta API. Ya existe desde la iteración anterior |
 | Despliegue en Azure (App Service + SQL + Storage) | Baja | Para producción/entrega final |
@@ -141,14 +141,12 @@ No llevan API externa: las constancias y plantillas (QuestPDF local, sin interve
 - Configuración por `appsettings.json` / variables de entorno: clave del proveedor y nombre del modelo, nunca hardcodeados ni commiteados.
 - El resumen se redacta únicamente a partir de los datos ya registrados en el expediente (regla de la minuta), sin información externa.
 
-### Punto de partida en el código
+### Punto de partida e implementación
+El stub original (`DocumentService.GenerateAiSummary` + `ComposeSummaryText`) fue reemplazado exitosamente por la integración real con OpenCode Go (`OpenCodeAiSummaryService`), conectándose a `deepseek-v4.1-flash` con resiliencia Polly y flujo asincrónico completo.
 
-Stub actual: `DocumentService.GenerateAiSummary` + `ComposeSummaryText` — concatena los datos del expediente y escribe un pseudo-PDF con `File.WriteAllText` (sin formato PDF real; el PDF real del resumen requiere QuestPDF u otra librería). TODO en el código: reemplazar por una llamada real a un proveedor de LLM.
-
-### Decisiones pendientes (a cerrar con el equipo)
-
-1. Proveedor de LLM: Gemini (tier gratuito, apto facultad) / OpenAI / Anthropic.
-2. Storage de PDFs: Azure Blob Storage (recomendable en App Service; el disco local es efímero por instancia y no se comparte) vs sistema de archivos del servidor.
+### Decisiones de arquitectura cerradas
+1. **Proveedor de LLM:** OpenCode Go (API compatible OpenAI con `deepseek-v4.1-flash` y `reasoning_effort: medium`).
+2. **Storage de PDFs:** Sistema de archivos del servidor (con ruta configurable por `DocumentStorage:RootPath`). Para Azure se podrá enchufar un adaptador de Blob Storage manteniendo la misma interfaz.
 
 ### Estado de implementación del resumen IA (21/10/2026)
 
@@ -172,9 +170,11 @@ Implementado en la rama `feat/apis-externas` (commits `6eaeb59`, `4c64569`, `5e8
 |---------|-------------|
 | `LegalManager.Presentation/Program.cs` | Entry point: DI, JWT, policies, seed de admin |
 | `LegalManager.Infrastructure/Persistence/LegalManagerDbContext.cs` | Configuración EF Core, TPC, FKs, índices |
-| `LegalManager.Infrastructure/Migrations/` | Migración única `InitialCreate` (limpia, sin historial TPT) |
-| `LegalManager.Application/*/Services/` | Servicios con toda la lógica de negocio y reglas de la minuta |
+| `LegalManager.Infrastructure/Migrations/` | Migraciones EF Core: `InitialCreate` y `AddUniqueEmailDniIndexes` |
+| `LegalManager.Application/*/Services/` | Servicios con lógica de negocio asincrónica y reglas de la minuta |
 | `LegalManager.Presentation/Security/CurrentUser.cs` | Lee el JWT del contexto HTTP y expone `Id`, `IsAdmin`, `IsLawyer`, `IsClient` |
 | `docs/minuta.md` | Requisitos, reglas de negocio y matriz de permisos del proyecto |
 | `docs/diagrama-clases.png` | Diagrama de clases conceptual |
-| `docs/LegalManager API.postman_collection.json` | Colección Postman con todos los endpoints, login y token |
+| `docs/LegalManager API.postman_collection.json` | Colección Postman con el 100% de los endpoints, login y variables |
+| `docs/tasks/apis-externas.md` | Registro de tareas y decisiones de integración de APIs externas |
+| `docs/pruebas/resumen-ia/` | Evidencia y corridas de prueba de resiliencia y resumen IA |
