@@ -34,6 +34,16 @@ namespace LegalManager.Infrastructure.Persistence
             modelBuilder.Entity<Client>().Property(c => c.Phone).HasMaxLength(FieldLengths.Phone);
             modelBuilder.Entity<Client>().Property(c => c.Address).HasMaxLength(FieldLengths.Address);
 
+            // La unicidad de Email y Dni la controla UserService en memoria, pero con TPC no hay
+            // tabla base para un constraint unico global: estos indices por tabla respaldan esa
+            // unicidad dentro de cada una y cierran la carrera de dos requests simultaneos.
+            modelBuilder.Entity<Client>().HasIndex(c => c.Email).IsUnique().HasDatabaseName("UX_Clients_Email");
+            modelBuilder.Entity<Client>().HasIndex(c => c.Dni).IsUnique().HasDatabaseName("UX_Clients_Dni");
+            modelBuilder.Entity<Lawyer>().HasIndex(l => l.Email).IsUnique().HasDatabaseName("UX_Lawyers_Email");
+            modelBuilder.Entity<Lawyer>().HasIndex(l => l.Dni).IsUnique().HasDatabaseName("UX_Lawyers_Dni");
+            modelBuilder.Entity<Admin>().HasIndex(a => a.Email).IsUnique().HasDatabaseName("UX_Admins_Email");
+            modelBuilder.Entity<Admin>().HasIndex(a => a.Dni).IsUnique().HasDatabaseName("UX_Admins_Dni");
+
             modelBuilder.Entity<Lawyer>().Property(l => l.Phone).HasMaxLength(FieldLengths.Phone);
             modelBuilder.Entity<Lawyer>().Property(l => l.BarNumber).HasMaxLength(FieldLengths.BarNumber);
             // Specialties queda nvarchar(max) a proposito: es un JSON serializado, no un string.
