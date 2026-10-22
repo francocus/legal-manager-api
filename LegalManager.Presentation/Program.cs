@@ -121,6 +121,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseMiddleware<ProblemDetailsMiddleware>();
+
 app.UseMiddleware<ForbiddenExceptionMiddleware>();
 
 app.UseAuthentication();
