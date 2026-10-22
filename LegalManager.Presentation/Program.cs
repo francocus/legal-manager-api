@@ -47,11 +47,11 @@ builder.Services.AddScoped<IDocumentService>(sp => new DocumentService(
 builder.Services.Configure<LlmOptions>(builder.Configuration.GetSection(LlmOptions.SectionName));
 builder.Services.Configure<LlmResilienceOptions>(builder.Configuration.GetSection(LlmResilienceOptions.SectionName));
 
+// Llm:ApiKey is NOT validated here: a clone without user-secrets must still boot
+// (and dotnet ef must work). The summary service validates it at call time and the
+// controller answers 502 with a clear message.
 var llmSettings = builder.Configuration.GetSection(LlmOptions.SectionName).Get<LlmOptions>()
     ?? throw new InvalidOperationException("Falta la sección 'Llm' en appsettings.json.");
-
-if (string.IsNullOrWhiteSpace(llmSettings.ApiKey))
-    throw new InvalidOperationException("Falta la API key 'Llm:ApiKey'. Ejecutá: dotnet user-secrets set \"Llm:ApiKey\" \"<key>\".");
 
 var llmResilience = builder.Configuration.GetSection(LlmResilienceOptions.SectionName).Get<LlmResilienceOptions>()
     ?? throw new InvalidOperationException("Falta la sección 'Llm:Resilience' en appsettings.json.");
