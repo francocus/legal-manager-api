@@ -105,14 +105,14 @@ namespace LegalManager.Application.Services
 
             EnsureCanAccess(appointment);
 
-            // El turno se valida y muta primero (la entidad valida slot y ventana), y el
-            // chequeo de conflicto excluye el propio turno: reprogramar al mismo horario
-            // (por ejemplo para extender EndTime) es una operacion valida.
-            appointment.Reschedule(request.Date, request.Time, request.EndTime);
-
+            // El conflicto se chequea ANTES de mutar el turno: si el request falla, el
+            // tracked entity queda intacto (sin estado a medias) y se responde directo.
+            // La exclusion del propio id permite reprogramar al mismo horario (por
+            // ejemplo para extender EndTime).
             if (appointmentsRepository.HasScheduleConflict(appointment.LawyerId, request.Date, request.Time, request.EndTime, excludingAppointmentId: id))
                 throw new InvalidOperationException("El abogado ya tiene un turno en ese horario.");
 
+            appointment.Reschedule(request.Date, request.Time, request.EndTime);
             appointmentsRepository.Save();
             return AppointmentResponse.Desde(appointment);
         }
