@@ -12,9 +12,9 @@ namespace LegalManager.Application.Services
         ICurrentUser currentUser,
         string rootStoragePath) : IDocumentService
     {
-        public DocumentResponse Upload(UploadDocumentRequest request)
+        public async Task<DocumentResponse> UploadAsync(UploadDocumentRequest request, CancellationToken cancellationToken = default)
         {
-            var caseItem = casesRepository.GetById(request.CaseId);
+            var caseItem = await casesRepository.GetByIdAsync(request.CaseId, cancellationToken);
             if (caseItem == null)
                 throw new ArgumentException("El expediente indicado no existe.");
 
@@ -33,49 +33,50 @@ namespace LegalManager.Application.Services
             var storedFileName = $"{documentId}_{request.FileName}";
             var fullPath = Path.Combine(caseFolder, storedFileName);
 
-            using (var stream = new FileStream(fullPath, FileMode.Create))
+            await using (var stream = new FileStream(fullPath, FileMode.Create))
             {
-                request.FileContent.CopyTo(stream);
+                await request.FileContent.CopyToAsync(stream, cancellationToken);
             }
 
             var document = new Document(request.CaseId, request.FileName, fullPath, request.ContentType, request.Length, request.Type, currentUser.Id);
             documentsRepository.Add(document);
-            documentsRepository.Save();
+            await documentsRepository.SaveAsync(cancellationToken);
             return DocumentResponse.Desde(document);
         }
 
-        public IReadOnlyList<DocumentResponse> GetByCaseId(Guid caseId)
+        public async Task<IReadOnlyList<DocumentResponse>> GetByCaseIdAsync(Guid caseId, CancellationToken cancellationToken = default)
         {
-            var caseItem = casesRepository.GetById(caseId);
+            var caseItem = await casesRepository.GetByIdAsync(caseId, cancellationToken);
             if (caseItem != null)
                 EnsureCanRead(caseItem);
 
-            return documentsRepository.GetByCaseId(caseId)
+            var documents = await documentsRepository.GetByCaseIdAsync(caseId, cancellationToken);
+            return documents
                 .Where(document => !IsHiddenFromClient(document))
                 .Select(DocumentResponse.Desde)
                 .ToList();
         }
 
-        public DocumentResponse? GetById(Guid id)
+        public async Task<DocumentResponse?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            var document = documentsRepository.GetById(id);
+            var document = await documentsRepository.GetByIdAsync(id, cancellationToken);
             if (document == null) return null;
 
             if (IsHiddenFromClient(document)) return null;
 
-            EnsureDocumentAccess(document);
+            await EnsureDocumentAccessAsync(document, cancellationToken);
 
             return DocumentResponse.Desde(document);
         }
 
-        public (Stream Stream, string ContentType, string FileName)? Download(Guid id)
+        public async Task<(Stream Stream, string ContentType, string FileName)?> DownloadAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            var document = documentsRepository.GetById(id);
+            var document = await documentsRepository.GetByIdAsync(id, cancellationToken);
             if (document == null) return null;
 
             if (IsHiddenFromClient(document)) return null;
 
-            EnsureDocumentAccess(document);
+            await EnsureDocumentAccessAsync(document, cancellationToken);
 
             if (!File.Exists(document.FilePath))
                 throw new InvalidOperationException("El archivo del documento no se encuentra en el servidor.");
@@ -86,7 +87,7 @@ namespace LegalManager.Application.Services
 
         public async Task<DocumentResponse> GenerateAiSummaryAsync(Guid caseId, CancellationToken cancellationToken = default)
         {
-            var caseItem = casesRepository.GetById(caseId);
+            var caseItem = await casesRepository.GetByIdAsync(caseId, cancellationToken);
             if (caseItem == null)
                 throw new ArgumentException("El expediente indicado no existe.");
 
@@ -94,7 +95,8 @@ namespace LegalManager.Application.Services
 
             // Quota guard: while a draft awaits review, generating another one would burn
             // LLM plan quota for nothing. Approve or discard the pending one first.
-            if (documentsRepository.GetByCaseId(caseId).Any(d => d.Active && d.IsPendingReview))
+            var existingDocs = await documentsRepository.GetByCaseIdAsync(caseId, cancellationToken);
+            if (existingDocs.Any(d => d.Active && d.IsPendingReview))
                 throw new InvalidOperationException("Ya existe un borrador de resumen IA pendiente de revisión. Aprobalo o descartalo antes de generar otro.");
 
             var caseContext = ComposeSummaryText(caseItem);
@@ -125,39 +127,39 @@ namespace LegalManager.Application.Services
             return DocumentResponse.Desde(document);
         }
 
-        public DocumentResponse? Approve(Guid documentId)
+        public async Task<DocumentResponse?> ApproveAsync(Guid documentId, CancellationToken cancellationToken = default)
         {
-            var document = documentsRepository.GetById(documentId);
+            var document = await documentsRepository.GetByIdAsync(documentId, cancellationToken);
             if (document == null) return null;
 
-            EnsureDocumentWrite(document);
+            await EnsureDocumentWriteAsync(document, cancellationToken);
 
             document.Approve(currentUser.Id);
-            documentsRepository.Save();
+            await documentsRepository.SaveAsync(cancellationToken);
             return DocumentResponse.Desde(document);
         }
 
-        public DocumentResponse? Discard(Guid documentId)
+        public async Task<DocumentResponse?> DiscardAsync(Guid documentId, CancellationToken cancellationToken = default)
         {
-            var document = documentsRepository.GetById(documentId);
+            var document = await documentsRepository.GetByIdAsync(documentId, cancellationToken);
             if (document == null) return null;
 
-            EnsureDocumentWrite(document);
+            await EnsureDocumentWriteAsync(document, cancellationToken);
 
             document.Discard(currentUser.Id);
-            documentsRepository.Save();
+            await documentsRepository.SaveAsync(cancellationToken);
             return DocumentResponse.Desde(document);
         }
 
-        public bool Delete(Guid id)
+        public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            var document = documentsRepository.GetById(id);
+            var document = await documentsRepository.GetByIdAsync(id, cancellationToken);
             if (document == null) return false;
 
-            EnsureDocumentWrite(document);
+            await EnsureDocumentWriteAsync(document, cancellationToken);
 
             document.Deactivate();
-            documentsRepository.Save();
+            await documentsRepository.SaveAsync(cancellationToken);
             return true;
         }
 
@@ -177,9 +179,9 @@ namespace LegalManager.Application.Services
                    $" Descripción: {caseItem.Description}.{notes}";
         }
 
-        private void EnsureDocumentAccess(Document document)
+        private async Task EnsureDocumentAccessAsync(Document document, CancellationToken cancellationToken = default)
         {
-            var caseItem = casesRepository.GetById(document.CaseId);
+            var caseItem = await casesRepository.GetByIdAsync(document.CaseId, cancellationToken);
             if (caseItem == null) return;
 
             EnsureCanRead(caseItem);
@@ -191,9 +193,9 @@ namespace LegalManager.Application.Services
         private bool IsHiddenFromClient(Document document)
             => currentUser.IsClient && document.IsPendingReview;
 
-        private void EnsureDocumentWrite(Document document)
+        private async Task EnsureDocumentWriteAsync(Document document, CancellationToken cancellationToken = default)
         {
-            var caseItem = casesRepository.GetById(document.CaseId);
+            var caseItem = await casesRepository.GetByIdAsync(document.CaseId, cancellationToken);
             if (caseItem == null)
                 throw new ArgumentException("El expediente indicado no existe.");
 

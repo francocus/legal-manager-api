@@ -1,4 +1,4 @@
-﻿using LegalManager.Application.DTOs;
+using LegalManager.Application.DTOs;
 using LegalManager.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,11 +12,11 @@ namespace LegalManager.Presentation.Controllers
     {
         [AllowAnonymous]
         [HttpPost("client")]
-        public ActionResult<UserResponse> CreateClient([FromBody] CreateClientRequest request)
+        public async Task<ActionResult<UserResponse>> CreateClient([FromBody] CreateClientRequest request, CancellationToken cancellationToken)
         {
             try
             {
-                var client = userService.CreateClient(request);
+                var client = await userService.CreateClientAsync(request, cancellationToken);
                 return CreatedAtAction(nameof(GetById), new { id = client.Id }, client);
             }
             catch (ArgumentException ex) { return BadRequest(ex.Message); }
@@ -25,11 +25,11 @@ namespace LegalManager.Presentation.Controllers
 
         [Authorize(Policy = Policies.AdminsOnly)]
         [HttpPost("lawyer")]
-        public ActionResult<UserResponse> CreateLawyer([FromBody] CreateLawyerRequest request)
+        public async Task<ActionResult<UserResponse>> CreateLawyer([FromBody] CreateLawyerRequest request, CancellationToken cancellationToken)
         {
             try
             {
-                var lawyer = userService.CreateLawyer(request);
+                var lawyer = await userService.CreateLawyerAsync(request, cancellationToken);
                 return CreatedAtAction(nameof(GetById), new { id = lawyer.Id }, lawyer);
             }
             catch (ArgumentException ex) { return BadRequest(ex.Message); }
@@ -38,11 +38,11 @@ namespace LegalManager.Presentation.Controllers
 
         [Authorize(Policy = Policies.AdminsOnly)]
         [HttpPost("admin")]
-        public ActionResult<UserResponse> CreateAdmin([FromBody] CreateAdminRequest request)
+        public async Task<ActionResult<UserResponse>> CreateAdmin([FromBody] CreateAdminRequest request, CancellationToken cancellationToken)
         {
             try
             {
-                var admin = userService.CreateAdmin(request);
+                var admin = await userService.CreateAdminAsync(request, cancellationToken);
                 return CreatedAtAction(nameof(GetById), new { id = admin.Id }, admin);
             }
             catch (ArgumentException ex) { return BadRequest(ex.Message); }
@@ -51,41 +51,41 @@ namespace LegalManager.Presentation.Controllers
 
         [Authorize(Policy = Policies.AdminsOnly)]
         [HttpGet]
-        public ActionResult<IReadOnlyList<UserResponse>> GetAll()
+        public async Task<ActionResult<IReadOnlyList<UserResponse>>> GetAll(CancellationToken cancellationToken)
         {
-            var users = userService.GetAll();
+            var users = await userService.GetAllAsync(cancellationToken);
             return Ok(users);
         }
 
         [Authorize(Policy = Policies.AdminOrLawyer)]
         [HttpGet("clients")]
-        public ActionResult<IReadOnlyList<UserResponse>> GetClients()
-            => Ok(userService.GetClients());
+        public async Task<ActionResult<IReadOnlyList<UserResponse>>> GetClients(CancellationToken cancellationToken)
+            => Ok(await userService.GetClientsAsync(cancellationToken));
 
         [HttpGet("lawyers")]
-        public ActionResult<IReadOnlyList<UserResponse>> GetLawyers()
-            => Ok(userService.GetLawyers());
+        public async Task<ActionResult<IReadOnlyList<UserResponse>>> GetLawyers(CancellationToken cancellationToken)
+            => Ok(await userService.GetLawyersAsync(cancellationToken));
 
         [Authorize(Policy = Policies.AdminsOnly)]
         [HttpGet("admins")]
-        public ActionResult<IReadOnlyList<UserResponse>> GetAdmins()
-            => Ok(userService.GetAdmins());
+        public async Task<ActionResult<IReadOnlyList<UserResponse>>> GetAdmins(CancellationToken cancellationToken)
+            => Ok(await userService.GetAdminsAsync(cancellationToken));
 
         [HttpGet("{id}")]
-        public ActionResult<UserResponse> GetById([FromRoute] Guid id)
+        public async Task<ActionResult<UserResponse>> GetById([FromRoute] Guid id, CancellationToken cancellationToken)
         {
-            var user = userService.GetById(id);
+            var user = await userService.GetByIdAsync(id, cancellationToken);
             if (user == null) return NotFound($"No existe un elemento con el id {id}.");
             return Ok(user);
         }
 
         [Authorize(Policy = Policies.AdminsOnly)]
         [HttpPut("{id}")]
-        public ActionResult<UserResponse> Update([FromRoute] Guid id, [FromBody] UpdateUserRequest request)
+        public async Task<ActionResult<UserResponse>> Update([FromRoute] Guid id, [FromBody] UpdateUserRequest request, CancellationToken cancellationToken)
         {
             try
             {
-                var user = userService.Update(id, request);
+                var user = await userService.UpdateAsync(id, request, cancellationToken);
                 if (user == null) return NotFound($"No existe un elemento con el id {id}.");
                 return Ok(user);
             }
@@ -94,11 +94,11 @@ namespace LegalManager.Presentation.Controllers
         }
 
         [HttpPatch("client/{id}/phone")]
-        public ActionResult<UserResponse> UpdatePhone([FromRoute] Guid id, [FromBody] UpdatePhoneRequest request)
+        public async Task<ActionResult<UserResponse>> UpdatePhone([FromRoute] Guid id, [FromBody] UpdatePhoneRequest request, CancellationToken cancellationToken)
         {
             try
             {
-                var user = userService.UpdateClientPhone(id, request.Phone);
+                var user = await userService.UpdateClientPhoneAsync(id, request.Phone, cancellationToken);
                 if (user == null) return NotFound($"No existe un elemento con el id {id}.");
                 return Ok(user);
             }
@@ -106,11 +106,11 @@ namespace LegalManager.Presentation.Controllers
         }
 
         [HttpPatch("lawyer/{id}/phone")]
-        public ActionResult<UserResponse> UpdateLawyerPhone([FromRoute] Guid id, [FromBody] UpdatePhoneRequest request)
+        public async Task<ActionResult<UserResponse>> UpdateLawyerPhone([FromRoute] Guid id, [FromBody] UpdatePhoneRequest request, CancellationToken cancellationToken)
         {
             try
             {
-                var user = userService.UpdateLawyerPhone(id, request.Phone);
+                var user = await userService.UpdateLawyerPhoneAsync(id, request.Phone, cancellationToken);
                 if (user == null) return NotFound($"No existe un elemento con el id {id}.");
                 return Ok(user);
             }
@@ -118,11 +118,11 @@ namespace LegalManager.Presentation.Controllers
         }
 
         [HttpPatch("client/{id}/address")]
-        public ActionResult<UserResponse> UpdateAddress([FromRoute] Guid id, [FromBody] UpdateAddressRequest request)
+        public async Task<ActionResult<UserResponse>> UpdateAddress([FromRoute] Guid id, [FromBody] UpdateAddressRequest request, CancellationToken cancellationToken)
         {
             try
             {
-                var user = userService.UpdateClientAddress(id, request.Address);
+                var user = await userService.UpdateClientAddressAsync(id, request.Address, cancellationToken);
                 if (user == null) return NotFound($"No existe un elemento con el id {id}.");
                 return Ok(user);
             }
@@ -131,11 +131,11 @@ namespace LegalManager.Presentation.Controllers
 
         [Authorize(Policy = Policies.AdminsOnly)]
         [HttpPatch("lawyer/{id}/bar-number")]
-        public ActionResult<UserResponse> UpdateBarNumber([FromRoute] Guid id, [FromBody] UpdateBarNumberRequest request)
+        public async Task<ActionResult<UserResponse>> UpdateBarNumber([FromRoute] Guid id, [FromBody] UpdateBarNumberRequest request, CancellationToken cancellationToken)
         {
             try
             {
-                var user = userService.UpdateBarNumber(id, request.BarNumber);
+                var user = await userService.UpdateBarNumberAsync(id, request.BarNumber, cancellationToken);
                 if (user == null) return NotFound($"No existe un elemento con el id {id}.");
                 return Ok(user);
             }
@@ -144,11 +144,11 @@ namespace LegalManager.Presentation.Controllers
 
         [Authorize(Policy = Policies.AdminsOnly)]
         [HttpPatch("lawyer/{id}/specialties")]
-        public ActionResult<UserResponse> UpdateSpecialties([FromRoute] Guid id, [FromBody] UpdateSpecialtiesRequest request)
+        public async Task<ActionResult<UserResponse>> UpdateSpecialties([FromRoute] Guid id, [FromBody] UpdateSpecialtiesRequest request, CancellationToken cancellationToken)
         {
             try
             {
-                var user = userService.UpdateSpecialties(id, request.Specialties);
+                var user = await userService.UpdateSpecialtiesAsync(id, request.Specialties, cancellationToken);
                 if (user == null) return NotFound($"No existe un elemento con el id {id}.");
                 return Ok(user);
             }
@@ -157,11 +157,11 @@ namespace LegalManager.Presentation.Controllers
 
         [Authorize(Policy = Policies.AdminsOnly)]
         [HttpDelete("{id}")]
-        public ActionResult Delete([FromRoute] Guid id)
+        public async Task<ActionResult> Delete([FromRoute] Guid id, CancellationToken cancellationToken)
         {
             try
             {
-                if (!userService.Delete(id))
+                if (!await userService.DeleteAsync(id, cancellationToken))
                     return NotFound($"No existe un elemento con el id {id}.");
                 return NoContent();
             }

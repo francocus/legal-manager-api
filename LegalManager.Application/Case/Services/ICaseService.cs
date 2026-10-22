@@ -4,20 +4,20 @@ namespace LegalManager.Application.Interfaces
 {
     public interface ICaseService
     {
-        CaseResponse Create(CreateCaseRequest request);
+        Task<CaseResponse> CreateAsync(CreateCaseRequest request, CancellationToken cancellationToken = default);
 
-        IReadOnlyList<CaseResponse> GetAll();
+        Task<IReadOnlyList<CaseResponse>> GetAllAsync(CancellationToken cancellationToken = default);
 
-        CaseResponse? GetById(Guid id);
+        Task<CaseResponse?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
-        CaseResponse? Update(Guid id, UpdateCaseRequest request);
+        Task<CaseResponse?> UpdateAsync(Guid id, UpdateCaseRequest request, CancellationToken cancellationToken = default);
 
-        CaseResponse? ChangeStatus(Guid id, ChangeStatusRequest request);
+        Task<CaseResponse?> ChangeStatusAsync(Guid id, ChangeStatusRequest request, CancellationToken cancellationToken = default);
 
-        CaseResponse? AddLawyer(Guid id, AddLawyerRequest request);
+        Task<CaseResponse?> AddLawyerAsync(Guid id, AddLawyerRequest request, CancellationToken cancellationToken = default);
 
-        CaseResponse? RemoveLawyer(Guid id, RemoveLawyerRequest request);
+        Task<CaseResponse?> RemoveLawyerAsync(Guid id, RemoveLawyerRequest request, CancellationToken cancellationToken = default);
 
-        bool Delete(Guid id);
+        Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
     }
 }

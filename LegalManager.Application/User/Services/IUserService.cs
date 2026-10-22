@@ -4,34 +4,34 @@ namespace LegalManager.Application.Interfaces
 {
     public interface IUserService
     {
-        UserResponse CreateClient(CreateClientRequest request);
+        Task<UserResponse> CreateClientAsync(CreateClientRequest request, CancellationToken cancellationToken = default);
 
-        UserResponse CreateLawyer(CreateLawyerRequest request);
+        Task<UserResponse> CreateLawyerAsync(CreateLawyerRequest request, CancellationToken cancellationToken = default);
 
-        UserResponse CreateAdmin(CreateAdminRequest request);
+        Task<UserResponse> CreateAdminAsync(CreateAdminRequest request, CancellationToken cancellationToken = default);
 
-        IReadOnlyList<UserResponse> GetAll();
+        Task<IReadOnlyList<UserResponse>> GetAllAsync(CancellationToken cancellationToken = default);
 
-        IReadOnlyList<UserResponse> GetClients();
+        Task<IReadOnlyList<UserResponse>> GetClientsAsync(CancellationToken cancellationToken = default);
 
-        IReadOnlyList<UserResponse> GetLawyers();
+        Task<IReadOnlyList<UserResponse>> GetLawyersAsync(CancellationToken cancellationToken = default);
 
-        IReadOnlyList<UserResponse> GetAdmins();
+        Task<IReadOnlyList<UserResponse>> GetAdminsAsync(CancellationToken cancellationToken = default);
 
-        UserResponse? GetById(Guid id);
+        Task<UserResponse?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
-        UserResponse? Update(Guid id, UpdateUserRequest request);
+        Task<UserResponse?> UpdateAsync(Guid id, UpdateUserRequest request, CancellationToken cancellationToken = default);
 
-        UserResponse? UpdateClientPhone(Guid id, string? phone);
+        Task<UserResponse?> UpdateClientPhoneAsync(Guid id, string? phone, CancellationToken cancellationToken = default);
 
-        UserResponse? UpdateLawyerPhone(Guid id, string? phone);
+        Task<UserResponse?> UpdateLawyerPhoneAsync(Guid id, string? phone, CancellationToken cancellationToken = default);
 
-        UserResponse? UpdateClientAddress(Guid id, string? address);
+        Task<UserResponse?> UpdateClientAddressAsync(Guid id, string? address, CancellationToken cancellationToken = default);
 
-        UserResponse? UpdateBarNumber(Guid id, string barNumber);
+        Task<UserResponse?> UpdateBarNumberAsync(Guid id, string barNumber, CancellationToken cancellationToken = default);
 
-        UserResponse? UpdateSpecialties(Guid id, IEnumerable<string> specialties);
+        Task<UserResponse?> UpdateSpecialtiesAsync(Guid id, IEnumerable<string> specialties, CancellationToken cancellationToken = default);
 
-        bool Delete(Guid id);
+        Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
     }
 }

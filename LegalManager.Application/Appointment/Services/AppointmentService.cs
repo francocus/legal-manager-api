@@ -11,38 +11,40 @@ namespace LegalManager.Application.Services
         ICaseRepository casesRepository,
         ICurrentUser currentUser) : IAppointmentService
     {
-        public AppointmentResponse Create(CreateAppointmentRequest request)
+        public async Task<AppointmentResponse> CreateAsync(CreateAppointmentRequest request, CancellationToken cancellationToken = default)
         {
-            if (usersRepository.GetById(request.ClientId) is not Client)
+            var client = await usersRepository.GetByIdAsync(request.ClientId, cancellationToken);
+            if (client is not Client)
                 throw new ArgumentException("El cliente indicado no es válido.");
 
-            if (usersRepository.GetById(request.LawyerId) is not Lawyer)
+            var lawyer = await usersRepository.GetByIdAsync(request.LawyerId, cancellationToken);
+            if (lawyer is not Lawyer)
                 throw new ArgumentException("El abogado indicado no es válido.");
 
             Case? relatedCase = null;
             if (request.CaseId.HasValue)
             {
-                relatedCase = casesRepository.GetById(request.CaseId.Value);
+                relatedCase = await casesRepository.GetByIdAsync(request.CaseId.Value, cancellationToken);
                 if (relatedCase == null)
                     throw new ArgumentException("El expediente indicado no existe.");
             }
 
-            EnsureCanCreate(request, relatedCase);
+            await EnsureCanCreateAsync(request, relatedCase, cancellationToken);
 
             var area = relatedCase != null ? relatedCase.Area : request.Area;
             var appointment = new Appointment(request.Title, request.Date, request.Time, request.EndTime, request.Reason, area, request.Location, request.Notes, request.ClientId, request.LawyerId, request.CaseId);
 
-            if (appointmentsRepository.HasScheduleConflict(request.LawyerId, request.Date, request.Time, request.EndTime))
+            if (await appointmentsRepository.HasScheduleConflictAsync(request.LawyerId, request.Date, request.Time, request.EndTime, null, cancellationToken))
                 throw new InvalidOperationException("El abogado ya tiene un turno en ese horario.");
 
             appointmentsRepository.Add(appointment);
-            appointmentsRepository.Save();
+            await appointmentsRepository.SaveAsync(cancellationToken);
             return AppointmentResponse.Desde(appointment);
         }
 
-        public IReadOnlyList<AppointmentResponse> GetAll()
+        public async Task<IReadOnlyList<AppointmentResponse>> GetAllAsync(CancellationToken cancellationToken = default)
         {
-            var appointments = appointmentsRepository.GetAll();
+            var appointments = await appointmentsRepository.GetAllAsync(cancellationToken);
 
             if (currentUser.IsAdmin)
                 return appointments.Select(AppointmentResponse.Desde).ToList();
@@ -53,20 +55,28 @@ namespace LegalManager.Application.Services
             return appointments.Where(a => a.ClientId == currentUser.Id).Select(AppointmentResponse.Desde).ToList();
         }
 
-        public IReadOnlyList<TimeOnly> GetAvailability(Guid lawyerId, DateOnly date)
+        public async Task<IReadOnlyList<TimeOnly>> GetAvailabilityAsync(Guid lawyerId, DateOnly date, CancellationToken cancellationToken = default)
         {
-            if (usersRepository.GetById(lawyerId) is not Lawyer)
+            var lawyer = await usersRepository.GetByIdAsync(lawyerId, cancellationToken);
+            if (lawyer is not Lawyer)
                 throw new ArgumentException("El abogado indicado no es válido.");
 
-            return Appointment.ValidSlots
-                .Where(slot => !appointmentsRepository.HasScheduleConflict(
-                    lawyerId, date, slot, slot.AddMinutes(Appointment.SlotDurationMinutes)))
-                .ToList();
+            var availableSlots = new List<TimeOnly>();
+            foreach (var slot in Appointment.ValidSlots)
+            {
+                var hasConflict = await appointmentsRepository.HasScheduleConflictAsync(
+                    lawyerId, date, slot, slot.AddMinutes(Appointment.SlotDurationMinutes), null, cancellationToken);
+
+                if (!hasConflict)
+                    availableSlots.Add(slot);
+            }
+
+            return availableSlots;
         }
 
-        public AppointmentResponse? GetById(Guid id)
+        public async Task<AppointmentResponse?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            var appointment = appointmentsRepository.GetById(id);
+            var appointment = await appointmentsRepository.GetByIdAsync(id, cancellationToken);
             if (appointment == null) return null;
 
             EnsureCanAccess(appointment);
@@ -74,60 +84,60 @@ namespace LegalManager.Application.Services
             return AppointmentResponse.Desde(appointment);
         }
 
-        public AppointmentResponse? Confirm(Guid id)
+        public async Task<AppointmentResponse?> ConfirmAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            var appointment = appointmentsRepository.GetById(id);
+            var appointment = await appointmentsRepository.GetByIdAsync(id, cancellationToken);
             if (appointment == null) return null;
 
             EnsureCanAccess(appointment);
 
             appointment.Confirm();
-            appointmentsRepository.Save();
+            await appointmentsRepository.SaveAsync(cancellationToken);
             return AppointmentResponse.Desde(appointment);
         }
 
-        public AppointmentResponse? Cancel(Guid id)
+        public async Task<AppointmentResponse?> CancelAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            var appointment = appointmentsRepository.GetById(id);
+            var appointment = await appointmentsRepository.GetByIdAsync(id, cancellationToken);
             if (appointment == null) return null;
 
             EnsureCanAccess(appointment);
 
             appointment.Cancel();
-            appointmentsRepository.Save();
+            await appointmentsRepository.SaveAsync(cancellationToken);
             return AppointmentResponse.Desde(appointment);
         }
 
-        public AppointmentResponse? Reschedule(Guid id, RescheduleAppointmentRequest request)
+        public async Task<AppointmentResponse?> RescheduleAsync(Guid id, RescheduleAppointmentRequest request, CancellationToken cancellationToken = default)
         {
-            var appointment = appointmentsRepository.GetById(id);
+            var appointment = await appointmentsRepository.GetByIdAsync(id, cancellationToken);
             if (appointment == null) return null;
 
             EnsureCanAccess(appointment);
 
             // El conflicto se chequea ANTES de mutar el turno: si el request falla, el
             // tracked entity queda intacto (sin estado a medias) y se responde directo.
-            // La exclusion del propio id permite reprogramar al mismo horario (por
+            // La exclusión del propio id permite reprogramar al mismo horario (por
             // ejemplo para extender EndTime).
-            if (appointmentsRepository.HasScheduleConflict(appointment.LawyerId, request.Date, request.Time, request.EndTime, excludingAppointmentId: id))
+            if (await appointmentsRepository.HasScheduleConflictAsync(appointment.LawyerId, request.Date, request.Time, request.EndTime, excludingAppointmentId: id, cancellationToken: cancellationToken))
                 throw new InvalidOperationException("El abogado ya tiene un turno en ese horario.");
 
             appointment.Reschedule(request.Date, request.Time, request.EndTime);
-            appointmentsRepository.Save();
+            await appointmentsRepository.SaveAsync(cancellationToken);
             return AppointmentResponse.Desde(appointment);
         }
 
-        public bool Delete(Guid id)
+        public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            var appointment = appointmentsRepository.GetById(id);
+            var appointment = await appointmentsRepository.GetByIdAsync(id, cancellationToken);
             if (appointment == null) return false;
 
             appointment.Deactivate();
-            appointmentsRepository.Save();
+            await appointmentsRepository.SaveAsync(cancellationToken);
             return true;
         }
 
-        private void EnsureCanCreate(CreateAppointmentRequest request, Case? relatedCase)
+        private async Task EnsureCanCreateAsync(CreateAppointmentRequest request, Case? relatedCase, CancellationToken cancellationToken = default)
         {
             if (currentUser.IsAdmin) return;
 
@@ -147,7 +157,7 @@ namespace LegalManager.Application.Services
                 if (request.LawyerId != currentUser.Id)
                     throw new ForbiddenException("Un abogado solo puede agendar turnos a su propio nombre.");
 
-                if (!IsClientLinked(request.ClientId, relatedCase))
+                if (!await IsClientLinkedAsync(request.ClientId, relatedCase, cancellationToken))
                     throw new ForbiddenException("El abogado solo puede agendar turnos para clientes vinculados a él.");
 
                 return;
@@ -156,15 +166,17 @@ namespace LegalManager.Application.Services
             throw new ForbiddenException("No tiene permisos para crear turnos.");
         }
 
-        private bool IsClientLinked(Guid clientId, Case? relatedCase)
+        private async Task<bool> IsClientLinkedAsync(Guid clientId, Case? relatedCase, CancellationToken cancellationToken = default)
         {
             if (relatedCase != null && relatedCase.LawyerIds.Contains(currentUser.Id))
                 return true;
 
-            if (casesRepository.GetAll().Any(c => c.ClientId == clientId && c.LawyerIds.Contains(currentUser.Id)))
+            var allCases = await casesRepository.GetAllAsync(cancellationToken);
+            if (allCases.Any(c => c.ClientId == clientId && c.LawyerIds.Contains(currentUser.Id)))
                 return true;
 
-            return appointmentsRepository.GetAll().Any(a => a.ClientId == clientId && a.LawyerId == currentUser.Id);
+            var allAppointments = await appointmentsRepository.GetAllAsync(cancellationToken);
+            return allAppointments.Any(a => a.ClientId == clientId && a.LawyerId == currentUser.Id);
         }
 
         private void EnsureCanAccess(Appointment appointment)

@@ -1,4 +1,4 @@
-﻿using LegalManager.Domain.Entities;
+using LegalManager.Domain.Entities;
 using LegalManager.Domain.Interfaces;
 using LegalManager.Infrastructure.Persistence;
 using Microsoft.Data.SqlClient;
@@ -10,26 +10,26 @@ namespace LegalManager.Infrastructure.Repositories
     {
         public void Add(Appointment appointment) => context.Appointments.Add(appointment);
 
-        public IReadOnlyList<Appointment> GetAll()
-            => [.. context.Appointments.Where(a => a.Active)];
+        public async Task<IReadOnlyList<Appointment>> GetAllAsync(CancellationToken cancellationToken = default)
+            => await context.Appointments.Where(a => a.Active).ToListAsync(cancellationToken);
 
-        public Appointment? GetById(Guid id)
-            => context.Appointments.FirstOrDefault(a => a.Id == id && a.Active);
+        public async Task<Appointment?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+            => await context.Appointments.FirstOrDefaultAsync(a => a.Id == id && a.Active, cancellationToken);
 
-        public bool HasScheduleConflict(Guid lawyerId, DateOnly date, TimeOnly startTime, TimeOnly endTime, Guid? excludingAppointmentId = null)
-            => context.Appointments.Any(a => a.LawyerId == lawyerId
+        public async Task<bool> HasScheduleConflictAsync(Guid lawyerId, DateOnly date, TimeOnly startTime, TimeOnly endTime, Guid? excludingAppointmentId = null, CancellationToken cancellationToken = default)
+            => await context.Appointments.AnyAsync(a => a.LawyerId == lawyerId
                 && a.Active
                 && a.Status != AppointmentStatus.Cancelado
                 && a.Date == date
                 && a.Time < endTime
                 && a.EndTime > startTime
-                && (excludingAppointmentId == null || a.Id != excludingAppointmentId));
+                && (excludingAppointmentId == null || a.Id != excludingAppointmentId), cancellationToken);
 
-        public void Save()
+        public async Task SaveAsync(CancellationToken cancellationToken = default)
         {
             try
             {
-                context.SaveChanges();
+                await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateException ex) when (IsUniqueViolation(ex))
             {

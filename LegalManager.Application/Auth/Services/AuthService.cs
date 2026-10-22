@@ -9,9 +9,9 @@ namespace LegalManager.Application.Services
         ITokenService tokenService,
         IPasswordHasher passwordHasher) : IAuthService
     {
-        public LoginResponse? Authenticate(LoginRequest request)
+        public async Task<LoginResponse?> AuthenticateAsync(LoginRequest request, CancellationToken cancellationToken = default)
         {
-            var user = usersRepository.GetByEmail(request.Email);
+            var user = await usersRepository.GetByEmailAsync(request.Email, cancellationToken);
 
             if (user == null || !user.Active || !passwordHasher.Verify(request.Password, user.PasswordHash))
                 return null;

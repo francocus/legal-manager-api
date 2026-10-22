@@ -21,9 +21,9 @@ namespace LegalManager.Application.Services
             return passwordHasher.Hash(password);
         }
 
-        private void EnsureUnique(string email, string dni, Guid? excludeId = null)
+        private async Task EnsureUniqueAsync(string email, string dni, Guid? excludeId = null, CancellationToken cancellationToken = default)
         {
-            var users = usersRepository.GetAll();
+            var users = await usersRepository.GetAllAsync(cancellationToken);
             var normalizedEmail = email?.Trim();
 
             if (users.Any(u => u.Id != excludeId && string.Equals(u.Email.Trim(), normalizedEmail, StringComparison.OrdinalIgnoreCase)))
@@ -33,69 +33,85 @@ namespace LegalManager.Application.Services
                 throw new InvalidOperationException("Ya existe un usuario con ese DNI.");
         }
 
-        public UserResponse CreateClient(CreateClientRequest request)
+        public async Task<UserResponse> CreateClientAsync(CreateClientRequest request, CancellationToken cancellationToken = default)
         {
-            EnsureUnique(request.Email, request.Dni);
+            await EnsureUniqueAsync(request.Email, request.Dni, null, cancellationToken);
 
             var client = new Client(request.FirstName, request.LastName, request.Dni, request.Email, HashPassword(request.Password), request.Phone, request.Address);
             usersRepository.Add(client);
-            usersRepository.Save();
+            await usersRepository.SaveAsync(cancellationToken);
             return UserResponse.Desde(client, CanSeePrivateData(client));
         }
 
-        public UserResponse CreateLawyer(CreateLawyerRequest request)
+        public async Task<UserResponse> CreateLawyerAsync(CreateLawyerRequest request, CancellationToken cancellationToken = default)
         {
-            EnsureUnique(request.Email, request.Dni);
+            await EnsureUniqueAsync(request.Email, request.Dni, null, cancellationToken);
 
             var lawyer = new Lawyer(request.FirstName, request.LastName, request.Dni, request.Email, HashPassword(request.Password), request.BarNumber, request.Phone, request.Specialties);
             usersRepository.Add(lawyer);
-            usersRepository.Save();
+            await usersRepository.SaveAsync(cancellationToken);
             return UserResponse.Desde(lawyer, CanSeePrivateData(lawyer));
         }
 
-        public UserResponse CreateAdmin(CreateAdminRequest request)
+        public async Task<UserResponse> CreateAdminAsync(CreateAdminRequest request, CancellationToken cancellationToken = default)
         {
-            EnsureUnique(request.Email, request.Dni);
+            await EnsureUniqueAsync(request.Email, request.Dni, null, cancellationToken);
 
             var admin = new Admin(request.FirstName, request.LastName, request.Dni, request.Email, HashPassword(request.Password));
             usersRepository.Add(admin);
-            usersRepository.Save();
+            await usersRepository.SaveAsync(cancellationToken);
             return UserResponse.Desde(admin, CanSeePrivateData(admin));
         }
 
-        public IReadOnlyList<UserResponse> GetAll() => usersRepository.GetAll().Select(u => UserResponse.Desde(u, CanSeePrivateData(u))).ToList();
-
-        public IReadOnlyList<UserResponse> GetClients() => usersRepository.GetAll().OfType<Client>().Select(u => UserResponse.Desde(u, CanSeePrivateData(u))).ToList().AsReadOnly();
-
-        public IReadOnlyList<UserResponse> GetLawyers() => usersRepository.GetAll().OfType<Lawyer>().Select(u => UserResponse.Desde(u, CanSeePrivateData(u))).ToList().AsReadOnly();
-
-        public IReadOnlyList<UserResponse> GetAdmins() => usersRepository.GetAll().OfType<Admin>().Select(u => UserResponse.Desde(u, CanSeePrivateData(u))).ToList().AsReadOnly();
-
-        public UserResponse? GetById(Guid id)
+        public async Task<IReadOnlyList<UserResponse>> GetAllAsync(CancellationToken cancellationToken = default)
         {
-            var user = usersRepository.GetById(id);
+            var users = await usersRepository.GetAllAsync(cancellationToken);
+            return users.Select(u => UserResponse.Desde(u, CanSeePrivateData(u))).ToList();
+        }
+
+        public async Task<IReadOnlyList<UserResponse>> GetClientsAsync(CancellationToken cancellationToken = default)
+        {
+            var users = await usersRepository.GetAllAsync(cancellationToken);
+            return users.OfType<Client>().Select(u => UserResponse.Desde(u, CanSeePrivateData(u))).ToList().AsReadOnly();
+        }
+
+        public async Task<IReadOnlyList<UserResponse>> GetLawyersAsync(CancellationToken cancellationToken = default)
+        {
+            var users = await usersRepository.GetAllAsync(cancellationToken);
+            return users.OfType<Lawyer>().Select(u => UserResponse.Desde(u, CanSeePrivateData(u))).ToList().AsReadOnly();
+        }
+
+        public async Task<IReadOnlyList<UserResponse>> GetAdminsAsync(CancellationToken cancellationToken = default)
+        {
+            var users = await usersRepository.GetAllAsync(cancellationToken);
+            return users.OfType<Admin>().Select(u => UserResponse.Desde(u, CanSeePrivateData(u))).ToList().AsReadOnly();
+        }
+
+        public async Task<UserResponse?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+        {
+            var user = await usersRepository.GetByIdAsync(id, cancellationToken);
             if (user == null) return null;
 
-            EnsureCanRead(user);
+            await EnsureCanReadAsync(user, cancellationToken);
 
             return UserResponse.Desde(user, CanSeePrivateData(user));
         }
 
-        public UserResponse? Update(Guid id, UpdateUserRequest request)
+        public async Task<UserResponse?> UpdateAsync(Guid id, UpdateUserRequest request, CancellationToken cancellationToken = default)
         {
-            var user = usersRepository.GetById(id);
+            var user = await usersRepository.GetByIdAsync(id, cancellationToken);
             if (user == null) return null;
 
-            EnsureUnique(request.Email, request.Dni, id);
+            await EnsureUniqueAsync(request.Email, request.Dni, id, cancellationToken);
 
             user.UpdateDetails(request.FirstName, request.LastName, request.Dni, request.Email);
-            usersRepository.Save();
+            await usersRepository.SaveAsync(cancellationToken);
             return UserResponse.Desde(user, CanSeePrivateData(user));
         }
 
-        public UserResponse? UpdateClientPhone(Guid id, string? phone)
+        public async Task<UserResponse?> UpdateClientPhoneAsync(Guid id, string? phone, CancellationToken cancellationToken = default)
         {
-            var user = usersRepository.GetById(id);
+            var user = await usersRepository.GetByIdAsync(id, cancellationToken);
             if (user == null) return null;
 
             EnsureCanEditContact(user);
@@ -104,13 +120,13 @@ namespace LegalManager.Application.Services
                 throw new ArgumentException("El usuario indicado no es un cliente.");
 
             client.UpdatePhone(phone);
-            usersRepository.Save();
+            await usersRepository.SaveAsync(cancellationToken);
             return UserResponse.Desde(client, CanSeePrivateData(client));
         }
 
-        public UserResponse? UpdateLawyerPhone(Guid id, string? phone)
+        public async Task<UserResponse?> UpdateLawyerPhoneAsync(Guid id, string? phone, CancellationToken cancellationToken = default)
         {
-            var user = usersRepository.GetById(id);
+            var user = await usersRepository.GetByIdAsync(id, cancellationToken);
             if (user == null) return null;
 
             EnsureCanEditContact(user);
@@ -119,13 +135,13 @@ namespace LegalManager.Application.Services
                 throw new ArgumentException("El usuario indicado no es un abogado.");
 
             lawyer.UpdatePhone(phone);
-            usersRepository.Save();
+            await usersRepository.SaveAsync(cancellationToken);
             return UserResponse.Desde(lawyer, CanSeePrivateData(lawyer));
         }
 
-        public UserResponse? UpdateClientAddress(Guid id, string? address)
+        public async Task<UserResponse?> UpdateClientAddressAsync(Guid id, string? address, CancellationToken cancellationToken = default)
         {
-            var user = usersRepository.GetById(id);
+            var user = await usersRepository.GetByIdAsync(id, cancellationToken);
             if (user == null) return null;
 
             EnsureCanEditContact(user);
@@ -134,48 +150,50 @@ namespace LegalManager.Application.Services
                 throw new ArgumentException("El usuario indicado no es un cliente.");
 
             client.UpdateAddress(address);
-            usersRepository.Save();
+            await usersRepository.SaveAsync(cancellationToken);
             return UserResponse.Desde(client, CanSeePrivateData(client));
         }
 
-        public UserResponse? UpdateBarNumber(Guid id, string barNumber)
+        public async Task<UserResponse?> UpdateBarNumberAsync(Guid id, string barNumber, CancellationToken cancellationToken = default)
         {
-            var user = usersRepository.GetById(id);
+            var user = await usersRepository.GetByIdAsync(id, cancellationToken);
             if (user == null) return null;
 
             if (user is not Lawyer lawyer)
                 throw new ArgumentException("El usuario indicado no es un abogado.");
 
             lawyer.UpdateBarNumber(barNumber);
-            usersRepository.Save();
+            await usersRepository.SaveAsync(cancellationToken);
             return UserResponse.Desde(lawyer, CanSeePrivateData(lawyer));
         }
 
-        public UserResponse? UpdateSpecialties(Guid id, IEnumerable<string> specialties)
+        public async Task<UserResponse?> UpdateSpecialtiesAsync(Guid id, IEnumerable<string> specialties, CancellationToken cancellationToken = default)
         {
-            var user = usersRepository.GetById(id);
+            var user = await usersRepository.GetByIdAsync(id, cancellationToken);
             if (user == null) return null;
 
             if (user is not Lawyer lawyer)
                 throw new ArgumentException("El usuario indicado no es un abogado.");
 
             lawyer.UpdateSpecialties(specialties);
-            usersRepository.Save();
+            await usersRepository.SaveAsync(cancellationToken);
             return UserResponse.Desde(lawyer, CanSeePrivateData(lawyer));
         }
 
-        public bool Delete(Guid id)
+        public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            var user = usersRepository.GetById(id);
+            var user = await usersRepository.GetByIdAsync(id, cancellationToken);
             if (user == null) return false;
 
             if (user.Id == currentUser.Id)
                 throw new ForbiddenException("Un usuario no puede darse de baja a sí mismo.");
 
-            var hasActiveCases = casesRepository.GetAll()
+            var allCases = await casesRepository.GetAllAsync(cancellationToken);
+            var hasActiveCases = allCases
                 .Any(c => (c.ClientId == id || c.LawyerIds.Contains(id)) && c.Status != CaseStatus.Cerrado);
 
-            var hasActiveAppointments = appointmentsRepository.GetAll()
+            var allAppointments = await appointmentsRepository.GetAllAsync(cancellationToken);
+            var hasActiveAppointments = allAppointments
                 .Any(a => (a.ClientId == id || a.LawyerId == id)
                     && a.EffectiveStatus != AppointmentStatus.Cancelado && a.EffectiveStatus != AppointmentStatus.Finalizado);
 
@@ -183,7 +201,7 @@ namespace LegalManager.Application.Services
                 throw new InvalidOperationException($"El usuario con id {id} tiene expedientes o turnos activos y no puede ser desactivado.");
 
             user.Deactivate();
-            usersRepository.Save();
+            await usersRepository.SaveAsync(cancellationToken);
             return true;
         }
 
@@ -191,13 +209,13 @@ namespace LegalManager.Application.Services
         // sees them or the user themselves does. No one else sees them on any endpoint.
         private bool CanSeePrivateData(User user) => currentUser.IsAdmin || user.Id == currentUser.Id;
 
-        private void EnsureCanRead(User user)
+        private async Task EnsureCanReadAsync(User user, CancellationToken cancellationToken = default)
         {
             if (currentUser.IsAdmin) return;
 
             if (user.Id == currentUser.Id) return;
 
-            if (currentUser.IsLawyer && user is Client && IsClientLinkedToLawyer(user.Id)) return;
+            if (currentUser.IsLawyer && user is Client && await IsClientLinkedToLawyerAsync(user.Id, cancellationToken)) return;
 
             if (currentUser.IsClient && user is Lawyer) return;
 
@@ -213,12 +231,14 @@ namespace LegalManager.Application.Services
             throw new ForbiddenException("Solo puede modificar sus propios datos de contacto.");
         }
 
-        private bool IsClientLinkedToLawyer(Guid clientId)
+        private async Task<bool> IsClientLinkedToLawyerAsync(Guid clientId, CancellationToken cancellationToken = default)
         {
-            if (casesRepository.GetAll().Any(c => c.ClientId == clientId && c.LawyerIds.Contains(currentUser.Id)))
+            var allCases = await casesRepository.GetAllAsync(cancellationToken);
+            if (allCases.Any(c => c.ClientId == clientId && c.LawyerIds.Contains(currentUser.Id)))
                 return true;
 
-            return appointmentsRepository.GetAll().Any(a => a.ClientId == clientId && a.LawyerId == currentUser.Id);
+            var allAppointments = await appointmentsRepository.GetAllAsync(cancellationToken);
+            return allAppointments.Any(a => a.ClientId == clientId && a.LawyerId == currentUser.Id);
         }
     }
 }

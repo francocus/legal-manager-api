@@ -4,20 +4,20 @@ namespace LegalManager.Application.Interfaces
 {
     public interface IDocumentService
     {
-        DocumentResponse Upload(UploadDocumentRequest request);
+        Task<DocumentResponse> UploadAsync(UploadDocumentRequest request, CancellationToken cancellationToken = default);
 
         Task<DocumentResponse> GenerateAiSummaryAsync(Guid caseId, CancellationToken cancellationToken = default);
 
-        IReadOnlyList<DocumentResponse> GetByCaseId(Guid caseId);
+        Task<IReadOnlyList<DocumentResponse>> GetByCaseIdAsync(Guid caseId, CancellationToken cancellationToken = default);
 
-        DocumentResponse? GetById(Guid id);
+        Task<DocumentResponse?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
-        (Stream Stream, string ContentType, string FileName)? Download(Guid id);
+        Task<(Stream Stream, string ContentType, string FileName)?> DownloadAsync(Guid id, CancellationToken cancellationToken = default);
 
-        DocumentResponse? Approve(Guid documentId);
+        Task<DocumentResponse?> ApproveAsync(Guid documentId, CancellationToken cancellationToken = default);
 
-        DocumentResponse? Discard(Guid documentId);
+        Task<DocumentResponse?> DiscardAsync(Guid documentId, CancellationToken cancellationToken = default);
 
-        bool Delete(Guid id);
+        Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
     }
 }

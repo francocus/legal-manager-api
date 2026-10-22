@@ -1,4 +1,4 @@
-﻿using LegalManager.Application.DTOs;
+using LegalManager.Application.DTOs;
 using LegalManager.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,13 +10,12 @@ namespace LegalManager.Presentation.Controllers
     [Authorize(Policy = Policies.AllRoles)]
     public class AppointmentController(IAppointmentService appointmentService) : ControllerBase
     {
-
         [HttpPost]
-        public ActionResult<AppointmentResponse> Create([FromBody] CreateAppointmentRequest request)
+        public async Task<ActionResult<AppointmentResponse>> Create([FromBody] CreateAppointmentRequest request, CancellationToken cancellationToken)
         {
             try
             {
-                var appointment = appointmentService.Create(request);
+                var appointment = await appointmentService.CreateAsync(request, cancellationToken);
                 return CreatedAtAction(nameof(GetById), new { id = appointment.Id }, appointment);
             }
             catch (ArgumentException ex) { return BadRequest(ex.Message); }
@@ -24,36 +23,37 @@ namespace LegalManager.Presentation.Controllers
         }
 
         [HttpGet]
-        public ActionResult<IReadOnlyList<AppointmentResponse>> GetAll()
+        public async Task<ActionResult<IReadOnlyList<AppointmentResponse>>> GetAll(CancellationToken cancellationToken)
         {
-            var appointments = appointmentService.GetAll();
+            var appointments = await appointmentService.GetAllAsync(cancellationToken);
             return Ok(appointments);
         }
 
         [HttpGet("availability")]
-        public ActionResult<AvailabilityResponse> GetAvailability([FromQuery] Guid lawyerId, [FromQuery] DateOnly date)
+        public async Task<ActionResult<AvailabilityResponse>> GetAvailability([FromQuery] Guid lawyerId, [FromQuery] DateOnly date, CancellationToken cancellationToken)
         {
             try
             {
-                return Ok(new AvailabilityResponse(appointmentService.GetAvailability(lawyerId, date)));
+                var availableSlots = await appointmentService.GetAvailabilityAsync(lawyerId, date, cancellationToken);
+                return Ok(new AvailabilityResponse(availableSlots));
             }
             catch (ArgumentException ex) { return BadRequest(ex.Message); }
         }
 
         [HttpGet("{id}")]
-        public ActionResult<AppointmentResponse> GetById([FromRoute] Guid id)
+        public async Task<ActionResult<AppointmentResponse>> GetById([FromRoute] Guid id, CancellationToken cancellationToken)
         {
-            var appointment = appointmentService.GetById(id);
+            var appointment = await appointmentService.GetByIdAsync(id, cancellationToken);
             if (appointment == null) return NotFound($"No existe un elemento con el id {id}.");
             return Ok(appointment);
         }
 
         [HttpPatch("{id}/confirm")]
-        public ActionResult<AppointmentResponse> Confirm([FromRoute] Guid id)
+        public async Task<ActionResult<AppointmentResponse>> Confirm([FromRoute] Guid id, CancellationToken cancellationToken)
         {
             try
             {
-                var appointment = appointmentService.Confirm(id);
+                var appointment = await appointmentService.ConfirmAsync(id, cancellationToken);
                 if (appointment == null) return NotFound($"No existe un elemento con el id {id}.");
                 return Ok(appointment);
             }
@@ -61,11 +61,11 @@ namespace LegalManager.Presentation.Controllers
         }
 
         [HttpPatch("{id}/cancel")]
-        public ActionResult<AppointmentResponse> Cancel([FromRoute] Guid id)
+        public async Task<ActionResult<AppointmentResponse>> Cancel([FromRoute] Guid id, CancellationToken cancellationToken)
         {
             try
             {
-                var appointment = appointmentService.Cancel(id);
+                var appointment = await appointmentService.CancelAsync(id, cancellationToken);
                 if (appointment == null) return NotFound($"No existe un elemento con el id {id}.");
                 return Ok(appointment);
             }
@@ -73,11 +73,11 @@ namespace LegalManager.Presentation.Controllers
         }
 
         [HttpPatch("{id}/reschedule")]
-        public ActionResult<AppointmentResponse> Reschedule([FromRoute] Guid id, [FromBody] RescheduleAppointmentRequest request)
+        public async Task<ActionResult<AppointmentResponse>> Reschedule([FromRoute] Guid id, [FromBody] RescheduleAppointmentRequest request, CancellationToken cancellationToken)
         {
             try
             {
-                var appointment = appointmentService.Reschedule(id, request);
+                var appointment = await appointmentService.RescheduleAsync(id, request, cancellationToken);
                 if (appointment == null) return NotFound($"No existe un elemento con el id {id}.");
                 return Ok(appointment);
             }
@@ -87,11 +87,11 @@ namespace LegalManager.Presentation.Controllers
 
         [Authorize(Policy = Policies.AdminsOnly)]
         [HttpDelete("{id}")]
-        public ActionResult Delete([FromRoute] Guid id)
+        public async Task<ActionResult> Delete([FromRoute] Guid id, CancellationToken cancellationToken)
         {
             try
             {
-                if (!appointmentService.Delete(id))
+                if (!await appointmentService.DeleteAsync(id, cancellationToken))
                     return NotFound($"No existe un elemento con el id {id}.");
                 return NoContent();
             }
