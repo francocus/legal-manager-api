@@ -46,3 +46,9 @@ Conclusión: retry con backoff funcionando (llamada 1), breaker abriendo tras la
 2. En el shell: `ConnectionStrings__LegalManagerDb="Server=(localdb)\\MSSQLLocalDB;Database=LegalManager;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True"` y, para el camino de fallo, además `Llm__BaseUrl="http://localhost:9/"`
 3. `dotnet run --project LegalManager.Presentation --no-build`
 4. Ejecutar los requests de `docs/LegalManager API.postman_collection.json` en orden (login → crear cliente → crear abogado → crear expediente → generate-summary).
+
+## Ofuscación y cambios posteriores al review
+
+- Los JWT y stack traces completos se ofuscaron en `evidence/login.json`, `evidence/fail_2.json` y `evidence/fail_3.json` (la evidencia del defecto pre-fix conserva las líneas de excepción que cuentan la historia). Los tokens eran de la corrida del 21/10 y ya estaban vencidos; la clave de dev es pública en el repo.
+- Tras el review del PR se retunearon los valores de resiliencia (reintentos totales 3 en vez de 4, timeout por intento 15s en vez de 20s) y se agregó el manejo de timeouts en retry y breaker; los tiempos de esta corrida corresponden a la config anterior y una corrida nueva dará números distintos.
+- Nueva regla: un solo borrador de resumen IA pendiente por expediente (409 si hay uno esperando revisión).
