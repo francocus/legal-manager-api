@@ -1,5 +1,6 @@
 using LegalManager.Application.DTOs;
 using LegalManager.Application.Interfaces;
+using LegalManager.Domain;
 using LegalManager.Domain.Entities;
 using LegalManager.Domain.Interfaces;
 
@@ -28,7 +29,7 @@ namespace LegalManager.Application.Services
             if (users.Any(u => u.Id != excludeId && string.Equals(u.Email.Trim(), normalizedEmail, StringComparison.OrdinalIgnoreCase)))
                 throw new InvalidOperationException("Ya existe un usuario con ese email.");
 
-            if (users.Any(u => u.Id != excludeId && u.Dni == dni))
+            if (users.Any(u => u.Id != excludeId && u.Dni == DniFormat.Normalize(dni)))
                 throw new InvalidOperationException("Ya existe un usuario con ese DNI.");
         }
 

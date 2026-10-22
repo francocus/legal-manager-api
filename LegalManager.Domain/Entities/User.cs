@@ -33,11 +33,7 @@
             if (string.IsNullOrWhiteSpace(dni))
                 throw new ArgumentException("El DNI es obligatorio.", nameof(dni));
 
-            // DNI argentino: 7 u 8 digitos, opcionalmente con puntos o espacios visuales.
-            // Se almacena normalizado (solo digitos) para que la unicidad en memoria compare equivalentes.
-            dni = dni.Replace(".", "").Replace(" ", "");
-            if (dni.Length is < 7 or > 8 || dni.Any(c => !char.IsDigit(c)))
-                throw new ArgumentException("Formato de DNI inválido. Se esperan 7 u 8 dígitos, opcionalmente separados por puntos o espacios.", nameof(dni));
+            dni = ValidateDniFormat(dni);
 
             if (string.IsNullOrWhiteSpace(email))
                 throw new ArgumentException("El email es obligatorio.", nameof(email));
@@ -66,9 +62,7 @@
             if (string.IsNullOrWhiteSpace(dni))
                 throw new ArgumentException("El DNI es obligatorio.", nameof(dni));
 
-            dni = dni.Replace(".", "").Replace(" ", "");
-            if (dni.Length is < 7 or > 8 || dni.Any(c => !char.IsDigit(c)))
-                throw new ArgumentException("Formato de DNI inválido. Se esperan 7 u 8 dígitos, opcionalmente separados por puntos o espacios.", nameof(dni));
+            dni = ValidateDniFormat(dni);
 
             if (string.IsNullOrWhiteSpace(email))
                 throw new ArgumentException("El email es obligatorio.", nameof(email));
@@ -85,6 +79,18 @@
                 throw new InvalidOperationException("El usuario ya está inactivo.");
 
             Active = false;
+        }
+
+        // DNI argentino: 7 u 8 digitos, opcionalmente con puntos o espacios visuales.
+        // Se devuelve normalizado (solo digitos) para almacenarlo y compararlo siempre
+        // en la misma forma; la fuente de la normalizacion es DniFormat en Domain.
+        private static string ValidateDniFormat(string dni)
+        {
+            var normalized = DniFormat.Normalize(dni);
+            if (normalized.Length is < 7 or > 8 || normalized.Any(c => !char.IsDigit(c)))
+                throw new ArgumentException("Formato de DNI inválido. Se esperan 7 u 8 dígitos, opcionalmente separados por puntos o espacios.", nameof(dni));
+
+            return normalized;
         }
     }
 }
