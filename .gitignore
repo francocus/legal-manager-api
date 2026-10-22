@@ -386,5 +386,8 @@ appsettings.Local.json
 .vscode/
 .DS_Store
 
+# Local Pi runtime state
+.atl/
+
 # Local token scratch files (expired dev tokens, never commit)
 *.tok
