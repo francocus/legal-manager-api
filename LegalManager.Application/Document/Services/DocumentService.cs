@@ -92,6 +92,11 @@ namespace LegalManager.Application.Services
 
             EnsureCanWrite(caseItem);
 
+            // Quota guard: while a draft awaits review, generating another one would burn
+            // LLM plan quota for nothing. Approve or discard the pending one first.
+            if (documentsRepository.GetByCaseId(caseId).Any(d => d.Active && d.IsPendingReview))
+                throw new InvalidOperationException("Ya existe un borrador de resumen IA pendiente de revisión. Aprobalo o descartalo antes de generar otro.");
+
             var caseContext = ComposeSummaryText(caseItem);
             var summary = await aiSummaryService.GenerateSummaryAsync(caseContext, cancellationToken);
 
@@ -102,11 +107,21 @@ namespace LegalManager.Application.Services
             var fileName = "ResumenIA.pdf";
             var storedFileName = $"{documentId}_{fileName}";
             var fullPath = Path.Combine(caseFolder, storedFileName);
-            File.WriteAllText(fullPath, summary);
+            await File.WriteAllTextAsync(fullPath, summary, cancellationToken);
 
             var document = Document.CreateAiSummary(caseId, fileName, fullPath, summary, currentUser.Id);
             documentsRepository.Add(document);
-            await documentsRepository.SaveAsync(cancellationToken);
+            try
+            {
+                await documentsRepository.SaveAsync(cancellationToken);
+            }
+            catch
+            {
+                // Best-effort orphan cleanup: without it, a failed save leaves the written
+                // file on disk without its database record.
+                try { File.Delete(fullPath); } catch (IOException) { }
+                throw;
+            }
             return DocumentResponse.Desde(document);
         }
 
