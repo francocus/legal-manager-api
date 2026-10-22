@@ -101,6 +101,7 @@ El backend de la API está prácticamente terminado y funcional. Todos los módu
 - **Baja lógica universal**: propiedad `Active` en todas las entidades, nunca `DELETE` físico
 - **Serialización de enums como string** (`JsonStringEnumConverter`)
 - Límites de columna centralizados en `Domain.FieldLengths`
+- **Comentarios del código en inglés**: documentan decisiones y su motivo, no narran pasos (elección 22/10 tras el review del PR de apis-externas)
 
 ---
 
@@ -156,12 +157,13 @@ Implementado en la rama `feat/apis-externas` (commits `6eaeb59`, `4c64569`, `5e8
 
 - **Proveedor elegido:** OpenCode Go (suscripción del usuario; API compatible con OpenAI en `https://opencode.ai/inference/go/openai/v1/chat/completions`), modelo `deepseek-v4.1-flash` con `reasoning_effort: medium`. Contrato verificado en vivo contra la API (HTTP 200).
 - **Requisitos del proveedor:** header `x-opencode-session` con un id de sesión estable (va en appsettings) y `User-Agent: LegalManagerApi/1.0` (OpenCode exige identificar al cliente; además los modelos free solo se usan desde la app OpenCode, por eso la clave se usa con modelos de pago).
-- **Resiliencia (Polly):** retry con backoff exponencial (3 reintentos, esperas 2s/4s/8s) solo ante 5xx/408/429 y errores de red; circuit breaker (abre tras 5 fallas seguidas, espera 30s); timeout por intento (20s). `HttpClient.Timeout` queda infinito a propósito: cubriría toda la cadena de reintentos y los mataría; el corte por intento lo hace Polly. Envoltura de afuera hacia adentro: retry → breaker → timeout.
+- **Resiliencia (Polly):** retry con backoff exponencial (3 intentos totales, esperas 2s/4s) ante 5xx/408/429, errores de red y timeout por intento; circuit breaker (abre tras 5 fallas seguidas, incluye timeouts; espera 30s); timeout por intento (15s). Peor caso por request: ~51s (3 x 15s + esperas de backoff). `HttpClient.Timeout` queda infinito a propósito: cubriría toda la cadena de reintentos y los mataría; el corte por intento lo hace Polly. Envoltura de afuera hacia adentro: retry → breaker → timeout.
 - **Estructura (estilo cátedra GestionComplejo2C):** puerto `IAiSummaryService` en `Domain/Interfaces`; cliente tipado `OpenCodeAiSummaryService` y opciones `LlmOptions`/`LlmResilienceOptions` en `Infrastructure/ExternalServices`; registro en `Program.cs` con `AddHttpClient<Interfaz, Impl>` + `AddPolicyHandler` (el primero agregado es el más externo).
-- **Fallo integrado (tarea 8):** todo fallo del LLM (reintentos agotados, breaker abierto, timeout, error upstream tipo 402/403) levanta `AiSummaryUnavailableException` y el endpoint responde 502 con un mensaje claro, sin crear documentos borrador a medias.
+- **Fallo integrado (tarea 8):** todo fallo del LLM (reintentos agotados, breaker abierto, timeout, error upstream tipo 402/403, ApiKey ausente) levanta `AiSummaryUnavailableException` y el endpoint responde 502 con un mensaje claro, sin crear documentos borrador a medias.
 - **Async (tarea 7):** el flujo generate-summary es async end-to-end: controller → `DocumentService.GenerateAiSummaryAsync` → `SaveChangesAsync`.
-- **Config de la clave:** `dotnet user-secrets set "Llm:ApiKey" "<key>"` (ya configurada en esta máquina; nunca se commitea; si falta, la API arranca con error claro indicando cómo setearla).
-- **Demo manual (tarea 9) para la facu con Postman:** cambiar `Llm:BaseUrl` a un puerto muerto (ej. `http://localhost:9/`), levantar la API, loguearse y llamar `POST /api/document/case/{id}/generate-summary`: en logs se ven los 3 reintentos (2s/4s/8s) y al final un 502. Repetir la llamada 5 veces para ver el circuit breaker abrirse (falla instantánea sin esperar). Después revertir la BaseUrl y probar con la real para ver un resumen generado de verdad.
+- **Cuota (review 22/10):** un solo borrador de resumen IA pendiente por expediente; mientras haya uno esperando revisión, el endpoint responde 409 hasta aprobarlo o descartarlo. El chequeo corre antes de llamar al LLM.
+- **Config de la clave:** `dotnet user-secrets set "Llm:ApiKey" "<key>"` (ya configurada en esta máquina; nunca se commitea; si falta, la API arranca igual y solo el endpoint de resumen responde 502 con instrucciones para setearla).
+- **Demo manual (tarea 9) para la facu con Postman:** cambiar `Llm:BaseUrl` a un puerto muerto (ej. `http://localhost:9/`), levantar la API, loguearse y llamar `POST /api/document/case/{id}/generate-summary`: en logs se ven los reintentos (2s/4s) y al final un 502. Repetir la llamada 5 veces para ver el circuit breaker abrirse (falla instantánea sin esperar). Después revertir la BaseUrl y probar con la real para ver un resumen generado de verdad.
 
 ---
 
