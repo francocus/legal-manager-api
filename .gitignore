@@ -385,3 +385,6 @@ appsettings.Local.json
 .idea/
 .vscode/
 .DS_Store
+
+# Local token scratch files (expired dev tokens, never commit)
+*.tok
