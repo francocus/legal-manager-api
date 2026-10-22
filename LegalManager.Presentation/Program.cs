@@ -16,8 +16,9 @@ using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var connectionString = builder.Configuration.GetConnectionString("LegalManagerDb")
-    ?? throw new InvalidOperationException("Falta la connection string 'LegalManagerDb' en appsettings.json.");
+var connectionString = builder.Configuration.GetConnectionString("LegalManagerDb");
+if (string.IsNullOrWhiteSpace(connectionString))
+    throw new InvalidOperationException("Falta la connection string 'LegalManagerDb' en appsettings.json o en el entorno.");
 
 builder.Services.AddDbContext<LegalManagerDbContext>(options =>
     options.UseSqlServer(connectionString));
@@ -59,9 +60,18 @@ var llmResilience = builder.Configuration.GetSection(LlmResilienceOptions.Sectio
 builder.Services
     .AddHttpClient<IAiSummaryService, OpenCodeAiSummaryService>(client =>
     {
-        client.BaseAddress = new Uri(llmSettings.BaseUrl);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", llmSettings.ApiKey);
-        client.DefaultRequestHeaders.Add("x-opencode-session", llmSettings.SessionId);
+        if (!string.IsNullOrWhiteSpace(llmSettings.BaseUrl))
+        {
+            client.BaseAddress = new Uri(llmSettings.BaseUrl);
+        }
+        if (!string.IsNullOrWhiteSpace(llmSettings.ApiKey))
+        {
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", llmSettings.ApiKey);
+        }
+        if (!string.IsNullOrWhiteSpace(llmSettings.SessionId))
+        {
+            client.DefaultRequestHeaders.Add("x-opencode-session", llmSettings.SessionId);
+        }
         client.DefaultRequestHeaders.UserAgent.ParseAdd("LegalManagerApi/1.0");
 
         // HttpClient.Timeout must stay infinite: it would wrap the whole retry chain.
