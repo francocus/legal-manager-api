@@ -81,6 +81,7 @@ namespace LegalManager.Presentation.Controllers
                 if (appointment == null) return NotFound($"No existe un elemento con el id {id}.");
                 return Ok(appointment);
             }
+            catch (ArgumentException ex) { return BadRequest(ex.Message); }
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
         }
 

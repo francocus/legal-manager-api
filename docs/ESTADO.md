@@ -117,6 +117,42 @@ El backend de la API está prácticamente terminado y funcional. Todos los módu
 
 ---
 
+## Integración con APIs externas (asignación 13/10/2026)
+
+Asignación por Franco (WhatsApp 13/10): Agus se encarga de "las APIs externas y lo de async" en la API de LegalManager.
+
+Contexto de la cursada: comunicarse desde la API con otras APIs para utilizar sus servicios, y establecer diferentes patrones y estrategias de comunicación para reaccionar ante escenarios de inestabilidad en las APIs externas.
+
+### Alcance mapeado
+
+| # | Integración | Qué es | Estado |
+|---|-------------|--------|--------|
+| 1 | API de LLM (resumen por IA) | Llamada al proveedor elegido con los datos del expediente; devuelve el texto del resumen narrativo | Única API externa declarada explícitamente en la minuta y el TIF; es el caso central de comunicación API→API del proyecto | 
+| 2 | Azure Storage / blobs | Almacenamiento de los PDFs en la nube | ⚠️ Contradicción por resolver: la minuta dice "Documentos en Azure Storage Account", el TIF dice "almacenamiento en el sistema de archivos del servidor" |
+| 3 | Azure SQL vía EF Core | I/O de red hacia la base de datos | Cubierto por la migración a código asíncrono |
+
+No llevan API externa: las constancias y plantillas (QuestPDF local, sin intervención de IA según el TIF) y el consumo del frontend (cliente-servidor, no API a API).
+
+### Patrones y estrategias de comunicación previstos
+
+- Cliente HTTP tipado registrado con `IHttpClientFactory` (`AddHttpClient`).
+- Resiliencia con Polly (o el paquete `Microsoft.Extensions.Http.Resilience`): Retry con backoff exponencial y jitter, Circuit Breaker, Timeout y degradación elegante (si el LLM no responde tras los reintentos, la API responde con un error claro sin dejar documentos borrador a medias).
+- Async/await end-to-end: controller → servicio → repositorio → HTTP → `SaveChangesAsync`, sin bloquear threads.
+- Configuración por `appsettings.json` / variables de entorno: clave del proveedor y nombre del modelo, nunca hardcodeados ni commiteados.
+- El resumen se redacta únicamente a partir de los datos ya registrados en el expediente (regla de la minuta), sin información externa.
+
+### Punto de partida en el código
+
+Stub actual: `DocumentService.GenerateAiSummary` + `ComposeSummaryText` — concatena los datos del expediente y escribe un pseudo-PDF con `File.WriteAllText` (sin formato PDF real; el PDF real del resumen requiere QuestPDF u otra librería). TODO en el código: reemplazar por una llamada real a un proveedor de LLM.
+
+### Decisiones pendientes (a cerrar con el equipo)
+
+1. Proveedor de LLM: Gemini (tier gratuito, apto facultad) / OpenAI / Anthropic.
+2. Storage de PDFs: Azure Blob Storage (recomendable en App Service; el disco local es efímero por instancia y no se comparte) vs sistema de archivos del servidor.
+3. Ownership: el TIF asigna el módulo documental/IA/cloud a Thiago ("Document Engine AI & Cloud/Storage Management") y a Agus "Frontend & Integration"; la asignación de Franco superpone "APIs externas" con el módulo de Thiago. Definir quién hace la integración del LLM y quién storage/templates para no pisarse.
+
+---
+
 ## Archivos clave
 
 | Archivo | Descripción |

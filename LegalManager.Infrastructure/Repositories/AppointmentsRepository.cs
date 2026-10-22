@@ -16,12 +16,14 @@ namespace LegalManager.Infrastructure.Repositories
         public Appointment? GetById(Guid id)
             => context.Appointments.FirstOrDefault(a => a.Id == id && a.Active);
 
-        public bool HasScheduleConflict(Guid lawyerId, DateOnly date, TimeOnly time)
+        public bool HasScheduleConflict(Guid lawyerId, DateOnly date, TimeOnly startTime, TimeOnly endTime, Guid? excludingAppointmentId = null)
             => context.Appointments.Any(a => a.LawyerId == lawyerId
                 && a.Active
                 && a.Status != AppointmentStatus.Cancelado
                 && a.Date == date
-                && a.Time == time);
+                && a.Time < endTime
+                && a.EndTime > startTime
+                && (excludingAppointmentId == null || a.Id != excludingAppointmentId));
 
         public void Save()
         {
