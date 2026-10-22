@@ -33,8 +33,8 @@ namespace LegalManager.Infrastructure.ExternalServices
                     TimeSpan.FromSeconds(options.BreakerOpenDurationSeconds));
         }
 
-        // Solo se reintentan/cuentan fallos transitorios: errores de red, 5xx del servidor,
-        // 408 (timeout del server) y 429 (rate limit). Un 400/401/403 no cambia si se reintenta.
+        // Only transient failures are retried/counted: network errors, server 5xx,
+        // 408 (server timeout) and 429 (rate limit). A 400/401/403 will not succeed on retry.
         private static bool IsTransientFailure(HttpResponseMessage response)
         {
             return (int)response.StatusCode >= 500

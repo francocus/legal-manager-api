@@ -101,8 +101,9 @@ builder.Services
             ClockSkew = TimeSpan.Zero
         };
 
-        // Revocacion efectiva sin refresh token: si el usuario fue dado de baja o desactivado
-        // entre la emision y el uso del token, rechazamos la peticion con 401 en OnTokenValidated.
+        // Effective revocation without a refresh token: if the user was removed or
+        // deactivated between token issuance and use, the request is rejected with 401
+        // in OnTokenValidated.
         options.Events = new JwtBearerEvents
         {
             OnTokenValidated = context =>
@@ -165,8 +166,8 @@ app.MapControllers();
 
 app.Run();
 
-// Crea el primer administrador si no hay ninguno. Sin el no existe forma de
-// obtener un token de admin, porque POST /api/user/admin exige rol Admin.
+// Seeds the first administrator if none exists. Without it there is no way to
+// obtain an admin token, because POST /api/user/admin requires the Admin role.
 static void SeedInitialAdmin(WebApplication app)
 {
     var seed = app.Configuration.GetSection("SeedAdmin");

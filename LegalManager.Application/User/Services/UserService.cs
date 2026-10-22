@@ -186,8 +186,8 @@ namespace LegalManager.Application.Services
             return true;
         }
 
-        // Un solo predicado para los dos datos privados del usuario (Dni y Email): o los ve
-        // el admin, o los ve el propio usuario. Ningun otro los ve en ningun endpoint.
+        // One predicate for both private user fields (Dni and Email): either the admin
+        // sees them or the user themselves does. No one else sees them on any endpoint.
         private bool CanSeePrivateData(User user) => currentUser.IsAdmin || user.Id == currentUser.Id;
 
         private void EnsureCanRead(User user)

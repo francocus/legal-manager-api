@@ -170,9 +170,9 @@ namespace LegalManager.Application.Services
             EnsureCanRead(caseItem);
         }
 
-        // Un borrador de la IA todavia no fue revisado por ningun abogado: el cliente no debe
-        // poder ver ni descargar algo que la firma todavia no aprobo. Se filtra en silencio, sin
-        // lanzar 403, porque un 403 confirmaria que el documento existe.
+        // An AI draft has not been reviewed by any lawyer yet: the client must not see
+        // or download anything the firm has not approved. Filtered silently, without
+        // throwing 403, because a 403 would confirm the document exists.
         private bool IsHiddenFromClient(Document document)
             => currentUser.IsClient && document.IsPendingReview;
 
