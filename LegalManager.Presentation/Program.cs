@@ -131,14 +131,10 @@ builder.Services
         };
     });
 
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy(Policies.AdminsOnly, policy => policy.RequireRole(nameof(Admin)));
-
-    options.AddPolicy(Policies.AdminOrLawyer, policy => policy.RequireRole(nameof(Admin), nameof(Lawyer)));
-
-    options.AddPolicy(Policies.AllRoles, policy => policy.RequireRole(nameof(Admin), nameof(Lawyer), nameof(Client)));
-});
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(Policies.AdminsOnly, policy => policy.RequireRole(nameof(Admin)))
+    .AddPolicy(Policies.AdminOrLawyer, policy => policy.RequireRole(nameof(Admin), nameof(Lawyer)))
+    .AddPolicy(Policies.AllRoles, policy => policy.RequireRole(nameof(Admin), nameof(Lawyer), nameof(Client)));
 
 builder.Services.AddControllers()
     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
@@ -199,5 +195,8 @@ static void SeedInitialAdmin(WebApplication app)
     usersRepository.Add(admin);
     usersRepository.Save();
 
-    logger.LogInformation("Admin inicial creado con el email {Email}.", admin.Email);
+    if (logger.IsEnabled(LogLevel.Information))
+    {
+        logger.LogInformation("Admin inicial creado con el email {Email}.", admin.Email);
+    }
 }
