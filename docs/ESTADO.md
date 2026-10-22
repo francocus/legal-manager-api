@@ -149,7 +149,6 @@ Stub actual: `DocumentService.GenerateAiSummary` + `ComposeSummaryText` — conc
 
 1. Proveedor de LLM: Gemini (tier gratuito, apto facultad) / OpenAI / Anthropic.
 2. Storage de PDFs: Azure Blob Storage (recomendable en App Service; el disco local es efímero por instancia y no se comparte) vs sistema de archivos del servidor.
-3. Ownership: el TIF asigna el módulo documental/IA/cloud a Thiago ("Document Engine AI & Cloud/Storage Management") y a Agus "Frontend & Integration"; la asignación de Franco superpone "APIs externas" con el módulo de Thiago. Definir quién hace la integración del LLM y quién storage/templates para no pisarse.
 
 ### Estado de implementación del resumen IA (21/10/2026)
 
