@@ -273,11 +273,13 @@ namespace LegalManager.Infrastructure.Migrations
 
                     b.HasIndex("Dni")
                         .IsUnique()
-                        .HasDatabaseName("UX_Admins_Dni");
+                        .HasDatabaseName("UX_Admins_Dni")
+                        .HasFilter("[Active] = 1");
 
                     b.HasIndex("Email")
                         .IsUnique()
-                        .HasDatabaseName("UX_Admins_Email");
+                        .HasDatabaseName("UX_Admins_Email")
+                        .HasFilter("[Active] = 1");
 
                     b.ToTable("Admins", (string)null);
                 });
@@ -296,11 +298,13 @@ namespace LegalManager.Infrastructure.Migrations
 
                     b.HasIndex("Dni")
                         .IsUnique()
-                        .HasDatabaseName("UX_Clients_Dni");
+                        .HasDatabaseName("UX_Clients_Dni")
+                        .HasFilter("[Active] = 1");
 
                     b.HasIndex("Email")
                         .IsUnique()
-                        .HasDatabaseName("UX_Clients_Email");
+                        .HasDatabaseName("UX_Clients_Email")
+                        .HasFilter("[Active] = 1");
 
                     b.ToTable("Clients", (string)null);
                 });
@@ -324,11 +328,13 @@ namespace LegalManager.Infrastructure.Migrations
 
                     b.HasIndex("Dni")
                         .IsUnique()
-                        .HasDatabaseName("UX_Lawyers_Dni");
+                        .HasDatabaseName("UX_Lawyers_Dni")
+                        .HasFilter("[Active] = 1");
 
                     b.HasIndex("Email")
                         .IsUnique()
-                        .HasDatabaseName("UX_Lawyers_Email");
+                        .HasDatabaseName("UX_Lawyers_Email")
+                        .HasFilter("[Active] = 1");
 
                     b.ToTable("Lawyers", (string)null);
                 });

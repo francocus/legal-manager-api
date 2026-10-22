@@ -37,12 +37,15 @@ namespace LegalManager.Infrastructure.Persistence
             // La unicidad de Email y Dni la controla UserService en memoria, pero con TPC no hay
             // tabla base para un constraint unico global: estos indices por tabla respaldan esa
             // unicidad dentro de cada una y cierran la carrera de dos requests simultaneos.
-            modelBuilder.Entity<Client>().HasIndex(c => c.Email).IsUnique().HasDatabaseName("UX_Clients_Email");
-            modelBuilder.Entity<Client>().HasIndex(c => c.Dni).IsUnique().HasDatabaseName("UX_Clients_Dni");
-            modelBuilder.Entity<Lawyer>().HasIndex(l => l.Email).IsUnique().HasDatabaseName("UX_Lawyers_Email");
-            modelBuilder.Entity<Lawyer>().HasIndex(l => l.Dni).IsUnique().HasDatabaseName("UX_Lawyers_Dni");
-            modelBuilder.Entity<Admin>().HasIndex(a => a.Email).IsUnique().HasDatabaseName("UX_Admins_Email");
-            modelBuilder.Entity<Admin>().HasIndex(a => a.Dni).IsUnique().HasDatabaseName("UX_Admins_Dni");
+            // El filtro por [Active] = 1 alinea el indice con EnsureUnique (que solo mira
+            // usuarios activos): el email/DNI de un usuario dado de baja queda libre para
+            // reutilizarse en vez de chocar contra una fila inactiva.
+            modelBuilder.Entity<Client>().HasIndex(c => c.Email).IsUnique().HasDatabaseName("UX_Clients_Email").HasFilter("[Active] = 1");
+            modelBuilder.Entity<Client>().HasIndex(c => c.Dni).IsUnique().HasDatabaseName("UX_Clients_Dni").HasFilter("[Active] = 1");
+            modelBuilder.Entity<Lawyer>().HasIndex(l => l.Email).IsUnique().HasDatabaseName("UX_Lawyers_Email").HasFilter("[Active] = 1");
+            modelBuilder.Entity<Lawyer>().HasIndex(l => l.Dni).IsUnique().HasDatabaseName("UX_Lawyers_Dni").HasFilter("[Active] = 1");
+            modelBuilder.Entity<Admin>().HasIndex(a => a.Email).IsUnique().HasDatabaseName("UX_Admins_Email").HasFilter("[Active] = 1");
+            modelBuilder.Entity<Admin>().HasIndex(a => a.Dni).IsUnique().HasDatabaseName("UX_Admins_Dni").HasFilter("[Active] = 1");
 
             modelBuilder.Entity<Lawyer>().Property(l => l.Phone).HasMaxLength(FieldLengths.Phone);
             modelBuilder.Entity<Lawyer>().Property(l => l.BarNumber).HasMaxLength(FieldLengths.BarNumber);
