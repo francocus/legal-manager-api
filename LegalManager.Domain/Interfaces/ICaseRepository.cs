@@ -6,10 +6,10 @@ namespace LegalManager.Domain.Interfaces
     {
         void Add(Case caseItem);
 
-        IReadOnlyList<Case> GetAll();
+        Task<IReadOnlyList<Case>> GetAllAsync(CancellationToken cancellationToken = default);
 
-        Case? GetById(Guid id);
+        Task<Case?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
-        void Save();
+        Task SaveAsync(CancellationToken cancellationToken = default);
     }
 }

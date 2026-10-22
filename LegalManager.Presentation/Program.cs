@@ -106,7 +106,7 @@ builder.Services
         // in OnTokenValidated.
         options.Events = new JwtBearerEvents
         {
-            OnTokenValidated = context =>
+            OnTokenValidated = async context =>
             {
                 var idValue = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
                              ?? context.Principal?.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
@@ -114,19 +114,17 @@ builder.Services
                 if (!Guid.TryParse(idValue, out var userId))
                 {
                     context.Fail("token inválido");
-                    return Task.CompletedTask;
+                    return;
                 }
 
                 var usersRepository = context.HttpContext.RequestServices.GetRequiredService<IUserRepository>();
-                var user = usersRepository.GetById(userId);
+                var user = await usersRepository.GetByIdAsync(userId, context.HttpContext.RequestAborted);
 
                 if (user == null || !user.Active)
                 {
                     context.Fail("usuario inactivo o no existe");
-                    return Task.CompletedTask;
+                    return;
                 }
-
-                return Task.CompletedTask;
             }
         };
     });
@@ -143,7 +141,7 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-SeedInitialAdmin(app);
+await SeedInitialAdminAsync(app);
 
 if (app.Environment.IsDevelopment())
 {
@@ -162,11 +160,11 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.Run();
+await app.RunAsync();
 
 // Seeds the first administrator if none exists. Without it there is no way to
 // obtain an admin token, because POST /api/user/admin requires the Admin role.
-static void SeedInitialAdmin(WebApplication app)
+static async Task SeedInitialAdminAsync(WebApplication app)
 {
     var seed = app.Configuration.GetSection("SeedAdmin");
     var email = seed["Email"];
@@ -179,7 +177,8 @@ static void SeedInitialAdmin(WebApplication app)
 
     var usersRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
 
-    if (usersRepository.GetAll().Any(u => u is Admin))
+    var users = await usersRepository.GetAllAsync();
+    if (users.Any(u => u is Admin))
         return;
 
     var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
@@ -193,7 +192,7 @@ static void SeedInitialAdmin(WebApplication app)
         passwordHasher.Hash(password));
 
     usersRepository.Add(admin);
-    usersRepository.Save();
+    await usersRepository.SaveAsync();
 
     if (logger.IsEnabled(LogLevel.Information))
     {

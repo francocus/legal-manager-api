@@ -4,20 +4,20 @@ namespace LegalManager.Application.Interfaces
 {
     public interface IAppointmentService
     {
-        AppointmentResponse Create(CreateAppointmentRequest request);
+        Task<AppointmentResponse> CreateAsync(CreateAppointmentRequest request, CancellationToken cancellationToken = default);
 
-        IReadOnlyList<AppointmentResponse> GetAll();
+        Task<IReadOnlyList<AppointmentResponse>> GetAllAsync(CancellationToken cancellationToken = default);
 
-        IReadOnlyList<TimeOnly> GetAvailability(Guid lawyerId, DateOnly date);
+        Task<IReadOnlyList<TimeOnly>> GetAvailabilityAsync(Guid lawyerId, DateOnly date, CancellationToken cancellationToken = default);
 
-        AppointmentResponse? GetById(Guid id);
+        Task<AppointmentResponse?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
-        AppointmentResponse? Confirm(Guid id);
+        Task<AppointmentResponse?> ConfirmAsync(Guid id, CancellationToken cancellationToken = default);
 
-        AppointmentResponse? Cancel(Guid id);
+        Task<AppointmentResponse?> CancelAsync(Guid id, CancellationToken cancellationToken = default);
 
-        AppointmentResponse? Reschedule(Guid id, RescheduleAppointmentRequest request);
+        Task<AppointmentResponse?> RescheduleAsync(Guid id, RescheduleAppointmentRequest request, CancellationToken cancellationToken = default);
 
-        bool Delete(Guid id);
+        Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
     }
 }

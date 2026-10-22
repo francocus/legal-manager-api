@@ -1,4 +1,4 @@
-﻿using LegalManager.Domain.Entities;
+using LegalManager.Domain.Entities;
 using LegalManager.Domain.Interfaces;
 using LegalManager.Infrastructure.Persistence;
 using Microsoft.Data.SqlClient;
@@ -10,29 +10,29 @@ namespace LegalManager.Infrastructure.Repositories
     {
         public void Add(User user) => context.Users.Add(user);
 
-        public IReadOnlyList<User> GetAll()
-            => [.. context.Users.Where(u => u.Active)];
+        public async Task<IReadOnlyList<User>> GetAllAsync(CancellationToken cancellationToken = default)
+            => await context.Users.Where(u => u.Active).ToListAsync(cancellationToken);
 
-        public User? GetById(Guid id)
-            => context.Users.FirstOrDefault(u => u.Id == id && u.Active);
+        public async Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+            => await context.Users.FirstOrDefaultAsync(u => u.Id == id && u.Active, cancellationToken);
 
-        public User? GetByEmail(string email)
+        public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
         {
             var normalized = (email ?? string.Empty).Trim().ToLower();
 
-            return context.Users.FirstOrDefault(u => u.Active && u.Email.Trim().ToLower() == normalized);
+            return await context.Users.FirstOrDefaultAsync(u => u.Active && u.Email.Trim().ToLower() == normalized, cancellationToken);
         }
 
-        public void Save()
+        public async Task SaveAsync(CancellationToken cancellationToken = default)
         {
             try
             {
-                context.SaveChanges();
+                await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateException ex) when (IsUniqueViolation(ex))
             {
-                // Dos requests simultaneos pasaron el chequeo en memoria de EnsureUnique y el
-                // indice unico de Email/Dni (mismo filtro [Active] = 1) cerro la carrera en la
+                // Dos requests simultáneos pasaron el chequeo en memoria de EnsureUnique y el
+                // índice único de Email/Dni (mismo filtro [Active] = 1) cerró la carrera en la
                 // base. Se traduce al mismo InvalidOperationException que EnsureUnique, para que
                 // el controller responda 409 y no un 500 crudo.
                 throw new InvalidOperationException(UniqueViolationMessage(ex));

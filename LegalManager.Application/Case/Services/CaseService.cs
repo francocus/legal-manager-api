@@ -11,15 +11,17 @@ namespace LegalManager.Application.Services
         IAppointmentRepository appointmentsRepository,
         ICurrentUser currentUser) : ICaseService
     {
-        public CaseResponse Create(CreateCaseRequest request)
+        public async Task<CaseResponse> CreateAsync(CreateCaseRequest request, CancellationToken cancellationToken = default)
         {
-            if (casesRepository.GetAll().Any(c => c.CaseNumber == request.CaseNumber))
+            var allCases = await casesRepository.GetAllAsync(cancellationToken);
+            if (allCases.Any(c => c.CaseNumber == request.CaseNumber))
                 throw new InvalidOperationException("Ya existe un expediente con ese número.");
 
-            if (usersRepository.GetById(request.ClientId) is not Client)
+            var client = await usersRepository.GetByIdAsync(request.ClientId, cancellationToken);
+            if (client is not Client)
                 throw new ArgumentException("El cliente indicado no es válido.");
 
-            var initialLawyer = usersRepository.GetById(request.LawyerId);
+            var initialLawyer = await usersRepository.GetByIdAsync(request.LawyerId, cancellationToken);
             if (initialLawyer is not Lawyer)
                 throw new ArgumentException("El abogado indicado no es válido.");
 
@@ -28,13 +30,13 @@ namespace LegalManager.Application.Services
 
             var caseItem = new Case(request.CaseNumber, request.Title, request.Area, request.StartDate, request.Description, request.Notes, request.ClientId, (Lawyer)initialLawyer, currentUser.Id);
             casesRepository.Add(caseItem);
-            casesRepository.Save();
+            await casesRepository.SaveAsync(cancellationToken);
             return CaseResponse.Desde(caseItem);
         }
 
-        public IReadOnlyList<CaseResponse> GetAll()
+        public async Task<IReadOnlyList<CaseResponse>> GetAllAsync(CancellationToken cancellationToken = default)
         {
-            var cases = casesRepository.GetAll();
+            var cases = await casesRepository.GetAllAsync(cancellationToken);
 
             if (currentUser.IsAdmin)
                 return cases.Select(CaseResponse.Desde).ToList();
@@ -45,9 +47,9 @@ namespace LegalManager.Application.Services
             return cases.Where(c => c.ClientId == currentUser.Id).Select(CaseResponse.Desde).ToList();
         }
 
-        public CaseResponse? GetById(Guid id)
+        public async Task<CaseResponse?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            var caseItem = casesRepository.GetById(id);
+            var caseItem = await casesRepository.GetByIdAsync(id, cancellationToken);
             if (caseItem == null) return null;
 
             EnsureCanAccess(caseItem);
@@ -55,67 +57,69 @@ namespace LegalManager.Application.Services
             return CaseResponse.Desde(caseItem);
         }
 
-        public CaseResponse? Update(Guid id, UpdateCaseRequest request)
+        public async Task<CaseResponse?> UpdateAsync(Guid id, UpdateCaseRequest request, CancellationToken cancellationToken = default)
         {
-            var caseItem = casesRepository.GetById(id);
+            var caseItem = await casesRepository.GetByIdAsync(id, cancellationToken);
             if (caseItem == null) return null;
 
             EnsureCanManage(caseItem);
 
             caseItem.UpdateDetails(request.Title, request.Area, request.Description, request.Notes);
-            casesRepository.Save();
+            await casesRepository.SaveAsync(cancellationToken);
             return CaseResponse.Desde(caseItem);
         }
 
-        public CaseResponse? ChangeStatus(Guid id, ChangeStatusRequest request)
+        public async Task<CaseResponse?> ChangeStatusAsync(Guid id, ChangeStatusRequest request, CancellationToken cancellationToken = default)
         {
-            var caseItem = casesRepository.GetById(id);
+            var caseItem = await casesRepository.GetByIdAsync(id, cancellationToken);
             if (caseItem == null) return null;
 
             EnsureCanManage(caseItem);
 
             caseItem.ChangeStatus(request.Status);
-            casesRepository.Save();
+            await casesRepository.SaveAsync(cancellationToken);
             return CaseResponse.Desde(caseItem);
         }
 
-        public CaseResponse? AddLawyer(Guid id, AddLawyerRequest request)
+        public async Task<CaseResponse?> AddLawyerAsync(Guid id, AddLawyerRequest request, CancellationToken cancellationToken = default)
         {
-            var caseItem = casesRepository.GetById(id);
+            var caseItem = await casesRepository.GetByIdAsync(id, cancellationToken);
             if (caseItem == null) return null;
 
             EnsureCanManage(caseItem);
 
-            var lawyer = usersRepository.GetById(request.LawyerId);
+            var lawyer = await usersRepository.GetByIdAsync(request.LawyerId, cancellationToken);
             if (lawyer is not Lawyer)
                 throw new ArgumentException("El abogado indicado no es válido.");
 
             caseItem.AddLawyer((Lawyer)lawyer);
-            casesRepository.Save();
+            await casesRepository.SaveAsync(cancellationToken);
             return CaseResponse.Desde(caseItem);
         }
 
-        public CaseResponse? RemoveLawyer(Guid id, RemoveLawyerRequest request)
+        public async Task<CaseResponse?> RemoveLawyerAsync(Guid id, RemoveLawyerRequest request, CancellationToken cancellationToken = default)
         {
-            var caseItem = casesRepository.GetById(id);
+            var caseItem = await casesRepository.GetByIdAsync(id, cancellationToken);
             if (caseItem == null) return null;
 
             EnsureCanManage(caseItem);
 
-            if (usersRepository.GetById(request.LawyerId) is not Lawyer)
+            var lawyer = await usersRepository.GetByIdAsync(request.LawyerId, cancellationToken);
+            if (lawyer is not Lawyer)
                 throw new ArgumentException("El abogado indicado no es válido.");
 
             caseItem.RemoveLawyer(request.LawyerId);
-            casesRepository.Save();
+            await casesRepository.SaveAsync(cancellationToken);
             return CaseResponse.Desde(caseItem);
         }
 
-        public bool Delete(Guid id)
+        public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            var caseItem = casesRepository.GetById(id);
+            var caseItem = await casesRepository.GetByIdAsync(id, cancellationToken);
             if (caseItem == null) return false;
 
-            var hasActiveAppointments = appointmentsRepository.GetAll()
+            var allAppointments = await appointmentsRepository.GetAllAsync(cancellationToken);
+            var hasActiveAppointments = allAppointments
                 .Any(a => a.CaseId == id
                     && a.EffectiveStatus != AppointmentStatus.Cancelado && a.EffectiveStatus != AppointmentStatus.Finalizado);
 
@@ -123,7 +127,7 @@ namespace LegalManager.Application.Services
                 throw new InvalidOperationException($"El expediente con id {id} tiene turnos activos asociados.");
 
             caseItem.Deactivate();
-            casesRepository.Save();
+            await casesRepository.SaveAsync(cancellationToken);
             return true;
         }
 

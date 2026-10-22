@@ -1,6 +1,7 @@
-﻿using LegalManager.Domain.Entities;
+using LegalManager.Domain.Entities;
 using LegalManager.Domain.Interfaces;
 using LegalManager.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace LegalManager.Infrastructure.Repositories
 {
@@ -8,12 +9,13 @@ namespace LegalManager.Infrastructure.Repositories
     {
         public void Add(Case caseItem) => context.Cases.Add(caseItem);
 
-        public IReadOnlyList<Case> GetAll()
-            => [.. context.Cases.Where(c => c.Active)];
+        public async Task<IReadOnlyList<Case>> GetAllAsync(CancellationToken cancellationToken = default)
+            => await context.Cases.Where(c => c.Active).ToListAsync(cancellationToken);
 
-        public Case? GetById(Guid id)
-            => context.Cases.FirstOrDefault(c => c.Id == id && c.Active);
+        public async Task<Case?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+            => await context.Cases.FirstOrDefaultAsync(c => c.Id == id && c.Active, cancellationToken);
 
-        public void Save() => context.SaveChanges();
+        public Task SaveAsync(CancellationToken cancellationToken = default)
+            => context.SaveChangesAsync(cancellationToken);
     }
 }

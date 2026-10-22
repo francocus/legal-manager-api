@@ -4,6 +4,6 @@ namespace LegalManager.Application.Interfaces
 {
     public interface IAuthService
     {
-        LoginResponse? Authenticate(LoginRequest request);
+        Task<LoginResponse?> AuthenticateAsync(LoginRequest request, CancellationToken cancellationToken = default);
     }
 }

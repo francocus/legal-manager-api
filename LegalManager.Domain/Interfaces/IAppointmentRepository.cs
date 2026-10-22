@@ -6,12 +6,12 @@ namespace LegalManager.Domain.Interfaces
     {
         void Add(Appointment appointment);
 
-        IReadOnlyList<Appointment> GetAll();
+        Task<IReadOnlyList<Appointment>> GetAllAsync(CancellationToken cancellationToken = default);
 
-        Appointment? GetById(Guid id);
+        Task<Appointment?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
-        bool HasScheduleConflict(Guid lawyerId, DateOnly date, TimeOnly startTime, TimeOnly endTime, Guid? excludingAppointmentId = null);
+        Task<bool> HasScheduleConflictAsync(Guid lawyerId, DateOnly date, TimeOnly startTime, TimeOnly endTime, Guid? excludingAppointmentId = null, CancellationToken cancellationToken = default);
 
-        void Save();
+        Task SaveAsync(CancellationToken cancellationToken = default);
     }
 }
