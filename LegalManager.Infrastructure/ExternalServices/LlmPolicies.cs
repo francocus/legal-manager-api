@@ -1,5 +1,6 @@
 using System.Net;
 using Polly;
+using Polly.Timeout;
 
 namespace LegalManager.Infrastructure.ExternalServices
 {
@@ -16,6 +17,7 @@ namespace LegalManager.Infrastructure.ExternalServices
         {
             return Policy
                 .Handle<HttpRequestException>()
+                .Or<TimeoutRejectedException>()
                 .OrResult<HttpResponseMessage>(IsTransientFailure)
                 .WaitAndRetryAsync(
                     options.RetryCount,
@@ -27,14 +29,16 @@ namespace LegalManager.Infrastructure.ExternalServices
         {
             return Policy
                 .Handle<HttpRequestException>()
+                .Or<TimeoutRejectedException>()
                 .OrResult<HttpResponseMessage>(IsTransientFailure)
                 .CircuitBreakerAsync(
                     options.BreakerFailuresBeforeOpen,
                     TimeSpan.FromSeconds(options.BreakerOpenDurationSeconds));
         }
 
-        // Only transient failures are retried/counted: network errors, server 5xx,
-        // 408 (server timeout) and 429 (rate limit). A 400/401/403 will not succeed on retry.
+        // Retried and breaker-counted: network errors, server 5xx, 408 (server timeout),
+        // 429 (rate limit), and per-attempt timeouts (TimeoutRejectedException).
+        // A 400/401/403 will not succeed on retry.
         private static bool IsTransientFailure(HttpResponseMessage response)
         {
             return (int)response.StatusCode >= 500
