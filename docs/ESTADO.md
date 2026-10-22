@@ -1,8 +1,8 @@
 # Estado del Sistema — LegalManager API
 
-**Última actualización:** 13/10/2026  
-**Rama activa:** `auth`  
-**Último commit:** `615bed7` — fix database tables (TPC)
+**Última actualización:** 21/10/2026  
+**Rama activa:** `feat/apis-externas`  
+**Último commit:** `190a273` (feat: conectar resumen IA con async end-to-end y error 502)
 
 ---
 
@@ -59,7 +59,7 @@ El backend de la API está prácticamente terminado y funcional. Todos los módu
 - Baja lógica de documentos
 - No se pueden adjuntar documentos a un expediente cerrado
 - Generación de resumen por IA (`POST /api/document/case/{id}/generate-summary`)
-  - ⚠️ **TODO:** actualmente genera texto concatenando datos del expediente — falta conectar a API real de IA (Gemini, etc.)
+  - Conectado a un proveedor real: OpenCode Go (API compatible OpenAI), modelo `deepseek-v4.1-flash` con razonamiento medio, protegido con Polly (retry con backoff exponencial + circuit breaker + timeout por intento). Si el proveedor falla, la API responde 502 con un error claro y no deja borradores a medias
   - Los documentos generados por IA quedan como borrador (`IsPendingReview = true`) hasta que un abogado los aprueba o descarta
   - Los borradores de IA son invisibles para el cliente (retornan 404 silencioso)
 - Aprobación y descarte de documentos IA por un abogado
@@ -101,6 +101,7 @@ El backend de la API está prácticamente terminado y funcional. Todos los módu
 - **Baja lógica universal**: propiedad `Active` en todas las entidades, nunca `DELETE` físico
 - **Serialización de enums como string** (`JsonStringEnumConverter`)
 - Límites de columna centralizados en `Domain.FieldLengths`
+- **Comentarios del código en inglés**: documentan decisiones y su motivo, no narran pasos (elección 22/10 tras el review del PR de apis-externas)
 
 ---
 
@@ -108,8 +109,7 @@ El backend de la API está prácticamente terminado y funcional. Todos los módu
 
 | Tarea | Prioridad | Notas |
 |-------|-----------|-------|
-| Conectar API de IA real para resumen de expediente | Alta | Reemplazar el stub en `DocumentService.GenerateAiSummary` con llamada a Gemini, GPT u otro LLM |
-| Migrar a código asíncrono | Media | Todo usa `ToList`/`SaveChanges` síncronos. Lo idiomático es `ToListAsync`/`SaveChangesAsync` para liberar el thread del servidor mientras espera la BD (mejor escalabilidad bajo carga) |
+| Migrar a código asíncrono | Media | El flujo de resumen IA ya es async end-to-end (commit `190a273`). El resto usa `ToList`/`SaveChanges` síncronos; lo idiomático es `ToListAsync`/`SaveChangesAsync` para liberar el thread del servidor mientras espera la BD (mejor escalabilidad bajo carga) |
 | Generación de constancias por plantilla (QuestPDF) | Media | Mencionado en la minuta como funcionalidad de "generación automática" |
 | Frontend (React 19) | Alta | Conectar con esta API. Ya existe desde la iteración anterior |
 | Despliegue en Azure (App Service + SQL + Storage) | Baja | Para producción/entrega final |
@@ -150,6 +150,20 @@ Stub actual: `DocumentService.GenerateAiSummary` + `ComposeSummaryText` — conc
 1. Proveedor de LLM: Gemini (tier gratuito, apto facultad) / OpenAI / Anthropic.
 2. Storage de PDFs: Azure Blob Storage (recomendable en App Service; el disco local es efímero por instancia y no se comparte) vs sistema de archivos del servidor.
 3. Ownership: el TIF asigna el módulo documental/IA/cloud a Thiago ("Document Engine AI & Cloud/Storage Management") y a Agus "Frontend & Integration"; la asignación de Franco superpone "APIs externas" con el módulo de Thiago. Definir quién hace la integración del LLM y quién storage/templates para no pisarse.
+
+### Estado de implementación del resumen IA (21/10/2026)
+
+Implementado en la rama `feat/apis-externas` (commits `6eaeb59`, `4c64569`, `5e828c8`, `b275e70`, `15ac783`, `a4f093d`, `843c0d5`, `190a273`):
+
+- **Proveedor elegido:** OpenCode Go (suscripción del usuario; API compatible con OpenAI en `https://opencode.ai/inference/go/openai/v1/chat/completions`), modelo `deepseek-v4.1-flash` con `reasoning_effort: medium`. Contrato verificado en vivo contra la API (HTTP 200).
+- **Requisitos del proveedor:** header `x-opencode-session` con un id de sesión estable (va en appsettings) y `User-Agent: LegalManagerApi/1.0` (OpenCode exige identificar al cliente; además los modelos free solo se usan desde la app OpenCode, por eso la clave se usa con modelos de pago).
+- **Resiliencia (Polly):** retry con backoff exponencial (3 intentos totales, esperas 2s/4s) ante 5xx/408/429, errores de red y timeout por intento; circuit breaker (abre tras 5 fallas seguidas, incluye timeouts; espera 30s); timeout por intento (15s). Peor caso por request: ~51s (3 x 15s + esperas de backoff). `HttpClient.Timeout` queda infinito a propósito: cubriría toda la cadena de reintentos y los mataría; el corte por intento lo hace Polly. Envoltura de afuera hacia adentro: retry → breaker → timeout.
+- **Estructura (estilo cátedra GestionComplejo2C):** puerto `IAiSummaryService` en `Domain/Interfaces`; cliente tipado `OpenCodeAiSummaryService` y opciones `LlmOptions`/`LlmResilienceOptions` en `Infrastructure/ExternalServices`; registro en `Program.cs` con `AddHttpClient<Interfaz, Impl>` + `AddPolicyHandler` (el primero agregado es el más externo).
+- **Fallo integrado (tarea 8):** todo fallo del LLM (reintentos agotados, breaker abierto, timeout, error upstream tipo 402/403, ApiKey ausente) levanta `AiSummaryUnavailableException` y el endpoint responde 502 con un mensaje claro, sin crear documentos borrador a medias.
+- **Async (tarea 7):** el flujo generate-summary es async end-to-end: controller → `DocumentService.GenerateAiSummaryAsync` → `SaveChangesAsync`.
+- **Cuota (review 22/10):** un solo borrador de resumen IA pendiente por expediente; mientras haya uno esperando revisión, el endpoint responde 409 hasta aprobarlo o descartarlo. El chequeo corre antes de llamar al LLM.
+- **Config de la clave:** `dotnet user-secrets set "Llm:ApiKey" "<key>"` (ya configurada en esta máquina; nunca se commitea; si falta, la API arranca igual y solo el endpoint de resumen responde 502 con instrucciones para setearla).
+- **Demo manual (tarea 9) para la facu con Postman:** cambiar `Llm:BaseUrl` a un puerto muerto (ej. `http://localhost:9/`), levantar la API, loguearse y llamar `POST /api/document/case/{id}/generate-summary`: en logs se ven los reintentos (2s/4s) y al final un 502. Repetir la llamada 5 veces para ver el circuit breaker abrirse (falla instantánea sin esperar). Después revertir la BaseUrl y probar con la real para ver un resumen generado de verdad.
 
 ---
 

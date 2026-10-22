@@ -16,8 +16,9 @@ namespace LegalManager.Application.DTOs
             var phone = user switch { Client c => c.Phone, Lawyer l => l.Phone, _ => null };
             var address = (user as Client)?.Address;
 
-            // Dni y Email son los dos datos de contacto directo de la persona. Para quien no
-            // sea el admin o el propio usuario no viajan: el canal de contacto es el telefono.
+            // Dni and Email are the person's two direct contact fields. For anyone other
+            // than the admin or the user themselves they are omitted: the contact channel
+            // is the phone.
             return new(user.Id, user.FirstName, user.LastName, user.FullName,
                 includePrivateData ? user.Dni : null, includePrivateData ? user.Email : null,
                 user.RegistrationDate, type, phone, address);

@@ -1,10 +1,10 @@
 namespace LegalManager.Domain
 {
     /// <summary>
-    /// Límites de longitud de los campos de texto, en caracteres.
-    /// Fuente única: la usan las anotaciones <c>[StringLength]</c> de los DTOs (Application)
-    /// y el mapeo <c>HasMaxLength</c> de EF (Infrastructure), para que las dos capas no
-    /// puedan divergir. Sin esto todo texto queda en <c>nvarchar(max)</c>.
+    /// Maximum lengths of text fields, in characters.
+    /// Single source of truth: used by the <c>[StringLength]</c> annotations on the DTOs
+    /// (Application) and the <c>HasMaxLength</c> EF mapping (Infrastructure), so the two
+    /// layers cannot diverge. Without this every text column stays <c>nvarchar(max)</c>.
     /// </summary>
     public static class FieldLengths
     {

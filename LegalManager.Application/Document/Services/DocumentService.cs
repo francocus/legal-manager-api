@@ -8,6 +8,7 @@ namespace LegalManager.Application.Services
     public class DocumentService(
         IDocumentRepository documentsRepository,
         ICaseRepository casesRepository,
+        IAiSummaryService aiSummaryService,
         ICurrentUser currentUser,
         string rootStoragePath) : IDocumentService
     {
@@ -83,7 +84,7 @@ namespace LegalManager.Application.Services
             return (stream, document.ContentType, document.FileName);
         }
 
-        public DocumentResponse GenerateAiSummary(Guid caseId)
+        public async Task<DocumentResponse> GenerateAiSummaryAsync(Guid caseId, CancellationToken cancellationToken = default)
         {
             var caseItem = casesRepository.GetById(caseId);
             if (caseItem == null)
@@ -91,7 +92,13 @@ namespace LegalManager.Application.Services
 
             EnsureCanWrite(caseItem);
 
-            var summary = ComposeSummaryText(caseItem);
+            // Quota guard: while a draft awaits review, generating another one would burn
+            // LLM plan quota for nothing. Approve or discard the pending one first.
+            if (documentsRepository.GetByCaseId(caseId).Any(d => d.Active && d.IsPendingReview))
+                throw new InvalidOperationException("Ya existe un borrador de resumen IA pendiente de revisión. Aprobalo o descartalo antes de generar otro.");
+
+            var caseContext = ComposeSummaryText(caseItem);
+            var summary = await aiSummaryService.GenerateSummaryAsync(caseContext, cancellationToken);
 
             var caseFolder = Path.Combine(rootStoragePath, caseId.ToString());
             Directory.CreateDirectory(caseFolder);
@@ -100,11 +107,21 @@ namespace LegalManager.Application.Services
             var fileName = "ResumenIA.pdf";
             var storedFileName = $"{documentId}_{fileName}";
             var fullPath = Path.Combine(caseFolder, storedFileName);
-            File.WriteAllText(fullPath, summary);
+            await File.WriteAllTextAsync(fullPath, summary, cancellationToken);
 
             var document = Document.CreateAiSummary(caseId, fileName, fullPath, summary, currentUser.Id);
             documentsRepository.Add(document);
-            documentsRepository.Save();
+            try
+            {
+                await documentsRepository.SaveAsync(cancellationToken);
+            }
+            catch
+            {
+                // Best-effort orphan cleanup: without it, a failed save leaves the written
+                // file on disk without its database record.
+                try { File.Delete(fullPath); } catch (IOException) { }
+                throw;
+            }
             return DocumentResponse.Desde(document);
         }
 
@@ -146,7 +163,8 @@ namespace LegalManager.Application.Services
 
         private string ComposeSummaryText(Case caseItem)
         {
-            // TODO: reemplazar por una llamada real a un proveedor de LLM (Gemini, GPT, etc.)
+            // Case context handed to the LLM: built exclusively from data already registered
+            // on the case, so the prompt can enforce a no-invented-facts summary.
             var closing = caseItem.ClosingDate.HasValue
                 ? $" Fue cerrado el {caseItem.ClosingDate:dd/MM/yyyy}."
                 : string.Empty;
@@ -167,9 +185,9 @@ namespace LegalManager.Application.Services
             EnsureCanRead(caseItem);
         }
 
-        // Un borrador de la IA todavia no fue revisado por ningun abogado: el cliente no debe
-        // poder ver ni descargar algo que la firma todavia no aprobo. Se filtra en silencio, sin
-        // lanzar 403, porque un 403 confirmaria que el documento existe.
+        // An AI draft has not been reviewed by any lawyer yet: the client must not see
+        // or download anything the firm has not approved. Filtered silently, without
+        // throwing 403, because a 403 would confirm the document exists.
         private bool IsHiddenFromClient(Document document)
             => currentUser.IsClient && document.IsPendingReview;
 

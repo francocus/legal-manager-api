@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json.Serialization;
 using LegalManager.Application.Interfaces;
@@ -37,8 +38,41 @@ builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddScoped<IDocumentService>(sp => new DocumentService(
     sp.GetRequiredService<IDocumentRepository>(),
     sp.GetRequiredService<ICaseRepository>(),
+    sp.GetRequiredService<IAiSummaryService>(),
     sp.GetRequiredService<ICurrentUser>(),
     builder.Configuration["DocumentStorage:RootPath"] ?? Path.Combine(AppContext.BaseDirectory, "DocumentStorage")));
+
+// External LLM (OpenCode Go, OpenAI-compatible API): options bound from appsettings;
+// the ApiKey is supplied only through user-secrets ("Llm:ApiKey"), never hardcoded.
+builder.Services.Configure<LlmOptions>(builder.Configuration.GetSection(LlmOptions.SectionName));
+builder.Services.Configure<LlmResilienceOptions>(builder.Configuration.GetSection(LlmResilienceOptions.SectionName));
+
+// Llm:ApiKey is NOT validated here: a clone without user-secrets must still boot
+// (and dotnet ef must work). The summary service validates it at call time and the
+// controller answers 502 with a clear message.
+var llmSettings = builder.Configuration.GetSection(LlmOptions.SectionName).Get<LlmOptions>()
+    ?? throw new InvalidOperationException("Falta la sección 'Llm' en appsettings.json.");
+
+var llmResilience = builder.Configuration.GetSection(LlmResilienceOptions.SectionName).Get<LlmResilienceOptions>()
+    ?? throw new InvalidOperationException("Falta la sección 'Llm:Resilience' en appsettings.json.");
+
+builder.Services
+    .AddHttpClient<IAiSummaryService, OpenCodeAiSummaryService>(client =>
+    {
+        client.BaseAddress = new Uri(llmSettings.BaseUrl);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", llmSettings.ApiKey);
+        client.DefaultRequestHeaders.Add("x-opencode-session", llmSettings.SessionId);
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("LegalManagerApi/1.0");
+
+        // HttpClient.Timeout must stay infinite: it would wrap the whole retry chain.
+        // The per-attempt deadline is enforced by the innermost Polly timeout policy.
+        client.Timeout = Timeout.InfiniteTimeSpan;
+    })
+    // Outermost to innermost: retry wraps circuit breaker wraps per-attempt timeout,
+    // so the breaker counts failures per attempt and each attempt has its own deadline.
+    .AddPolicyHandler(LlmPolicies.GetRetryPolicy(llmResilience))
+    .AddPolicyHandler(LlmPolicies.GetCircuitBreakerPolicy(llmResilience))
+    .AddPolicyHandler(LlmPolicies.GetTimeoutPolicy(llmResilience));
 
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
 
@@ -67,8 +101,9 @@ builder.Services
             ClockSkew = TimeSpan.Zero
         };
 
-        // Revocacion efectiva sin refresh token: si el usuario fue dado de baja o desactivado
-        // entre la emision y el uso del token, rechazamos la peticion con 401 en OnTokenValidated.
+        // Effective revocation without a refresh token: if the user was removed or
+        // deactivated between token issuance and use, the request is rejected with 401
+        // in OnTokenValidated.
         options.Events = new JwtBearerEvents
         {
             OnTokenValidated = context =>
@@ -133,8 +168,8 @@ app.MapControllers();
 
 app.Run();
 
-// Crea el primer administrador si no hay ninguno. Sin el no existe forma de
-// obtener un token de admin, porque POST /api/user/admin exige rol Admin.
+// Seeds the first administrator if none exists. Without it there is no way to
+// obtain an admin token, because POST /api/user/admin requires the Admin role.
 static void SeedInitialAdmin(WebApplication app)
 {
     var seed = app.Configuration.GetSection("SeedAdmin");

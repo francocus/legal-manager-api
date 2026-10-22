@@ -33,9 +33,9 @@ namespace LegalManager.Infrastructure.Repositories
             }
             catch (DbUpdateException ex) when (IsUniqueViolation(ex))
             {
-                // El indice unico UX_Appointments_Lawyer_Slot salto: dos requests simultaneos
-                // agarraron el mismo slot. Se traduce al mismo InvalidOperationException que
-                // produce el chequeo en memoria, para que el controller responda 409 igual.
+                // The UX_Appointments_Lawyer_Slot unique index fired: two simultaneous requests
+                // grabbed the same slot. It is mapped to the same InvalidOperationException the
+                // in-memory check produces, so the controller still answers 409.
                 throw new InvalidOperationException("El abogado ya tiene un turno en ese horario.");
             }
         }

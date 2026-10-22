@@ -18,5 +18,8 @@ namespace LegalManager.Infrastructure.Repositories
             => context.Documents.FirstOrDefault(d => d.Id == id && d.Active);
 
         public void Save() => context.SaveChanges();
+
+        public Task SaveAsync(CancellationToken cancellationToken = default)
+            => context.SaveChangesAsync(cancellationToken);
     }
 }

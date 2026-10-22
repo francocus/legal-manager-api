@@ -1,0 +1,12 @@
+Polly.CircuitBreaker.BrokenCircuitException: The circuit is now open and is not allowing calls.
+ ---> System.Net.Http.HttpRequestException: No se puede establecer una conexión ya que el equipo de destino denegó expresamente dicha conexión. (localhost:9)
+ ---> System.Net.Sockets.SocketException (10061): No se puede establecer una conexión ya que el equipo de destino denegó expresamente dicha conexión.
+   [stack trace omitido]
+--- End of stack trace from previous location ---
+
+HEADERS
+=======
+Accept: */*
+Host: localhost:5133
+User-Agent: curl/8.11.0
+Authorization: Bearer <jwt-omitido>
