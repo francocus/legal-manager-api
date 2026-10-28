@@ -47,6 +47,18 @@
 - No agregar CORS en el API: se usa proxy de Vite (decisión paso 2; CORS queda para cuando se decida deploy separado).
 - No tocar la duración del JWT ni el mecanismo de seed.
 
+## Fixes post-testing (28/10, 3 commits en el client)
+
+| Bug | Fix | Commit |
+|---|---|---|
+| Sesión expirada = datos fantasma (dashboard en 0 sin aviso) | `httpClient`: ante 401 autenticado limpia token/user, arma flag en sessionStorage y redirige a `/login`; `Login.jsx` muestra toast "Tu sesión expiró. Iniciá sesión de nuevo." una sola vez. 403 no desloguea; login/register (auth:false) no tocan el flag | 92ec882 |
+| Staleness de selects tras alta/edición/baja de usuarios | `UsersContainer` refreshea users+lawyers+clients en cada mutación; `ClientsContainer` refreshea clients (+users solo sysadmin, por policy de `GET /user`) | d8876bf |
+| Campos de edición que el PUT no persiste (caseNumber, fechas, cliente, abogado) | disabled + opacity-50 en el modal de edición; editables quedan title/area/description/notes/status | 2007d6f |
+
+Verificado en browser: redirect + toast una sola vez; "Abogado Dos" creado por UI aparece en el select de NewCase al momento; los 5 campos no-persistibles quedan disabled y dimmed.
+
+Hallazgo de testing pendiente del equipo: la ruta `/dashboard/clients` no tiene guard `Protected` (todo rol autenticado llega por URL); el API respalda con policies, pero conviene agregar `allowedRoles={[SYSADMIN, ABOGADO]}`.
+
 ## Evidencia
 
 - 65a9600 `docs: corregir baseUrl del collection Postman a 5133` — dropeado en rebase (el master nuevo ya trae 5133)
