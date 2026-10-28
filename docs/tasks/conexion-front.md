@@ -37,7 +37,7 @@
 | 5 | `usersApi`: rutas en singular, arrays directos, create por rol | client | pendiente |
 | 6 | `casesApi`: singular, arrays directos, resolución de nombres | client | pendiente |
 | 7 | `appointmentsApi`: singular + acciones PATCH (reschedule/confirm/cancel) | client | pendiente |
-| 8 | Endpoint público `POST /api/auth/register` (solo Client) | api | pendiente |
+| 8 | Endpoint público `POST /api/auth/register` (solo Client), sobre el código async del refactor master | api | pendiente |
 | 8b | Conectar `Register.jsx` al register real | client | pendiente |
 | 9 | Prueba E2E manual (API + client levantados, flujo completo) | ambos | pendiente |
 
@@ -49,4 +49,6 @@
 
 ## Evidencia
 
-- 65a9600 `docs: corregir baseUrl del collection Postman a 5133`
+- 65a9600 `docs: corregir baseUrl del collection Postman a 5133` — dropeado en rebase (el master nuevo ya trae 5133)
+- 039a37d `docs: agregar plan de conexión con el front` (rebased a 8760f02; archivo movido de `odd/tasks/` a `docs/tasks/` por la nueva estructura del repo)
+- Rebase 23/10: master avanzó 7 commits (refactor async end-to-end, docs consolidados en `docs/`, collection Postman actualizado, workflow CI Azure). Rama alineada a 8760f02.
