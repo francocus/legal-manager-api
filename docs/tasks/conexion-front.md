@@ -32,14 +32,14 @@
 |---|-------|------|--------|
 | 1 | Ramas de trabajo `feat/conexion-front` en ambos repos | ambos | ✅ hecha |
 | 2 | Corregir `baseUrl` del collection Postman (5199 → 5133) | api | ✅ hecha (65a9600) |
-| 3 | Proxy de Vite hacia 5133 + default de `API_URL` en `/api` | client | pendiente |
-| 4 | Login: `POST /auth/login` + decodificar JWT para armar el user + mapping de roles | client | pendiente |
-| 5 | `usersApi`: rutas en singular, arrays directos, create por rol | client | pendiente |
-| 6 | `casesApi`: singular, arrays directos, resolución de nombres | client | pendiente |
-| 7 | `appointmentsApi`: singular + acciones PATCH (reschedule/confirm/cancel) | client | pendiente |
-| 8 | Endpoint público `POST /api/auth/register` (solo Client), sobre el código async del refactor master | api | pendiente |
-| 8b | Conectar `Register.jsx` al register real | client | pendiente |
-| 9 | Prueba E2E manual (API + client levantados, flujo completo) | ambos | pendiente |
+| 3 | Proxy de Vite hacia 5133 + default de `API_URL` en `/api` | client | ✅ hecha (61c3b36) |
+| 4 | Login: `POST /auth/login` + decodificar JWT para armar el user + mapping de roles | client | ✅ hecha (bdbabe9) |
+| 5 | `usersApi`: rutas en singular, arrays directos, create por rol (+ matrícula en alta de abogado) | client | ✅ hecha (bdbabe9) |
+| 6 | `casesApi`: singular, arrays directos, resolución de nombres | client | ✅ hecha (9476d27) |
+| 7 | `appointmentsApi`: singular + acciones PATCH (reschedule/confirm/cancel) | client | ✅ hecha (9476d27) |
+| 8 | Endpoint público `POST /api/auth/register` (solo Client), sobre el código async | api | ✅ hecha (dc4e912) |
+| 8b | Conectar `Register.jsx` al register real + adaptar `AppointmentPage` | client | ✅ hecha (register wired en bdbabe9; AppointmentPage en 5bf77f1) |
+| 9 | Prueba E2E | ambos | ✅ smoke HTTP 10/10 (23/10); prueba visual del UI pendiente del usuario |
 
 ## No-goals
 
@@ -52,3 +52,19 @@
 - 65a9600 `docs: corregir baseUrl del collection Postman a 5133` — dropeado en rebase (el master nuevo ya trae 5133)
 - 039a37d `docs: agregar plan de conexión con el front` (rebased a 8760f02; archivo movido de `odd/tasks/` a `docs/tasks/` por la nueva estructura del repo)
 - Rebase 23/10: master avanzó 7 commits (refactor async end-to-end, docs consolidados en `docs/`, collection Postman actualizado, workflow CI Azure). Rama alineada a 8760f02.
+- Client (rama `feat/conexion-front` de `francocus/legal-manager-client`, commits en inglés): 61c3b36 proxy, bdbabe9 auth+users, 9476d27 cases+appointments, 5bf77f1 AppointmentPage.
+- dc4e912 `feat: agregar registro público de clientes en auth` (reutiliza `CreateClientAsync`, sin lógica duplicada).
+
+## Verificación E2E (smoke HTTP 23/10, vía proxy de Vite)
+
+Register nuevo 201 → login role claim "Client" → `GET /case` y `/user/lawyers` 200 arrays → `GET /user` con cliente 403 (policy correcta) → token inválido 401 ProblemDetails → turno creado 201 ("Pendiente") → confirm 200 ("Confirmado") → admin: `GET /user` 200 con los 2 registrados → `POST /case` 201 ("Activo"). 10/10.
+
+## Limitaciones conocidas (follow-ups del equipo)
+
+1. El `fullName` del usuario logueado se muestra como el email: el JWT trae `name` = email; falta claim de nombre real en el token.
+2. El toggle "Usuario activo" del alta/edición quedó sin efecto (el API no acepta `active`).
+3. `mapCase` muestra solo el primer abogado de `lawyerIds[]`.
+4. "Finalizado" existe en el vocabulario pero ningún endpoint lo setea.
+5. En `CaseDetails` quedan como solo-lectura efectivos: caseNumber, startDate, cliente y abogado (el PUT solo acepta title/area/description/notes; el cambio de abogado existe vía `PATCH lawyers/add|remove`, no conectado al UI).
+6. JWT de 15' sin refresh (decisión del PR #18, fuera de alcance).
+7. Datos de smoke quedaron en la DB Verify (conn.test/conn.test2, EXP-CONN-001, turno 5/11).
