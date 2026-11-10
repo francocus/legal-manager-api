@@ -2,10 +2,12 @@ using LegalManager.Infrastructure.Storage;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json.Serialization;
+using LegalManager.Application.Auth;
 using LegalManager.Application.Interfaces;
 using LegalManager.Application.Services;
 using LegalManager.Domain.Entities;
 using LegalManager.Domain.Interfaces;
+using LegalManager.Infrastructure.Email;
 using LegalManager.Infrastructure.ExternalServices;
 using LegalManager.Infrastructure.Persistence;
 using LegalManager.Infrastructure.Repositories;
@@ -42,6 +44,15 @@ builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+
+// Account emails (confirmation + password reset): options are lenient at boot like the
+// LLM options: a clone without Email/Smtp config must still boot (and dotnet ef must
+// work); with no Smtp:Host the sender only logs the message instead of sending.
+builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
+builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection(SmtpOptions.SectionName));
+builder.Services.AddScoped<IAccountEmailService, SmtpAccountEmailService>();
+builder.Services.AddScoped<AccountConfirmationService>();
+
 // File storage: uses Azure Blob Storage if configured, otherwise falls back to local file system
 var azureStorageConn = builder.Configuration["AzureStorage:ConnectionString"];
 var azureContainer = builder.Configuration["AzureStorage:ContainerName"] ?? "documents";
@@ -227,6 +238,10 @@ static async Task SeedInitialAdminAsync(WebApplication app)
         seed["Dni"] ?? "00000000",
         email,
         passwordHasher.Hash(password));
+
+    // The seeded admin must be able to log in on a fresh database without going
+    // through the email confirmation flow.
+    admin.ConfirmEmail();
 
     usersRepository.Add(admin);
     await usersRepository.SaveAsync();

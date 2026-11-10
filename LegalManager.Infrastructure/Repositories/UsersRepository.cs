@@ -15,6 +15,18 @@ namespace LegalManager.Infrastructure.Repositories
             return await _dbSet.FirstOrDefaultAsync(u => u.Active && u.Email.Trim().ToLower() == normalized, cancellationToken);
         }
 
+        // TPC maps these lookups to one query per concrete table (Clients/Lawyers/Admins);
+        // every one of them holds all base User columns. Active filter matches the repo rule.
+        public async Task<User?> GetByEmailConfirmationTokenAsync(string tokenHash, CancellationToken cancellationToken = default)
+        {
+            return await _dbSet.FirstOrDefaultAsync(u => u.Active && u.EmailConfirmationToken == tokenHash, cancellationToken);
+        }
+
+        public async Task<User?> GetByPasswordResetTokenAsync(string tokenHash, CancellationToken cancellationToken = default)
+        {
+            return await _dbSet.FirstOrDefaultAsync(u => u.Active && u.PasswordResetToken == tokenHash, cancellationToken);
+        }
+
         public override async Task SaveAsync(CancellationToken cancellationToken = default)
         {
             try
