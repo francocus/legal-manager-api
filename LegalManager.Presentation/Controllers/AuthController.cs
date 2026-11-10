@@ -1,7 +1,7 @@
-using LegalManager.Application.Auth.DTOs.Request;
-using LegalManager.Application.Auth.Services;
+using LegalManager.Application;
 using LegalManager.Application.DTOs;
 using LegalManager.Application.Interfaces;
+using LegalManager.Application.Services;
 using LegalManager.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
