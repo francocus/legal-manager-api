@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_WEBAPP_NAME: legalmanager-api   # <- nombre EXACTO de tu App Service en Azure
+  AZURE_WEBAPP_NAME: legalmanager-api-f4gqhqfsejdshrcm   # nombre exacto de tu App Service en Azure
   DOTNET_VERSION: '10.0.x'
   SOLUTION: LegalManager.slnx
   STARTUP_PROJECT: LegalManager.Presentation
@@ -39,25 +39,41 @@ jobs:
       - name: Publish
         run: dotnet publish ${{ env.STARTUP_PROJECT }} --configuration Release --no-build --output ./publish
 
-      # ---- De aca para abajo solo corre en push a master / ejecucion manual ----
+      # ---- De acá para abajo solo corre en push a master / ejecución manual ----
 
       - name: Instalar dotnet-ef
         if: github.event_name != 'pull_request'
         run: dotnet tool install --global dotnet-ef --version 10.*
 
-      - name: Actualizar base de datos (migraciones EF Core)
+      - name: Actualizar base de datos (migraciones EF Core con reintentos para Azure SQL Paused)
         if: github.event_name != 'pull_request'
         env:
-          # Se pasa por variable de entorno para que bash no interprete caracteres
-          # especiales del password (ej. $).
           DB_CONNECTION_STRING: ${{ secrets.DB_CONNECTION_STRING }}
         run: |
-          dotnet ef database update \
+          MAX_ATTEMPTS=6
+          DELAY_SECONDS=20
+          ATTEMPT=1
+
+          echo "Intentando aplicar migraciones a la base de datos..."
+
+          until dotnet ef database update \
             --project ${{ env.MIGRATIONS_PROJECT }} \
             --startup-project ${{ env.STARTUP_PROJECT }} \
             --configuration Release \
             --no-build \
-            --connection "$DB_CONNECTION_STRING"
+            --connection "$DB_CONNECTION_STRING"; do
+
+            if [ $ATTEMPT -ge $MAX_ATTEMPTS ]; then
+              echo "Error: Se agotaron los $MAX_ATTEMPTS intentos para aplicar migraciones en la base de datos."
+              exit 1
+            fi
+
+            echo "Aviso: La base de datos puede estar pausada o iniciando (intento $ATTEMPT/$MAX_ATTEMPTS). Esperando ${DELAY_SECONDS}s antes de reintentar..."
+            sleep $DELAY_SECONDS
+            ATTEMPT=$((ATTEMPT + 1))
+          done
+
+          echo "Migraciones aplicadas con éxito."
 
       - name: Deploy a Azure App Service
         if: github.event_name != 'pull_request'

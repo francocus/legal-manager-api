@@ -22,7 +22,11 @@ if (string.IsNullOrWhiteSpace(connectionString))
     throw new InvalidOperationException("Falta la connection string 'LegalManagerDb' en appsettings.json o en el entorno.");
 
 builder.Services.AddDbContext<LegalManagerDbContext>(options =>
-    options.UseSqlServer(connectionString));
+    options.UseSqlServer(connectionString, sqlOptions =>
+        sqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 6,
+            maxRetryDelay: TimeSpan.FromSeconds(20),
+            errorNumbersToAdd: new[] { 40613, 40197, 40501, 49918, 49919, 49920 })));
 
 builder.Services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<IUserRepository, UsersRepository>();
