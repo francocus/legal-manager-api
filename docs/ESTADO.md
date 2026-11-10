@@ -58,11 +58,12 @@ El backend de la API está prácticamente terminado y funcional. Todos los módu
 - Listado y descarga de documentos
 - Baja lógica de documentos
 - No se pueden adjuntar documentos a un expediente cerrado
-- Generación de resumen por IA (`POST /api/document/case/{id}/generate-summary`)
-  - Conectado a un proveedor real: OpenCode Go (API compatible OpenAI), modelo `deepseek-v4.1-flash` con razonamiento medio, protegido con Polly (retry con backoff exponencial + circuit breaker + timeout por intento). Si el proveedor falla, la API responde 502 con un error claro y no deja borradores a medias
-  - Los documentos generados por IA quedan como borrador (`IsPendingReview = true`) hasta que un abogado los aprueba o descarta
-  - Los borradores de IA son invisibles para el cliente (retornan 404 silencioso)
-- Aprobación y descarte de documentos IA por un abogado
+- Generación de PDFs reales con QuestPDF (licencia Community): tanto el resumen IA como la constancia se producen como archivos PDF de verdad, con plantilla fija y letra Segoe UI
+- Contrato de confirmación previa (confirm-first): generar no persiste nada, el borrador vuelve al cliente y solo el guardado explícito lo persiste
+  - `POST /api/document/case/{id}/generate-summary` — resumen por IA conectado a OpenCode Go (modelo `deepseek-v4.1-flash`, protegido con Polly); si el proveedor falla responde 502 con un error claro y no deja borradores a medias. Devuelve el borrador con el PDF en base64
+  - `POST /api/document/case/{id}/generate-constancia` — constancia por plantilla fija, sin IA ni llamada al LLM, mismo formato de borrador
+  - `POST /api/document/generated` — único punto de persistencia: valida que el contenido sea un PDF real de hasta 10 MB y decide el nombre del archivo en el servidor (`ResumenIA.pdf` / `Constancia.pdf`); los documentos IA llegan ya revisados (`Approved = true`)
+- Se eliminó la cola de borradores pendientes y con ella los endpoints `approve`/`discard` (y el método `Discard` de la entidad); la migración `DiscardOrphanPendingAiSummaries` limpia los borradores IA huérfanos que quedaban en la base. Los borradores de IA siguen invisibles para el cliente (defensa en profundidad mientras existan filas heredadas)
 
 ---
 
@@ -117,7 +118,7 @@ El backend de la API está prácticamente terminado y funcional. Todos los módu
 | Tarea | Prioridad | Notas |
 |-------|-----------|-------|
 | Migrar a código asíncrono | ✅ Completada | Migrado a async end-to-end (commit `741ba24`): Repositorios EF Core (`ToListAsync`, `SaveChangesAsync`), Servicios de Aplicación y Controllers con `Task` y propagación de `CancellationToken`. |
-| Generación de constancias por plantilla (QuestPDF) | Media | Mencionado en la minuta como funcionalidad de "generación automática" |
+| Generación de constancias por plantilla (QuestPDF) | ✅ Completada | Renderer QuestPDF, endpoint `generate-constancia` y contrato confirm-first en la rama `feat/documentos-questpdf` |
 | Frontend (React 19) | Alta | Conectar con esta API. Ya existe desde la iteración anterior |
 | Despliegue en Azure (App Service + SQL + Storage) | Baja | Para producción/entrega final |
 | Tests unitarios | Media | No hay tests por el momento |

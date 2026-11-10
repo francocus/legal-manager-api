@@ -1,4 +1,3 @@
-using System.Text;
 using LegalManager.Application.DTOs;
 using LegalManager.Application.Interfaces;
 using LegalManager.Domain.Entities;
@@ -9,7 +8,9 @@ namespace LegalManager.Application.Services
     public class DocumentService(
         IDocumentRepository documentsRepository,
         ICaseRepository casesRepository,
+        IUserRepository usersRepository,
         IAiSummaryService aiSummaryService,
+        IPdfDocumentRenderer pdfRenderer,
         ICurrentUser currentUser,
         IFileStorage fileStorage) : IDocumentService
     {
@@ -90,7 +91,10 @@ namespace LegalManager.Application.Services
             return (stream, document.ContentType, document.FileName);
         }
 
-        public async Task<DocumentResponse> GenerateAiSummaryAsync(Guid caseId, CancellationToken cancellationToken = default)
+        // Confirm-first: generates the AI summary and its real PDF but persists
+        // nothing. The draft travels back to the client, which decides whether
+        // to store it through SaveGeneratedAsync.
+        public async Task<GeneratedDocumentDraftResponse> GenerateAiSummaryAsync(Guid caseId, CancellationToken cancellationToken = default)
         {
             var caseItem = await casesRepository.GetByIdAsync(caseId, cancellationToken);
             if (caseItem == null)
@@ -98,27 +102,115 @@ namespace LegalManager.Application.Services
 
             EnsureCanWrite(caseItem);
 
-            // Quota guard: while a draft awaits review, generating another one would burn
-            // LLM plan quota for nothing. Approve or discard the pending one first.
-            var existingDocs = await documentsRepository.GetByCaseIdAsync(caseId, cancellationToken);
-            if (existingDocs.Any(d => d.Active && d.IsPendingReview))
-                throw new InvalidOperationException("Ya existe un borrador de resumen IA pendiente de revisión. Aprobalo o descartalo antes de generar otro.");
-
             var caseContext = ComposeSummaryText(caseItem);
             var summary = await aiSummaryService.GenerateSummaryAsync(caseContext, cancellationToken);
 
-            var fileName = "ResumenIA.pdf";
-            var summaryBytes = Encoding.UTF8.GetBytes(summary);
-            using var summaryStream = new MemoryStream(summaryBytes);
+            var pdfBytes = pdfRenderer.RenderSummaryPdf(new SummaryPdfData(
+                caseItem.CaseNumber,
+                caseItem.Title,
+                caseItem.Area,
+                caseItem.Status.ToString(),
+                caseItem.StartDate.ToString("dd/MM/yyyy"),
+                caseItem.LastUpdate.ToString("dd/MM/yyyy"),
+                caseItem.ClosingDate?.ToString("dd/MM/yyyy"),
+                caseItem.Description ?? string.Empty,
+                caseItem.Notes,
+                summary));
+
+            return new GeneratedDocumentDraftResponse(
+                "ResumenIA.pdf",
+                "application/pdf",
+                pdfBytes.Length,
+                summary,
+                Convert.ToBase64String(pdfBytes));
+        }
+
+        // Same confirm-first contract as the AI summary, but composed from a
+        // fixed template: no LLM call, no quota to burn.
+        public async Task<GeneratedDocumentDraftResponse> GenerateConstanciaAsync(Guid caseId, CancellationToken cancellationToken = default)
+        {
+            var caseItem = await casesRepository.GetByIdAsync(caseId, cancellationToken);
+            if (caseItem == null)
+                throw new ArgumentException("El expediente indicado no existe.");
+
+            EnsureCanWrite(caseItem);
+
+            var pdfBytes = pdfRenderer.RenderConstanciaPdf(new ConstanciaPdfData(
+                caseItem.CaseNumber,
+                caseItem.Title,
+                await GetClientDisplayNameAsync(caseItem.ClientId, cancellationToken),
+                await GetLawyerNamesAsync(caseItem, cancellationToken),
+                caseItem.Area,
+                caseItem.Status.ToString(),
+                caseItem.StartDate.ToString("dd/MM/yyyy"),
+                caseItem.LastUpdate.ToString("dd/MM/yyyy"),
+                caseItem.Description ?? string.Empty,
+                DateTime.Now.ToString("dd/MM/yyyy HH:mm")));
+
+            return new GeneratedDocumentDraftResponse(
+                "Constancia.pdf",
+                "application/pdf",
+                pdfBytes.Length,
+                string.Empty,
+                Convert.ToBase64String(pdfBytes));
+        }
+
+        public async Task<DocumentResponse> SaveGeneratedAsync(SaveGeneratedDocumentRequest request, CancellationToken cancellationToken = default)
+        {
+            var caseItem = await casesRepository.GetByIdAsync(request.CaseId, cancellationToken);
+            if (caseItem == null)
+                throw new ArgumentException("El expediente indicado no existe.");
+
+            if (caseItem.Status == CaseStatus.Cerrado)
+                throw new InvalidOperationException("No se pueden agregar documentos a un expediente cerrado.");
+
+            EnsureCanWrite(caseItem);
+
+            if (string.IsNullOrEmpty(request.PdfBase64))
+                throw new ArgumentException("El contenido del documento es obligatorio.");
+
+            byte[] pdfBytes;
+            try
+            {
+                pdfBytes = Convert.FromBase64String(request.PdfBase64);
+            }
+            catch (FormatException)
+            {
+                throw new ArgumentException("El contenido del documento es inválido.");
+            }
+
+            // Every document produced by this system comes from QuestPDF, so the
+            // header is a cheap integrity check against corrupted payloads.
+            if (!pdfBytes.AsSpan().StartsWith("%PDF-"u8))
+                throw new ArgumentException("Todo documento generado debe ser un PDF válido.");
+
+            if (pdfBytes.Length > 10 * 1024 * 1024)
+                throw new ArgumentException("El archivo supera el tamaño máximo permitido (10 MB).");
+
+            // File name is decided server-side; the client only flags whether
+            // the document is an AI summary or a template constancia.
+            var fileName = request.GeneratedByAi ? "ResumenIA.pdf" : "Constancia.pdf";
 
             var storagePath = await fileStorage.SaveAsync(
-                caseId,
+                request.CaseId,
                 fileName,
-                summaryStream,
+                new MemoryStream(pdfBytes),
                 "application/pdf",
                 cancellationToken);
 
-            var document = Document.CreateAiSummary(caseId, fileName, storagePath, summary, currentUser.Id);
+            Document document;
+            if (request.GeneratedByAi)
+            {
+                // The client already reviewed the draft before saving, so the
+                // document arrives reviewed: no pending-review queue anymore.
+                document = Document.CreateAiSummary(request.CaseId, fileName, storagePath, request.SummaryText, currentUser.Id);
+                document.Approve(currentUser.Id);
+            }
+            else
+            {
+                document = new Document(request.CaseId, fileName, storagePath, "application/pdf", pdfBytes.Length, DocumentType.Generado, currentUser.Id);
+            }
+
             documentsRepository.Add(document);
             try
             {
@@ -131,30 +223,7 @@ namespace LegalManager.Application.Services
                 await fileStorage.DeleteAsync(storagePath, cancellationToken);
                 throw;
             }
-            return DocumentResponse.Desde(document);
-        }
 
-        public async Task<DocumentResponse?> ApproveAsync(Guid documentId, CancellationToken cancellationToken = default)
-        {
-            var document = await documentsRepository.GetByIdAsync(documentId, cancellationToken);
-            if (document == null) return null;
-
-            await EnsureDocumentWriteAsync(document, cancellationToken);
-
-            document.Approve(currentUser.Id);
-            await documentsRepository.SaveAsync(cancellationToken);
-            return DocumentResponse.Desde(document);
-        }
-
-        public async Task<DocumentResponse?> DiscardAsync(Guid documentId, CancellationToken cancellationToken = default)
-        {
-            var document = await documentsRepository.GetByIdAsync(documentId, cancellationToken);
-            if (document == null) return null;
-
-            await EnsureDocumentWriteAsync(document, cancellationToken);
-
-            document.Discard(currentUser.Id);
-            await documentsRepository.SaveAsync(cancellationToken);
             return DocumentResponse.Desde(document);
         }
 
@@ -182,6 +251,27 @@ namespace LegalManager.Application.Services
             return $"El expediente {caseItem.CaseNumber} - {caseItem.Title}, del área {caseItem.Area}, se encuentra en estado {caseItem.Status}." +
                    $" Iniciado el {caseItem.StartDate:dd/MM/yyyy}, su última actualización fue el {caseItem.LastUpdate:dd/MM/yyyy}.{closing}" +
                    $" Descripción: {caseItem.Description}.{notes}";
+        }
+
+        private async Task<string> GetClientDisplayNameAsync(Guid clientId, CancellationToken cancellationToken)
+        {
+            var client = await usersRepository.GetByIdAsync(clientId, cancellationToken);
+            if (client == null) return string.Empty;
+
+            return string.IsNullOrWhiteSpace(client.FullName) ? client.Email : client.FullName;
+        }
+
+        private async Task<string> GetLawyerNamesAsync(Case caseItem, CancellationToken cancellationToken)
+        {
+            var names = new List<string>();
+            foreach (var lawyerId in caseItem.LawyerIds)
+            {
+                var lawyer = await usersRepository.GetByIdAsync(lawyerId, cancellationToken);
+                if (lawyer != null)
+                    names.Add(lawyer.FullName);
+            }
+
+            return string.Join(", ", names);
         }
 
         private async Task EnsureDocumentAccessAsync(Document document, CancellationToken cancellationToken = default)
