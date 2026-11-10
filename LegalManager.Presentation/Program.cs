@@ -1,3 +1,4 @@
+using LegalManager.Infrastructure.Storage;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -37,12 +38,21 @@ builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
-builder.Services.AddScoped<IDocumentService>(sp => new DocumentService(
-    sp.GetRequiredService<IDocumentRepository>(),
-    sp.GetRequiredService<ICaseRepository>(),
-    sp.GetRequiredService<IAiSummaryService>(),
-    sp.GetRequiredService<ICurrentUser>(),
-    builder.Configuration["DocumentStorage:RootPath"] ?? Path.Combine(AppContext.BaseDirectory, "DocumentStorage")));
+// File storage: uses Azure Blob Storage if configured, otherwise falls back to local file system
+var azureStorageConn = builder.Configuration["AzureStorage:ConnectionString"];
+var azureContainer = builder.Configuration["AzureStorage:ContainerName"] ?? "documents";
+
+if (!string.IsNullOrWhiteSpace(azureStorageConn))
+{
+    builder.Services.AddSingleton<IFileStorage>(new AzureBlobFileStorage(azureStorageConn, azureContainer));
+}
+else
+{
+    var localPath = builder.Configuration["DocumentStorage:RootPath"] ?? Path.Combine(AppContext.BaseDirectory, "DocumentStorage");
+    builder.Services.AddSingleton<IFileStorage>(new LocalFileSystemStorage(localPath));
+}
+
+builder.Services.AddScoped<IDocumentService, DocumentService>();
 
 // External LLM (OpenCode Go, OpenAI-compatible API): options bound from appsettings;
 // the ApiKey is supplied only through user-secrets ("Llm:ApiKey"), never hardcoded.

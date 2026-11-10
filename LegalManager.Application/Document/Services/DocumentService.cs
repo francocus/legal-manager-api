@@ -1,3 +1,4 @@
+using System.Text;
 using LegalManager.Application.DTOs;
 using LegalManager.Application.Interfaces;
 using LegalManager.Domain.Entities;
@@ -10,7 +11,7 @@ namespace LegalManager.Application.Services
         ICaseRepository casesRepository,
         IAiSummaryService aiSummaryService,
         ICurrentUser currentUser,
-        string rootStoragePath) : IDocumentService
+        IFileStorage fileStorage) : IDocumentService
     {
         public async Task<DocumentResponse> UploadAsync(UploadDocumentRequest request, CancellationToken cancellationToken = default)
         {
@@ -26,21 +27,25 @@ namespace LegalManager.Application.Services
             if (request.FileContent == null || request.Length == 0)
                 throw new ArgumentException("Debe adjuntarse un archivo.");
 
-            var caseFolder = Path.Combine(rootStoragePath, request.CaseId.ToString());
-            Directory.CreateDirectory(caseFolder);
+            var storagePath = await fileStorage.SaveAsync(
+                request.CaseId,
+                request.FileName,
+                request.FileContent,
+                request.ContentType,
+                cancellationToken);
 
-            var documentId = Guid.NewGuid();
-            var storedFileName = $"{documentId}_{request.FileName}";
-            var fullPath = Path.Combine(caseFolder, storedFileName);
-
-            await using (var stream = new FileStream(fullPath, FileMode.Create))
+            var document = new Document(request.CaseId, request.FileName, storagePath, request.ContentType, request.Length, request.Type, currentUser.Id);
+            documentsRepository.Add(document);
+            try
             {
-                await request.FileContent.CopyToAsync(stream, cancellationToken);
+                await documentsRepository.SaveAsync(cancellationToken);
+            }
+            catch
+            {
+                await fileStorage.DeleteAsync(storagePath, cancellationToken);
+                throw;
             }
 
-            var document = new Document(request.CaseId, request.FileName, fullPath, request.ContentType, request.Length, request.Type, currentUser.Id);
-            documentsRepository.Add(document);
-            await documentsRepository.SaveAsync(cancellationToken);
             return DocumentResponse.Desde(document);
         }
 
@@ -78,10 +83,10 @@ namespace LegalManager.Application.Services
 
             await EnsureDocumentAccessAsync(document, cancellationToken);
 
-            if (!File.Exists(document.FilePath))
-                throw new InvalidOperationException("El archivo del documento no se encuentra en el servidor.");
+            if (!await fileStorage.ExistsAsync(document.FilePath, cancellationToken))
+                throw new InvalidOperationException("El archivo del documento no se encuentra en el almacenamiento.");
 
-            var stream = new FileStream(document.FilePath, FileMode.Open, FileAccess.Read);
+            var stream = await fileStorage.OpenReadAsync(document.FilePath, cancellationToken);
             return (stream, document.ContentType, document.FileName);
         }
 
@@ -102,16 +107,18 @@ namespace LegalManager.Application.Services
             var caseContext = ComposeSummaryText(caseItem);
             var summary = await aiSummaryService.GenerateSummaryAsync(caseContext, cancellationToken);
 
-            var caseFolder = Path.Combine(rootStoragePath, caseId.ToString());
-            Directory.CreateDirectory(caseFolder);
-
-            var documentId = Guid.NewGuid();
             var fileName = "ResumenIA.pdf";
-            var storedFileName = $"{documentId}_{fileName}";
-            var fullPath = Path.Combine(caseFolder, storedFileName);
-            await File.WriteAllTextAsync(fullPath, summary, cancellationToken);
+            var summaryBytes = Encoding.UTF8.GetBytes(summary);
+            using var summaryStream = new MemoryStream(summaryBytes);
 
-            var document = Document.CreateAiSummary(caseId, fileName, fullPath, summary, currentUser.Id);
+            var storagePath = await fileStorage.SaveAsync(
+                caseId,
+                fileName,
+                summaryStream,
+                "application/pdf",
+                cancellationToken);
+
+            var document = Document.CreateAiSummary(caseId, fileName, storagePath, summary, currentUser.Id);
             documentsRepository.Add(document);
             try
             {
@@ -120,8 +127,8 @@ namespace LegalManager.Application.Services
             catch
             {
                 // Best-effort orphan cleanup: without it, a failed save leaves the written
-                // file on disk without its database record.
-                try { File.Delete(fullPath); } catch (IOException) { }
+                // file on storage without its database record.
+                await fileStorage.DeleteAsync(storagePath, cancellationToken);
                 throw;
             }
             return DocumentResponse.Desde(document);
@@ -165,8 +172,6 @@ namespace LegalManager.Application.Services
 
         private string ComposeSummaryText(Case caseItem)
         {
-            // Case context handed to the LLM: built exclusively from data already registered
-            // on the case, so the prompt can enforce a no-invented-facts summary.
             var closing = caseItem.ClosingDate.HasValue
                 ? $" Fue cerrado el {caseItem.ClosingDate:dd/MM/yyyy}."
                 : string.Empty;
@@ -187,9 +192,6 @@ namespace LegalManager.Application.Services
             EnsureCanRead(caseItem);
         }
 
-        // An AI draft has not been reviewed by any lawyer yet: the client must not see
-        // or download anything the firm has not approved. Filtered silently, without
-        // throwing 403, because a 403 would confirm the document exists.
         private bool IsHiddenFromClient(Document document)
             => currentUser.IsClient && document.IsPendingReview;
 
