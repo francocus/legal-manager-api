@@ -6,28 +6,20 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LegalManager.Infrastructure.Repositories
 {
-    public class UsersRepository(LegalManagerDbContext context) : IUserRepository
+    public class UsersRepository(LegalManagerDbContext context) : GenericRepository<User>(context), IUserRepository
     {
-        public void Add(User user) => context.Users.Add(user);
-
-        public async Task<IReadOnlyList<User>> GetAllAsync(CancellationToken cancellationToken = default)
-            => await context.Users.Where(u => u.Active).ToListAsync(cancellationToken);
-
-        public async Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
-            => await context.Users.FirstOrDefaultAsync(u => u.Id == id && u.Active, cancellationToken);
-
         public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
         {
             var normalized = (email ?? string.Empty).Trim().ToLower();
 
-            return await context.Users.FirstOrDefaultAsync(u => u.Active && u.Email.Trim().ToLower() == normalized, cancellationToken);
+            return await _dbSet.FirstOrDefaultAsync(u => u.Active && u.Email.Trim().ToLower() == normalized, cancellationToken);
         }
 
-        public async Task SaveAsync(CancellationToken cancellationToken = default)
+        public override async Task SaveAsync(CancellationToken cancellationToken = default)
         {
             try
             {
-                await context.SaveChangesAsync(cancellationToken);
+                await base.SaveAsync(cancellationToken);
             }
             catch (DbUpdateException ex) when (IsUniqueViolation(ex))
             {

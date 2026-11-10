@@ -6,18 +6,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LegalManager.Infrastructure.Repositories
 {
-    public class AppointmentsRepository(LegalManagerDbContext context) : IAppointmentRepository
+    public class AppointmentsRepository(LegalManagerDbContext context) : GenericRepository<Appointment>(context), IAppointmentRepository
     {
-        public void Add(Appointment appointment) => context.Appointments.Add(appointment);
-
-        public async Task<IReadOnlyList<Appointment>> GetAllAsync(CancellationToken cancellationToken = default)
-            => await context.Appointments.Where(a => a.Active).ToListAsync(cancellationToken);
-
-        public async Task<Appointment?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
-            => await context.Appointments.FirstOrDefaultAsync(a => a.Id == id && a.Active, cancellationToken);
-
         public async Task<bool> HasScheduleConflictAsync(Guid lawyerId, DateOnly date, TimeOnly startTime, TimeOnly endTime, Guid? excludingAppointmentId = null, CancellationToken cancellationToken = default)
-            => await context.Appointments.AnyAsync(a => a.LawyerId == lawyerId
+            => await _dbSet.AnyAsync(a => a.LawyerId == lawyerId
                 && a.Active
                 && a.Status != AppointmentStatus.Cancelado
                 && a.Date == date
@@ -25,11 +17,11 @@ namespace LegalManager.Infrastructure.Repositories
                 && a.EndTime > startTime
                 && (excludingAppointmentId == null || a.Id != excludingAppointmentId), cancellationToken);
 
-        public async Task SaveAsync(CancellationToken cancellationToken = default)
+        public override async Task SaveAsync(CancellationToken cancellationToken = default)
         {
             try
             {
-                await context.SaveChangesAsync(cancellationToken);
+                await base.SaveAsync(cancellationToken);
             }
             catch (DbUpdateException ex) when (IsUniqueViolation(ex))
             {

@@ -1,6 +1,8 @@
+using LegalManager.Domain.Interfaces;
+
 ﻿namespace LegalManager.Domain.Entities
 {
-    public class Case
+    public class Case : IEntity
     {
         public Guid Id { get; private set; }
         public string CaseNumber { get; private set; }

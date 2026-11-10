@@ -1,6 +1,8 @@
+using LegalManager.Domain.Interfaces;
+
 ﻿namespace LegalManager.Domain.Entities
 {
-    public abstract class User
+    public abstract class User : IEntity
     {
         public Guid Id { get; private set; }
         public string FirstName { get; private set; }

@@ -1,3 +1,5 @@
+using LegalManager.Domain.Interfaces;
+
 using System.Text;
 
 namespace LegalManager.Domain.Entities
@@ -11,7 +13,7 @@ namespace LegalManager.Domain.Entities
         Generado
     }
 
-    public class Document
+    public class Document : IEntity
     {
         public Guid Id { get; private set; }
         public Guid CaseId { get; private set; }

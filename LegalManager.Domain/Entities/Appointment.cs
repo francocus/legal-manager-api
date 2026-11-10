@@ -1,6 +1,8 @@
+using LegalManager.Domain.Interfaces;
+
 ﻿namespace LegalManager.Domain.Entities
 {
-    public class Appointment
+    public class Appointment : IEntity
     {
         public static readonly IReadOnlyList<TimeOnly> ValidSlots =
             [new(9, 0), new(10, 30), new(12, 0), new(14, 0), new(15, 30), new(17, 0)];

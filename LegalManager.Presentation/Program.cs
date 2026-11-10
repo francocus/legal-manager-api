@@ -23,6 +23,7 @@ if (string.IsNullOrWhiteSpace(connectionString))
 builder.Services.AddDbContext<LegalManagerDbContext>(options =>
     options.UseSqlServer(connectionString));
 
+builder.Services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<IUserRepository, UsersRepository>();
 builder.Services.AddScoped<ICaseRepository, CasesRepository>();
 builder.Services.AddScoped<IAppointmentRepository, AppointmentsRepository>();

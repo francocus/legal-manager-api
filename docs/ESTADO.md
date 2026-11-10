@@ -76,6 +76,13 @@ El backend de la API está prácticamente terminado y funcional. Todos los módu
 | Infrastructure | `LegalManager.Infrastructure` | DbContext, Repositorios, JWT, BCrypt |
 | Presentation | `LegalManager.Presentation` | Controllers, Policies, CurrentUser impl, Middleware, Program.cs |
 
+
+### Patrón Generic Repository
+- **Interfaz genérica:** `IRepository<T>` en Domain/Interfaces (con restricción `where T : class, IEntity`) exponiendo `Add`, `Update`, `Delete`, `GetAllAsync`, `GetByIdAsync`, `SaveAsync`.
+- **Implementación base:** `GenericRepository<T>` en Infrastructure/Repositories operando sobre DbSet<T> con filtrado por baja lógica (`Active == true`).
+- **Repositorios especializados:** `UsersRepository`, `CasesRepository`, `AppointmentsRepository` y `DocumentsRepository` heredan de `GenericRepository<T>` e implementan sus interfaces específicas (`IUserRepository`, etc.), preservando métodos particulares (búsquedas por email, validación de conflicto de turnos, captura de violaciones únicas con error 409).
+- **Inyección de dependencias:** Registrado como open generic (`AddScoped(typeof(IRepository<>), typeof(GenericRepository<>))`) y específico en `Program.cs`.
+
 ### Base de Datos
 - **ORM:** Entity Framework Core (Code-First)
 - **BD:** Microsoft SQL Server
