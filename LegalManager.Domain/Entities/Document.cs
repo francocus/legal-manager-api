@@ -114,23 +114,6 @@ namespace LegalManager.Domain.Entities
             Approved = true;
         }
 
-        public void Discard(Guid reviewedByUserId)
-        {
-            if (reviewedByUserId == Guid.Empty)
-                throw new ArgumentException("El usuario que revisa es obligatorio.", nameof(reviewedByUserId));
-
-            if (!GeneratedByAI)
-                throw new InvalidOperationException("Solo los documentos generados por IA requieren revisión.");
-
-            if (ReviewedAt != null)
-                throw new InvalidOperationException("El documento ya fue revisado.");
-
-            ReviewedByUserId = reviewedByUserId;
-            ReviewedAt = DateOnly.FromDateTime(DateTime.Now);
-            Approved = false;
-            Active = false;
-        }
-
         public void Deactivate()
         {
             if (!Active)

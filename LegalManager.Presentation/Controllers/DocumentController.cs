@@ -61,14 +61,16 @@ namespace LegalManager.Presentation.Controllers
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
         }
 
+        // Confirm-first: the draft (text + real PDF) is returned to the client and
+        // nothing is persisted; only POST /api/document/generated stores it.
         [Authorize(Policy = Policies.AdminOrLawyer)]
         [HttpPost("case/{caseId}/generate-summary")]
-        public async Task<ActionResult<DocumentResponse>> GenerateAiSummary([FromRoute] Guid caseId, CancellationToken cancellationToken)
+        public async Task<ActionResult<GeneratedDocumentDraftResponse>> GenerateAiSummary([FromRoute] Guid caseId, CancellationToken cancellationToken)
         {
             try
             {
-                var document = await documentService.GenerateAiSummaryAsync(caseId, cancellationToken);
-                return CreatedAtAction(nameof(GetById), new { id = document.Id }, document);
+                var draft = await documentService.GenerateAiSummaryAsync(caseId, cancellationToken);
+                return Ok(draft);
             }
             catch (ArgumentException ex) { return BadRequest(ex.Message); }
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
@@ -79,28 +81,26 @@ namespace LegalManager.Presentation.Controllers
         }
 
         [Authorize(Policy = Policies.AdminOrLawyer)]
-        [HttpPatch("{id}/approve")]
-        public async Task<ActionResult<DocumentResponse>> Approve([FromRoute] Guid id, CancellationToken cancellationToken)
+        [HttpPost("case/{caseId}/generate-constancia")]
+        public async Task<ActionResult<GeneratedDocumentDraftResponse>> GenerateConstancia([FromRoute] Guid caseId, CancellationToken cancellationToken)
         {
             try
             {
-                var document = await documentService.ApproveAsync(id, cancellationToken);
-                if (document == null) return NotFound($"No existe un documento con el id {id}.");
-                return Ok(document);
+                var draft = await documentService.GenerateConstanciaAsync(caseId, cancellationToken);
+                return Ok(draft);
             }
             catch (ArgumentException ex) { return BadRequest(ex.Message); }
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
         }
 
         [Authorize(Policy = Policies.AdminOrLawyer)]
-        [HttpPatch("{id}/discard")]
-        public async Task<ActionResult<DocumentResponse>> Discard([FromRoute] Guid id, CancellationToken cancellationToken)
+        [HttpPost("generated")]
+        public async Task<ActionResult<DocumentResponse>> SaveGenerated([FromBody] SaveGeneratedDocumentRequest request, CancellationToken cancellationToken)
         {
             try
             {
-                var document = await documentService.DiscardAsync(id, cancellationToken);
-                if (document == null) return NotFound($"No existe un documento con el id {id}.");
-                return Ok(document);
+                var document = await documentService.SaveGeneratedAsync(request, cancellationToken);
+                return CreatedAtAction(nameof(GetById), new { id = document.Id }, document);
             }
             catch (ArgumentException ex) { return BadRequest(ex.Message); }
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }

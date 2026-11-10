@@ -10,6 +10,7 @@ using LegalManager.Domain.Interfaces;
 using LegalManager.Infrastructure.Email;
 using LegalManager.Infrastructure.ExternalServices;
 using LegalManager.Infrastructure.Persistence;
+using LegalManager.Infrastructure.Pdf;
 using LegalManager.Infrastructure.Repositories;
 using LegalManager.Presentation;
 using LegalManager.Presentation.Security;
@@ -68,6 +69,10 @@ else
 }
 
 builder.Services.AddScoped<IDocumentService, DocumentService>();
+
+// Real PDF generation (QuestPDF): renders the AI summary and the constancia
+// template as actual PDF files instead of plain text stored as .pdf.
+builder.Services.AddScoped<IPdfDocumentRenderer, QuestPdfRenderer>();
 
 // External LLM (OpenCode Go, OpenAI-compatible API): options bound from appsettings;
 // the ApiKey is supplied only through user-secrets ("Llm:ApiKey"), never hardcoded.

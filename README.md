@@ -27,6 +27,18 @@ dotnet tool restore
 dotnet ef database update --project LegalManager.Infrastructure --startup-project LegalManager.Presentation
 ```
 
+## Documentos
+
+Los PDFs que el sistema genera (resumen IA y constancia) se producen con **QuestPDF** (licencia Community): dejan de ser texto guardado como `.pdf` y pasan a ser archivos PDF reales, con plantilla fija y letra Segoe UI.
+
+Todos los documentos generados siguen un contrato de **confirmación previa** (confirm-first): generar no persiste nada, el borrador vuelve al cliente y solo un guardado explícito lo persiste.
+
+1. `POST /api/document/case/{caseId}/generate-summary` — genera el resumen con IA y devuelve un **borrador** (`GeneratedDocumentDraftResponse`: nombre, tipo, tamaño, texto y el PDF en base64). No toca storage ni base de datos.
+2. `POST /api/document/case/{caseId}/generate-constancia` — genera la constancia con una plantilla fija (sin IA, sin llamar al LLM) y devuelve el mismo formato de borrador.
+3. El cliente muestra el borrador y decide. Solo `POST /api/document/generated` (`{ "caseId": ..., "pdfBase64": ..., "summaryText": ..., "generatedByAi": ... }`) persiste el documento: valida que el contenido sea un PDF real de hasta 10 MB y el nombre del archivo lo decide el servidor (`ResumenIA.pdf` o `Constancia.pdf`).
+
+Los documentos IA guardados llegan ya revisados (`Approved = true`): ya no existe la cola de borradores pendientes, así que se quitaron los endpoints `PATCH /api/document/{id}/approve` y `PATCH /api/document/{id}/discard`. La subida manual de PDFs (`POST /api/document`) sigue funcionando igual.
+
 ## Verificación de email y recuperación de contraseña
 
 Toda cuenta nueva (autoregistro de cliente y altas de abogados/clientes/admins hechas por un admin) arranca sin email confirmado y recibe un correo con un enlace de confirmación. Mientras la cuenta esté pendiente, el login responde 403: `Debés confirmar tu email antes de iniciar sesión.`
