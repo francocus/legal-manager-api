@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_WEBAPP_NAME: legalmanager-api-f4gqhqfsejdshrcm   # nombre exacto de tu App Service en Azure
+  AZURE_WEBAPP_NAME: legalmanager-api   # nombre exacto de tu App Service en Azure
   DOTNET_VERSION: '10.0.x'
   SOLUTION: LegalManager.slnx
   STARTUP_PROJECT: LegalManager.Presentation
