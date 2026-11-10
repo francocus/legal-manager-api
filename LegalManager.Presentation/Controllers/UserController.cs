@@ -155,6 +155,17 @@ namespace LegalManager.Presentation.Controllers
             catch (ArgumentException ex) { return BadRequest(ex.Message); }
         }
 
+        // Admin rescue hatch: force-confirms an account whose emailed link was lost
+        // (or for automated QA). Idempotent for already-confirmed accounts.
+        [Authorize(Policy = Policies.AdminsOnly)]
+        [HttpPatch("{id}/confirm-email")]
+        public async Task<ActionResult<UserResponse>> ConfirmEmailByAdmin([FromRoute] Guid id, CancellationToken cancellationToken)
+        {
+            var user = await userService.ConfirmEmailByAdminAsync(id, cancellationToken);
+            if (user == null) return NotFound($"No existe un elemento con el id {id}.");
+            return Ok(user);
+        }
+
         [Authorize(Policy = Policies.AdminsOnly)]
         [HttpDelete("{id}")]
         public async Task<ActionResult> Delete([FromRoute] Guid id, CancellationToken cancellationToken)

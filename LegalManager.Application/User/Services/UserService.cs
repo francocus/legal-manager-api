@@ -11,7 +11,8 @@ namespace LegalManager.Application.Services
         ICaseRepository casesRepository,
         IAppointmentRepository appointmentsRepository,
         IPasswordHasher passwordHasher,
-        ICurrentUser currentUser) : IUserService
+        ICurrentUser currentUser,
+        AccountConfirmationService confirmationService) : IUserService
     {
         private string HashPassword(string password)
         {
@@ -38,8 +39,16 @@ namespace LegalManager.Application.Services
             await EnsureUniqueAsync(request.Email, request.Dni, null, cancellationToken);
 
             var client = new Client(request.FirstName, request.LastName, request.Dni, request.Email, HashPassword(request.Password), request.Phone, request.Address);
+
+            // New accounts start unconfirmed: set the token before the save and email the
+            // link right after it succeeds, keeping the single save and the 201 semantics.
+            var rawToken = await confirmationService.StartForNewUserAsync(client, cancellationToken);
+
             usersRepository.Add(client);
             await usersRepository.SaveAsync(cancellationToken);
+
+            await confirmationService.NotifyConfirmationAsync(client, rawToken, cancellationToken);
+
             return UserResponse.Desde(client, CanSeePrivateData(client));
         }
 
@@ -48,8 +57,16 @@ namespace LegalManager.Application.Services
             await EnsureUniqueAsync(request.Email, request.Dni, null, cancellationToken);
 
             var lawyer = new Lawyer(request.FirstName, request.LastName, request.Dni, request.Email, HashPassword(request.Password), request.BarNumber, request.Phone, request.Specialties);
+
+            // New accounts start unconfirmed: set the token before the save and email the
+            // link right after it succeeds, keeping the single save and the 201 semantics.
+            var rawToken = await confirmationService.StartForNewUserAsync(lawyer, cancellationToken);
+
             usersRepository.Add(lawyer);
             await usersRepository.SaveAsync(cancellationToken);
+
+            await confirmationService.NotifyConfirmationAsync(lawyer, rawToken, cancellationToken);
+
             return UserResponse.Desde(lawyer, CanSeePrivateData(lawyer));
         }
 
@@ -58,8 +75,16 @@ namespace LegalManager.Application.Services
             await EnsureUniqueAsync(request.Email, request.Dni, null, cancellationToken);
 
             var admin = new Admin(request.FirstName, request.LastName, request.Dni, request.Email, HashPassword(request.Password));
+
+            // New accounts start unconfirmed: set the token before the save and email the
+            // link right after it succeeds, keeping the single save and the 201 semantics.
+            var rawToken = await confirmationService.StartForNewUserAsync(admin, cancellationToken);
+
             usersRepository.Add(admin);
             await usersRepository.SaveAsync(cancellationToken);
+
+            await confirmationService.NotifyConfirmationAsync(admin, rawToken, cancellationToken);
+
             return UserResponse.Desde(admin, CanSeePrivateData(admin));
         }
 
@@ -203,6 +228,22 @@ namespace LegalManager.Application.Services
             user.Deactivate();
             await usersRepository.SaveAsync(cancellationToken);
             return true;
+        }
+
+        // Admin rescue hatch: confirms an account by id when the emailed link was lost
+        // (or for automated QA). Idempotent: an already-confirmed account returns unchanged.
+        public async Task<UserResponse?> ConfirmEmailByAdminAsync(Guid id, CancellationToken cancellationToken = default)
+        {
+            var user = await usersRepository.GetByIdAsync(id, cancellationToken);
+            if (user == null) return null;
+
+            if (!user.EmailConfirmed)
+            {
+                user.ConfirmEmail();
+                await usersRepository.SaveAsync(cancellationToken);
+            }
+
+            return UserResponse.Desde(user, CanSeePrivateData(user));
         }
 
         // One predicate for both private user fields (Dni and Email): either the admin

@@ -33,5 +33,7 @@ namespace LegalManager.Application.Interfaces
         Task<UserResponse?> UpdateSpecialtiesAsync(Guid id, IEnumerable<string> specialties, CancellationToken cancellationToken = default);
 
         Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
+
+        Task<UserResponse?> ConfirmEmailByAdminAsync(Guid id, CancellationToken cancellationToken = default);
     }
 }

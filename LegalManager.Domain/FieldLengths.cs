@@ -13,6 +13,7 @@ namespace LegalManager.Domain
         public const int Email = 256;
         public const int Password = 100;
         public const int PasswordHash = 100;
+        public const int EmailTokenHash = 128;
         public const int Phone = 30;
         public const int Address = 200;
         public const int BarNumber = 50;

@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 using LegalManager.Domain.Interfaces;
 
 ﻿namespace LegalManager.Domain.Entities
@@ -13,6 +15,19 @@ using LegalManager.Domain.Interfaces;
         public string PasswordHash { get; private set; }
         public DateOnly RegistrationDate { get; private set; }
         public bool Active { get; private set; }
+        public bool EmailConfirmed { get; private set; }
+
+        // Stores the SHA-256 hex HASH of the raw token; the raw token itself only
+        // travels in the email link and is never persisted.
+        [MaxLength(FieldLengths.EmailTokenHash)]
+        public string? EmailConfirmationToken { get; private set; }
+
+        public DateTime? EmailConfirmationTokenExpiresAt { get; private set; }
+
+        [MaxLength(FieldLengths.EmailTokenHash)]
+        public string? PasswordResetToken { get; private set; }
+
+        public DateTime? PasswordResetTokenExpiresAt { get; private set; }
 
         protected User()
         {
@@ -81,6 +96,67 @@ using LegalManager.Domain.Interfaces;
                 throw new InvalidOperationException("El usuario ya está inactivo.");
 
             Active = false;
+        }
+
+        // Email confirmation: hash + expiry live on the user until the link is used.
+        // Starting again overwrites any previous token (a fresh link invalidates the old one).
+        public void StartEmailConfirmation(string tokenHash, DateTime expiresAtUtc)
+        {
+            if (string.IsNullOrWhiteSpace(tokenHash))
+                throw new ArgumentException("El hash del token de confirmación es obligatorio.", nameof(tokenHash));
+
+            if (expiresAtUtc <= DateTime.UtcNow)
+                throw new ArgumentException("La fecha de vencimiento debe ser futura.", nameof(expiresAtUtc));
+
+            EmailConfirmationToken = tokenHash;
+            EmailConfirmationTokenExpiresAt = expiresAtUtc;
+        }
+
+        public void ConfirmEmail()
+        {
+            if (EmailConfirmed)
+                throw new InvalidOperationException("La cuenta ya está confirmada.");
+
+            EmailConfirmed = true;
+            EmailConfirmationToken = null;
+            EmailConfirmationTokenExpiresAt = null;
+        }
+
+        // Password reset: same single-use hash + expiry semantics as email confirmation.
+        public void StartPasswordReset(string tokenHash, DateTime expiresAtUtc)
+        {
+            if (string.IsNullOrWhiteSpace(tokenHash))
+                throw new ArgumentException("El hash del token de restablecimiento es obligatorio.", nameof(tokenHash));
+
+            if (expiresAtUtc <= DateTime.UtcNow)
+                throw new ArgumentException("La fecha de vencimiento debe ser futura.", nameof(expiresAtUtc));
+
+            PasswordResetToken = tokenHash;
+            PasswordResetTokenExpiresAt = expiresAtUtc;
+        }
+
+        // Ordinal hash match + expiry still valid at nowUtc. Inactive users never match.
+        public bool VerifyPasswordResetToken(string tokenHash, DateTime nowUtc)
+        {
+            if (!Active)
+                return false;
+
+            return PasswordResetToken is not null
+                && string.Equals(PasswordResetToken, tokenHash, StringComparison.Ordinal)
+                && PasswordResetTokenExpiresAt is not null
+                && PasswordResetTokenExpiresAt > nowUtc;
+        }
+
+        // Resetting the password proves mailbox ownership, so it confirms the email too.
+        public void CompletePasswordReset(string newPasswordHash)
+        {
+            if (string.IsNullOrWhiteSpace(newPasswordHash))
+                throw new ArgumentException("El hash de la contraseña es obligatorio.", nameof(newPasswordHash));
+
+            PasswordHash = newPasswordHash;
+            PasswordResetToken = null;
+            PasswordResetTokenExpiresAt = null;
+            EmailConfirmed = true;
         }
 
         // DNI argentino: 7 u 8 digitos, opcionalmente con puntos o espacios visuales.
