@@ -158,6 +158,16 @@ builder.Services.AddAuthorizationBuilder()
 builder.Services.AddControllers()
     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
@@ -174,6 +184,8 @@ app.UseHttpsRedirection();
 app.UseMiddleware<ProblemDetailsMiddleware>();
 
 app.UseMiddleware<ForbiddenExceptionMiddleware>();
+
+app.UseCors();
 
 app.UseAuthentication();
 
