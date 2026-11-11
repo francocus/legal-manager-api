@@ -91,3 +91,24 @@ Los endpoints que devuelven listados aceptan paginación opcional vía query par
 ```
 
 `page` menor a 1 o `pageSize` fuera del rango 1..100 responde 400 con el mensaje de error correspondiente. Los ítems paginados vuelven ordenados por `Id` de forma estable; sin paginación el orden queda exactamente igual que antes.
+## Cambio de rol
+
+Los abogados se autoregistran por el alta pública de cliente y un admin luego corrige su rol desde este endpoint. El usuario conserva el mismo `id` (solo cambia la tabla TPC donde vive la fila). Los administradores no participan de este flujo: se crean por comando y no cambian de rol.
+
+`PATCH /api/user/{id}/role` (requiere rol Admin):
+
+```json
+{
+  "role": "abogado",
+  "barNumber": "MP 12345",
+  "specialties": ["Laboral", "Familia"]
+}
+```
+
+Reglas:
+
+- `role` acepta solo `"abogado"` o `"cliente"`, en minúsculas; otro valor responde 400 con `El rol indicado no es válido.`
+- Pedir el rol que el usuario ya tiene responde `200` con el usuario sin cambios (idempotente).
+- Cliente → abogado: exige `barNumber`; si falta, responde 400. Si el usuario tiene expedientes o turnos como cliente (en cualquier estado), responde 409.
+- Abogado → cliente: si el usuario tiene expedientes o turnos como abogado (en cualquier estado), responde 409.
+- Si el destino es un admin, responde 409 con `Los administradores se crean por comando y no cambian de rol.`

@@ -119,6 +119,7 @@ El backend de la API está prácticamente terminado y funcional. Todos los módu
 |-------|-----------|-------|
 | Migrar a código asíncrono | ✅ Completada | Migrado a async end-to-end (commit `741ba24`): Repositorios EF Core (`ToListAsync`, `SaveChangesAsync`), Servicios de Aplicación y Controllers con `Task` y propagación de `CancellationToken`. |
 | Generación de constancias por plantilla (QuestPDF) | ✅ Completada | Renderer QuestPDF, endpoint `generate-constancia` y contrato confirm-first en la rama `feat/documentos-questpdf` |
+| Cambio de rol cliente ↔ abogado (mismo usuario) | ✅ Completada | `PATCH /api/user/{id}/role` (solo Admin) en la rama `feat/cambio-rol-usuario`: el usuario conserva su `id` y se mueve entre tablas TPC en un solo guardado; exige matrícula para promover y cero expedientes/turnos según el sentido del cambio (cualquier estado); admins excluidos (se crean por comando) |
 | Frontend (React 19) | Alta | Conectar con esta API. Ya existe desde la iteración anterior |
 | Despliegue en Azure (App Service + SQL + Storage) | Baja | Para producción/entrega final |
 | Tests unitarios | Media | No hay tests por el momento |

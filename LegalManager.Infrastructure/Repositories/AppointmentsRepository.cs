@@ -17,6 +17,12 @@ namespace LegalManager.Infrastructure.Repositories
                 && a.EndTime > startTime
                 && (excludingAppointmentId == null || a.Id != excludingAppointmentId), cancellationToken);
 
+        public async Task<bool> HasAnyAppointmentAsClientAsync(Guid clientId, CancellationToken cancellationToken = default)
+            => await _dbSet.AnyAsync(a => a.ClientId == clientId, cancellationToken);
+
+        public async Task<bool> HasAnyAppointmentAsLawyerAsync(Guid lawyerId, CancellationToken cancellationToken = default)
+            => await _dbSet.AnyAsync(a => a.LawyerId == lawyerId, cancellationToken);
+
         public override async Task SaveAsync(CancellationToken cancellationToken = default)
         {
             try

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using LegalManager.Application.DTOs;
 using LegalManager.Application.Interfaces;
 using LegalManager.Domain;
@@ -277,6 +278,55 @@ namespace LegalManager.Application.Services
             }
 
             return UserResponse.Desde(user, CanSeePrivateData(user));
+        }
+
+        // Admin flow: lawyers self-register through the public client signup and an admin
+        // fixes the role afterwards. The user keeps the same Id; only the TPC row changes.
+        // Admins are out of this flow: they are command-seeded and never change role.
+        public async Task<UserResponse?> ChangeRoleAsync(Guid id, RoleChangeRequest request, CancellationToken cancellationToken = default)
+        {
+            var user = await usersRepository.GetByIdAsync(id, cancellationToken);
+            if (user == null) return null;
+
+            if (request.Role is not ("abogado" or "cliente"))
+                throw new ArgumentException("El rol indicado no es válido.");
+
+            if (user is Admin)
+                throw new InvalidOperationException("Los administradores se crean por comando y no cambian de rol.");
+
+            var targetIsLawyer = request.Role == "abogado";
+            var userIsLawyer = user is Lawyer;
+
+            // Idempotent: asking for the role the user already has returns it unchanged.
+            if (userIsLawyer == targetIsLawyer)
+                return UserResponse.Desde(user, CanSeePrivateData(user));
+
+            if (targetIsLawyer)
+            {
+                if (string.IsNullOrWhiteSpace(request.BarNumber))
+                    throw new ArgumentException("La matrícula es obligatoria para promover a abogado.");
+
+                // Promote: any case or appointment as client in ANY state blocks the move,
+                // the Restrict FKs would reject it in the database anyway.
+                var hasCasesAsClient = await casesRepository.HasAnyCaseAsClientAsync(id, cancellationToken);
+                var hasAppointmentsAsClient = await appointmentsRepository.HasAnyAppointmentAsClientAsync(id, cancellationToken);
+                if (hasCasesAsClient || hasAppointmentsAsClient)
+                    throw new InvalidOperationException("El usuario tiene expedientes o turnos como cliente y no puede cambiar de rol.");
+
+                var promoted = await usersRepository.ChangeRoleAsync(
+                    id, request.Role, request.BarNumber, JsonSerializer.Serialize(request.Specialties ?? []), cancellationToken);
+
+                return promoted == null ? null : UserResponse.Desde(promoted, CanSeePrivateData(promoted));
+            }
+
+            // Demote: any case or appointment as lawyer in ANY state blocks the move.
+            var hasCasesAsLawyer = await casesRepository.HasAnyCaseAsLawyerAsync(id, cancellationToken);
+            var hasAppointmentsAsLawyer = await appointmentsRepository.HasAnyAppointmentAsLawyerAsync(id, cancellationToken);
+            if (hasCasesAsLawyer || hasAppointmentsAsLawyer)
+                throw new InvalidOperationException("El usuario tiene expedientes o turnos como abogado y no puede cambiar de rol.");
+
+            var demoted = await usersRepository.ChangeRoleAsync(id, request.Role, null, null, cancellationToken);
+            return demoted == null ? null : UserResponse.Desde(demoted, CanSeePrivateData(demoted));
         }
 
         // One predicate for both private user fields (Dni and Email): either the admin
