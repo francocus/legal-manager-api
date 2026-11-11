@@ -51,25 +51,60 @@ namespace LegalManager.Presentation.Controllers
 
         [Authorize(Policy = Policies.AdminsOnly)]
         [HttpGet]
-        public async Task<ActionResult<IReadOnlyList<UserResponse>>> GetAll(CancellationToken cancellationToken)
+        public async Task<IActionResult> GetAll([FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken cancellationToken)
         {
-            var users = await userService.GetAllAsync(cancellationToken);
-            return Ok(users);
+            try
+            {
+                // Backward compatible: without paging params the SPA keeps receiving the
+                // full plain array; with either param the response is the paged envelope.
+                if (page is null && pageSize is null)
+                    return Ok(await userService.GetAllAsync(cancellationToken));
+
+                return Ok(await userService.GetPagedAsync(page, pageSize, cancellationToken));
+            }
+            catch (ArgumentException ex) { return BadRequest(ex.Message); }
         }
 
         [Authorize(Policy = Policies.AdminOrLawyer)]
         [HttpGet("clients")]
-        public async Task<ActionResult<IReadOnlyList<UserResponse>>> GetClients(CancellationToken cancellationToken)
-            => Ok(await userService.GetClientsAsync(cancellationToken));
+        public async Task<IActionResult> GetClients([FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken cancellationToken)
+        {
+            try
+            {
+                if (page is null && pageSize is null)
+                    return Ok(await userService.GetClientsAsync(cancellationToken));
+
+                return Ok(await userService.GetClientsPagedAsync(page, pageSize, cancellationToken));
+            }
+            catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        }
 
         [HttpGet("lawyers")]
-        public async Task<ActionResult<IReadOnlyList<UserResponse>>> GetLawyers(CancellationToken cancellationToken)
-            => Ok(await userService.GetLawyersAsync(cancellationToken));
+        public async Task<IActionResult> GetLawyers([FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken cancellationToken)
+        {
+            try
+            {
+                if (page is null && pageSize is null)
+                    return Ok(await userService.GetLawyersAsync(cancellationToken));
+
+                return Ok(await userService.GetLawyersPagedAsync(page, pageSize, cancellationToken));
+            }
+            catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        }
 
         [Authorize(Policy = Policies.AdminsOnly)]
         [HttpGet("admins")]
-        public async Task<ActionResult<IReadOnlyList<UserResponse>>> GetAdmins(CancellationToken cancellationToken)
-            => Ok(await userService.GetAdminsAsync(cancellationToken));
+        public async Task<IActionResult> GetAdmins([FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken cancellationToken)
+        {
+            try
+            {
+                if (page is null && pageSize is null)
+                    return Ok(await userService.GetAdminsAsync(cancellationToken));
+
+                return Ok(await userService.GetAdminsPagedAsync(page, pageSize, cancellationToken));
+            }
+            catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<UserResponse>> GetById([FromRoute] Guid id, CancellationToken cancellationToken)

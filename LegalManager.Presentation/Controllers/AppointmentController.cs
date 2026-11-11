@@ -23,10 +23,18 @@ namespace LegalManager.Presentation.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IReadOnlyList<AppointmentResponse>>> GetAll(CancellationToken cancellationToken)
+        public async Task<IActionResult> GetAll([FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken cancellationToken)
         {
-            var appointments = await appointmentService.GetAllAsync(cancellationToken);
-            return Ok(appointments);
+            try
+            {
+                // Backward compatible: without paging params the SPA keeps receiving the
+                // full plain array; with either param the response is the paged envelope.
+                if (page is null && pageSize is null)
+                    return Ok(await appointmentService.GetAllAsync(cancellationToken));
+
+                return Ok(await appointmentService.GetPagedAsync(page, pageSize, cancellationToken));
+            }
+            catch (ArgumentException ex) { return BadRequest(ex.Message); }
         }
 
         [HttpGet("availability")]

@@ -112,6 +112,39 @@ namespace LegalManager.Application.Services
             return users.OfType<Admin>().Select(u => UserResponse.Desde(u, CanSeePrivateData(u))).ToList().AsReadOnly();
         }
 
+        public async Task<PagedResponse<UserResponse>> GetPagedAsync(int? page, int? pageSize, CancellationToken cancellationToken = default)
+        {
+            var (currentPage, currentPageSize) = PagedResponse.Normalize(page, pageSize);
+            var (users, total) = await usersRepository.GetPagedAsync(currentPage, currentPageSize, cancellationToken);
+            return ToPagedResponse(users, currentPage, currentPageSize, total);
+        }
+
+        public async Task<PagedResponse<UserResponse>> GetClientsPagedAsync(int? page, int? pageSize, CancellationToken cancellationToken = default)
+        {
+            var (currentPage, currentPageSize) = PagedResponse.Normalize(page, pageSize);
+            var (users, total) = await usersRepository.GetClientsPagedAsync(currentPage, currentPageSize, cancellationToken);
+            return ToPagedResponse(users, currentPage, currentPageSize, total);
+        }
+
+        public async Task<PagedResponse<UserResponse>> GetLawyersPagedAsync(int? page, int? pageSize, CancellationToken cancellationToken = default)
+        {
+            var (currentPage, currentPageSize) = PagedResponse.Normalize(page, pageSize);
+            var (users, total) = await usersRepository.GetLawyersPagedAsync(currentPage, currentPageSize, cancellationToken);
+            return ToPagedResponse(users, currentPage, currentPageSize, total);
+        }
+
+        public async Task<PagedResponse<UserResponse>> GetAdminsPagedAsync(int? page, int? pageSize, CancellationToken cancellationToken = default)
+        {
+            var (currentPage, currentPageSize) = PagedResponse.Normalize(page, pageSize);
+            var (users, total) = await usersRepository.GetAdminsPagedAsync(currentPage, currentPageSize, cancellationToken);
+            return ToPagedResponse(users, currentPage, currentPageSize, total);
+        }
+
+        // Same mapping (and same private-data rule) as the unpaged listings, so paged
+        // items are byte-identical to their plain-array counterparts.
+        private PagedResponse<UserResponse> ToPagedResponse(IReadOnlyList<User> users, int page, int pageSize, int total)
+            => new(users.Select(u => UserResponse.Desde(u, CanSeePrivateData(u))).ToList(), page, pageSize, total);
+
         public async Task<UserResponse?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
             var user = await usersRepository.GetByIdAsync(id, cancellationToken);

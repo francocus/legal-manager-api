@@ -24,10 +24,18 @@ namespace LegalManager.Presentation.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IReadOnlyList<CaseResponse>>> GetAll(CancellationToken cancellationToken)
+        public async Task<IActionResult> GetAll([FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken cancellationToken)
         {
-            var cases = await caseService.GetAllAsync(cancellationToken);
-            return Ok(cases);
+            try
+            {
+                // Backward compatible: without paging params the SPA keeps receiving the
+                // full plain array; with either param the response is the paged envelope.
+                if (page is null && pageSize is null)
+                    return Ok(await caseService.GetAllAsync(cancellationToken));
+
+                return Ok(await caseService.GetPagedAsync(page, pageSize, cancellationToken));
+            }
+            catch (ArgumentException ex) { return BadRequest(ex.Message); }
         }
 
         [HttpGet("{id}")]

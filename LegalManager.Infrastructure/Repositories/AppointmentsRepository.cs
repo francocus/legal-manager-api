@@ -34,5 +34,17 @@ namespace LegalManager.Infrastructure.Repositories
 
         private static bool IsUniqueViolation(DbUpdateException ex)
             => ex.InnerException is SqlException { Number: 2601 or 2627 };
+
+        // Same Active filter as GetAllAsync, ordered by Id so pages are stable,
+        // with the total counted over the same filter (before Skip/Take).
+        public async Task<(IReadOnlyList<Appointment> Items, int Total)> GetPagedAsync(int page, int pageSize, CancellationToken cancellationToken = default)
+        {
+            var query = _dbSet.Where(a => a.Active).OrderBy(a => a.Id);
+
+            var total = await query.CountAsync(cancellationToken);
+            var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+
+            return (items, total);
+        }
     }
 }

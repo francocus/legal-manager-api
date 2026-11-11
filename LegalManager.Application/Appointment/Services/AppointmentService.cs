@@ -46,13 +46,48 @@ namespace LegalManager.Application.Services
         {
             var appointments = await appointmentsRepository.GetAllAsync(cancellationToken);
 
+            return FilterByRole(appointments).Select(AppointmentResponse.Desde).ToList();
+        }
+
+        public async Task<PagedResponse<AppointmentResponse>> GetPagedAsync(int? page, int? pageSize, CancellationToken cancellationToken = default)
+        {
+            var (currentPage, currentPageSize) = PagedResponse.Normalize(page, pageSize);
+
+            // Admin sees every active appointment, so the repository can page in SQL.
+            // Lawyers and clients see a role-filtered subset computed in memory (same as
+            // the unpaged list), so paging must run AFTER that filter to keep items and
+            // total correct.
             if (currentUser.IsAdmin)
-                return appointments.Select(AppointmentResponse.Desde).ToList();
+            {
+                var (adminItems, adminTotal) = await appointmentsRepository.GetPagedAsync(currentPage, currentPageSize, cancellationToken);
+                return new PagedResponse<AppointmentResponse>(adminItems.Select(AppointmentResponse.Desde).ToList(), currentPage, currentPageSize, adminTotal);
+            }
+
+            // Paged path only: stable deterministic order by Id (the unpaged path keeps
+            // its original ordering untouched).
+            var visible = FilterByRole(await appointmentsRepository.GetAllAsync(cancellationToken))
+                .OrderBy(a => a.Id)
+                .ToList();
+
+            var items = visible
+                .Skip((currentPage - 1) * currentPageSize)
+                .Take(currentPageSize)
+                .Select(AppointmentResponse.Desde)
+                .ToList();
+
+            return new PagedResponse<AppointmentResponse>(items, currentPage, currentPageSize, visible.Count);
+        }
+
+        // Same visibility rules as the unpaged list: admins see everything, lawyers only
+        // their own appointments, clients only their own appointments.
+        private IReadOnlyList<Appointment> FilterByRole(IReadOnlyList<Appointment> appointments)
+        {
+            if (currentUser.IsAdmin) return appointments;
 
             if (currentUser.IsLawyer)
-                return appointments.Where(a => a.LawyerId == currentUser.Id).Select(AppointmentResponse.Desde).ToList();
+                return appointments.Where(a => a.LawyerId == currentUser.Id).ToList();
 
-            return appointments.Where(a => a.ClientId == currentUser.Id).Select(AppointmentResponse.Desde).ToList();
+            return appointments.Where(a => a.ClientId == currentUser.Id).ToList();
         }
 
         public async Task<IReadOnlyList<TimeOnly>> GetAvailabilityAsync(Guid lawyerId, DateOnly date, CancellationToken cancellationToken = default)

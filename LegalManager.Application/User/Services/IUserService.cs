@@ -18,6 +18,17 @@ namespace LegalManager.Application.Interfaces
 
         Task<IReadOnlyList<UserResponse>> GetAdminsAsync(CancellationToken cancellationToken = default);
 
+        // Paged listings. With both params null these are never called: controllers keep
+        // the plain-array behavior. With either param present, page defaults to 1 and
+        // pageSize to 20; page/pageSize bounds are validated here (ArgumentException -> 400).
+        Task<PagedResponse<UserResponse>> GetPagedAsync(int? page, int? pageSize, CancellationToken cancellationToken = default);
+
+        Task<PagedResponse<UserResponse>> GetClientsPagedAsync(int? page, int? pageSize, CancellationToken cancellationToken = default);
+
+        Task<PagedResponse<UserResponse>> GetLawyersPagedAsync(int? page, int? pageSize, CancellationToken cancellationToken = default);
+
+        Task<PagedResponse<UserResponse>> GetAdminsPagedAsync(int? page, int? pageSize, CancellationToken cancellationToken = default);
+
         Task<UserResponse?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
         Task<UserResponse?> UpdateAsync(Guid id, UpdateUserRequest request, CancellationToken cancellationToken = default);
