@@ -74,17 +74,17 @@ El sistema está construido en 4 proyectos desacoplados con flujo unidireccional
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│                   Presentation Layer                   │
-│   (Controllers, Auth Policies, Middlewares, DI Setup)   │
+│                     Presentation                       │
+│   (Controllers, Auth Policies, Middlewares, DI Setup)  │
 └───────────────────────────┬────────────────────────────┘
                             │
 ┌───────────────────────────▼────────────────────────────┐
-│                    Application Layer                   │
+│                      Application                       │
 │   (Use Cases, Services, DTOs, Service Interfaces)      │
 └─────────────┬────────────────────────────┬─────────────┘
               │                            │
 ┌─────────────▼─────────────┐ ┌────────────▼─────────────┐
-│       Domain Layer        │ │   Infrastructure Layer   │
+│           Domain          │ │      Infrastructure      │
 │ (Entities, Enums, Rules,  │ │ (EF Core, TPC, Repos,    │
 │  Value Objects, Ports)    │ │  Blob Storage, AI Polly) │
 └───────────────────────────┘ └──────────────────────────┘
