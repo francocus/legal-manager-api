@@ -73,3 +73,21 @@ Smtp__UseSsl=true
 ```
 
 **Atención:** si `Smtp:Host` no está configurado, la API no envía correos: el remitente registra el mensaje completo (incluido el enlace con el token) en el log con nivel Warning. Es el fallback de desarrollo/POC para probar el flujo sin SMTP; en producción hay que configurar `Smtp:Host`, porque sin él ningún usuario puede confirmarse salvo por el rescate de admin.
+
+## Paginación (opcional)
+
+Los endpoints que devuelven listados aceptan paginación opcional vía query params: `page` (mayor a 0, por defecto 1) y `pageSize` (entre 1 y 100, por defecto 20). Aplica a `GET /api/case`, `GET /api/appointment`, `GET /api/user`, `GET /api/user/clients`, `GET /api/user/lawyers` y `GET /api/user/admins`.
+
+- **Sin `page` ni `pageSize`** la respuesta no cambia: sigue siendo el array plano de siempre (compatible con el SPA actual).
+- **Con cualquiera de los dos params** la respuesta pasa a ser un sobre paginado:
+
+```json
+{
+  "items": [],
+  "page": 1,
+  "pageSize": 20,
+  "total": 57
+}
+```
+
+`page` menor a 1 o `pageSize` fuera del rango 1..100 responde 400 con el mensaje de error correspondiente. Los ítems paginados vuelven ordenados por `Id` de forma estable; sin paginación el orden queda exactamente igual que antes.

@@ -53,5 +53,30 @@ namespace LegalManager.Infrastructure.Repositories
                 ? "Ya existe un usuario con ese email."
                 : "Ya existe un usuario con ese DNI.";
         }
+
+        // Paged variants mirror GetAllAsync's Active filter over the TPC union (or the
+        // per-type OfType set), ordered by Id so pages are stable, with the total counted
+        // over the same filter (before Skip/Take).
+        public async Task<(IReadOnlyList<User> Items, int Total)> GetPagedAsync(int page, int pageSize, CancellationToken cancellationToken = default)
+            => await GetPagedByTypeAsync(_dbSet.Where(u => u.Active), page, pageSize, cancellationToken);
+
+        public async Task<(IReadOnlyList<User> Items, int Total)> GetClientsPagedAsync(int page, int pageSize, CancellationToken cancellationToken = default)
+            => await GetPagedByTypeAsync(_dbSet.OfType<Client>().Where(u => u.Active), page, pageSize, cancellationToken);
+
+        public async Task<(IReadOnlyList<User> Items, int Total)> GetLawyersPagedAsync(int page, int pageSize, CancellationToken cancellationToken = default)
+            => await GetPagedByTypeAsync(_dbSet.OfType<Lawyer>().Where(u => u.Active), page, pageSize, cancellationToken);
+
+        public async Task<(IReadOnlyList<User> Items, int Total)> GetAdminsPagedAsync(int page, int pageSize, CancellationToken cancellationToken = default)
+            => await GetPagedByTypeAsync(_dbSet.OfType<Admin>().Where(u => u.Active), page, pageSize, cancellationToken);
+
+        private static async Task<(IReadOnlyList<User> Items, int Total)> GetPagedByTypeAsync(IQueryable<User> query, int page, int pageSize, CancellationToken cancellationToken)
+        {
+            var ordered = query.OrderBy(u => u.Id);
+
+            var total = await ordered.CountAsync(cancellationToken);
+            var items = await ordered.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+
+            return (items, total);
+        }
     }
 }
