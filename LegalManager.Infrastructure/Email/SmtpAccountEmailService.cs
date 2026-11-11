@@ -1,5 +1,10 @@
 using LegalManager.Application.Auth;
-using LegalManager.Application.Interfaces;
+using LegalManager.Application.Auth.Interfaces;
+using LegalManager.Application.Users.Interfaces;
+using LegalManager.Application.Cases.Interfaces;
+using LegalManager.Application.Appointments.Interfaces;
+using LegalManager.Application.Documents.Interfaces;
+using LegalManager.Application.Common.Interfaces;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.Extensions.Logging;

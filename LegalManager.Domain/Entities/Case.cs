@@ -1,6 +1,7 @@
+using LegalManager.Domain.Enums;
 using LegalManager.Domain.Interfaces;
 
-﻿namespace LegalManager.Domain.Entities
+namespace LegalManager.Domain.Entities
 {
     public class Case : IEntity
     {

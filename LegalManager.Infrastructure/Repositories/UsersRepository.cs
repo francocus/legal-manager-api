@@ -1,5 +1,6 @@
 using System.Text.Json;
 using LegalManager.Domain.Entities;
+using LegalManager.Domain.Enums;
 using LegalManager.Domain.Interfaces;
 using LegalManager.Infrastructure.Persistence;
 using Microsoft.Data.SqlClient;

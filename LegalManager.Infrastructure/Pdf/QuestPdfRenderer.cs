@@ -1,4 +1,9 @@
-using LegalManager.Application.Interfaces;
+using LegalManager.Application.Auth.Interfaces;
+using LegalManager.Application.Users.Interfaces;
+using LegalManager.Application.Cases.Interfaces;
+using LegalManager.Application.Appointments.Interfaces;
+using LegalManager.Application.Documents.Interfaces;
+using LegalManager.Application.Common.Interfaces;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;

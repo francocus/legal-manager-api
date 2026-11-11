@@ -1,8 +1,8 @@
 using System.ComponentModel.DataAnnotations;
-
 using LegalManager.Domain.Interfaces;
+using LegalManager.Domain.ValueObjects;
 
-﻿namespace LegalManager.Domain.Entities
+namespace LegalManager.Domain.Entities
 {
     public abstract class User : IEntity
     {

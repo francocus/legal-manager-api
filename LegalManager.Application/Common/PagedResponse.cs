@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace LegalManager.Application.DTOs
+namespace LegalManager.Application.Common
 {
     // Optional paging envelope for list endpoints. Without page/pageSize query params
     // the endpoints keep returning the full plain arrays (backward compatible with the SPA).

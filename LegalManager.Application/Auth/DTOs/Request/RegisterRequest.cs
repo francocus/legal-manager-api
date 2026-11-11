@@ -1,7 +1,10 @@
 using System.ComponentModel.DataAnnotations;
 using LegalManager.Domain;
+using LegalManager.Domain.Enums;
+using LegalManager.Domain.ValueObjects;
+using LegalManager.Domain.Exceptions;
 
-namespace LegalManager.Application.DTOs
+namespace LegalManager.Application.Auth.DTOs
 {
     // Public registration payload. It maps to the same fields as CreateClientRequest
     // (phone/address excluded: they are optional user-managed data).

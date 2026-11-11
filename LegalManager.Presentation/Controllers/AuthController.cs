@@ -1,10 +1,29 @@
+using LegalManager.Presentation.Auth;
 using LegalManager.Application;
-using LegalManager.Application.DTOs;
-using LegalManager.Application.Interfaces;
-using LegalManager.Application.Services;
+using LegalManager.Application.Auth.DTOs;
+using LegalManager.Application.Users.DTOs;
+using LegalManager.Application.Cases.DTOs;
+using LegalManager.Application.Appointments.DTOs;
+using LegalManager.Application.Documents.DTOs;
+using LegalManager.Application.Common;
+using LegalManager.Application.Auth.Interfaces;
+using LegalManager.Application.Users.Interfaces;
+using LegalManager.Application.Cases.Interfaces;
+using LegalManager.Application.Appointments.Interfaces;
+using LegalManager.Application.Documents.Interfaces;
+using LegalManager.Application.Common.Interfaces;
+using LegalManager.Application.Auth.Services;
+using LegalManager.Application.Users.Services;
+using LegalManager.Application.Cases.Services;
+using LegalManager.Application.Appointments.Services;
+using LegalManager.Application.Documents.Services;
 using LegalManager.Domain;
+using LegalManager.Domain.Enums;
+using LegalManager.Domain.ValueObjects;
+using LegalManager.Domain.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using LegalManager.Application.Common.Exceptions;
 
 namespace LegalManager.Presentation.Controllers
 {

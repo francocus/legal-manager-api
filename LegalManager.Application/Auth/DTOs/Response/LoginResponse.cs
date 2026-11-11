@@ -1,4 +1,4 @@
-namespace LegalManager.Application.DTOs
+namespace LegalManager.Application.Auth.DTOs
 {
     public record LoginResponse(string Token);
 }
