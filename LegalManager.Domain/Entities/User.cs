@@ -17,8 +17,6 @@ namespace LegalManager.Domain.Entities
         public bool Active { get; private set; }
         public bool EmailConfirmed { get; private set; }
 
-        // Stores the SHA-256 hex HASH of the raw token; the raw token itself only
-        // travels in the email link and is never persisted.
         [MaxLength(FieldLengths.EmailTokenHash)]
         public string? EmailConfirmationToken { get; private set; }
 
@@ -98,8 +96,6 @@ namespace LegalManager.Domain.Entities
             Active = false;
         }
 
-        // Email confirmation: hash + expiry live on the user until the link is used.
-        // Starting again overwrites any previous token (a fresh link invalidates the old one).
         public void StartEmailConfirmation(string tokenHash, DateTime expiresAtUtc)
         {
             if (string.IsNullOrWhiteSpace(tokenHash))
@@ -122,7 +118,6 @@ namespace LegalManager.Domain.Entities
             EmailConfirmationTokenExpiresAt = null;
         }
 
-        // Password reset: same single-use hash + expiry semantics as email confirmation.
         public void StartPasswordReset(string tokenHash, DateTime expiresAtUtc)
         {
             if (string.IsNullOrWhiteSpace(tokenHash))
@@ -135,7 +130,6 @@ namespace LegalManager.Domain.Entities
             PasswordResetTokenExpiresAt = expiresAtUtc;
         }
 
-        // Ordinal hash match + expiry still valid at nowUtc. Inactive users never match.
         public bool VerifyPasswordResetToken(string tokenHash, DateTime nowUtc)
         {
             if (!Active)
@@ -147,7 +141,6 @@ namespace LegalManager.Domain.Entities
                 && PasswordResetTokenExpiresAt > nowUtc;
         }
 
-        // Resetting the password proves mailbox ownership, so it confirms the email too.
         public void CompletePasswordReset(string newPasswordHash)
         {
             if (string.IsNullOrWhiteSpace(newPasswordHash))
@@ -159,9 +152,6 @@ namespace LegalManager.Domain.Entities
             EmailConfirmed = true;
         }
 
-        // Role change (client <-> lawyer) keeps the same user identity: a derived-type
-        // factory copies every base column into the new TPC row, so the user's Id,
-        // registration history, tokens and confirmation state survive the move untouched.
         protected void CopyRoleChangeFrom(User other)
         {
             Id = other.Id;
@@ -179,9 +169,6 @@ namespace LegalManager.Domain.Entities
             PasswordResetTokenExpiresAt = other.PasswordResetTokenExpiresAt;
         }
 
-        // DNI argentino: 7 u 8 digitos, opcionalmente con puntos o espacios visuales.
-        // Se devuelve normalizado (solo digitos) para almacenarlo y compararlo siempre
-        // en la misma forma; la fuente de la normalizacion es DniFormat en Domain.
         private static string ValidateDniFormat(string dni)
         {
             var normalized = DniFormat.Normalize(dni);

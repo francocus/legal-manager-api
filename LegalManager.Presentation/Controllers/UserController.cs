@@ -66,8 +66,6 @@ namespace LegalManager.Presentation.Controllers
         {
             try
             {
-                // Backward compatible: without paging params the SPA keeps receiving the
-                // full plain array; with either param the response is the paged envelope.
                 if (page is null && pageSize is null)
                     return Ok(await userService.GetAllAsync(cancellationToken));
 
@@ -201,8 +199,6 @@ namespace LegalManager.Presentation.Controllers
             catch (ArgumentException ex) { return BadRequest(ex.Message); }
         }
 
-        // Admin rescue hatch: force-confirms an account whose emailed link was lost
-        // (or for automated QA). Idempotent for already-confirmed accounts.
         [Authorize(Policy = Policies.AdminsOnly)]
         [HttpPatch("{id}/confirm-email")]
         public async Task<ActionResult<UserResponse>> ConfirmEmailByAdmin([FromRoute] Guid id, CancellationToken cancellationToken)
@@ -225,8 +221,6 @@ namespace LegalManager.Presentation.Controllers
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
         }
 
-        // Admin flow: a self-registered client is promoted to lawyer (or demoted back).
-        // Same user id is preserved; only the TPC row changes.
         [Authorize(Policy = Policies.AdminsOnly)]
         [HttpPatch("{id}/role")]
         public async Task<ActionResult<UserResponse>> ChangeRole([FromRoute] Guid id, [FromBody] RoleChangeRequest request, CancellationToken cancellationToken)

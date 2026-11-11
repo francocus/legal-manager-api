@@ -57,17 +57,12 @@ namespace LegalManager.Application.Cases.Services
         {
             var (currentPage, currentPageSize) = PagedResponse.Normalize(page, pageSize);
 
-            // Admin sees every active case, so the repository can page in SQL. Lawyers and
-            // clients see a role-filtered subset computed in memory (same as the unpaged
-            // list), so paging must run AFTER that filter to keep items and total correct.
             if (currentUser.IsAdmin)
             {
                 var (adminItems, adminTotal) = await casesRepository.GetPagedAsync(currentPage, currentPageSize, cancellationToken);
                 return new PagedResponse<CaseResponse>(adminItems.Select(CaseResponse.Desde).ToList(), currentPage, currentPageSize, adminTotal);
             }
 
-            // Paged path only: stable deterministic order by Id (the unpaged path keeps
-            // its original ordering untouched).
             var visible = FilterByRole(await casesRepository.GetAllAsync(cancellationToken))
                 .OrderBy(c => c.Id)
                 .ToList();
@@ -81,8 +76,6 @@ namespace LegalManager.Application.Cases.Services
             return new PagedResponse<CaseResponse>(items, currentPage, currentPageSize, visible.Count);
         }
 
-        // Same visibility rules as the unpaged list: admins see everything, lawyers only
-        // the cases they manage, clients only their own cases.
         private IReadOnlyList<Case> FilterByRole(IReadOnlyList<Case> cases)
         {
             if (currentUser.IsAdmin) return cases;

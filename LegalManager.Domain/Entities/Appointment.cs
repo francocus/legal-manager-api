@@ -8,7 +8,6 @@ namespace LegalManager.Domain.Entities
         public static readonly IReadOnlyList<TimeOnly> ValidSlots =
             [new(9, 0), new(10, 30), new(12, 0), new(14, 0), new(15, 30), new(17, 0)];
 
-        // Duracion del slot: 90 minutos, derivada de la grilla para no duplicar la constante.
         public static int SlotDurationMinutes => (int)(ValidSlots[1] - ValidSlots[0]).TotalMinutes;
 
         public Guid Id { get; private set; }

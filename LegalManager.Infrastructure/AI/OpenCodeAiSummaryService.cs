@@ -14,9 +14,6 @@ namespace LegalManager.Infrastructure.AI
 {
     public class OpenCodeAiSummaryService(HttpClient httpClient, IOptions<LlmOptions> options) : IAiSummaryService
     {
-        // Product copy: the prompt is behavior, not code, so it stays in Spanish and in
-        // sync with the summaries the firm delivers. It forbids inventing anything that
-        // is not already registered in the case.
         private const string SystemPrompt =
             "Redactás resúmenes de expedientes para un estudio jurídico. Te paso los datos registrados del expediente. Escribí un resumen profesional, claro y objetivo en español, usando EXCLUSIVAMENTE esos datos: no inventes hechos, fechas, montos, nombres ni documentos que no figuren. Devolvé solo el texto del resumen, en párrafos breves, sin títulos ni formato markdown.";
 
@@ -24,8 +21,6 @@ namespace LegalManager.Infrastructure.AI
 
         public async Task<string> GenerateSummaryAsync(string caseContext, CancellationToken cancellationToken = default)
         {
-            // Configuration problem, not an upstream outage: caught here so the whole API
-            // starts fine without user-secrets and only the summary endpoint degrades to 502.
             if (string.IsNullOrWhiteSpace(llmSettings.ApiKey))
                 throw new AiSummaryUnavailableException("Falta la API key del servicio de IA ('Llm:ApiKey' en user-secrets). Configúrala y volvé a intentar.");
 

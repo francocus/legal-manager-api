@@ -38,8 +38,6 @@ namespace LegalManager.Presentation.Controllers
         {
             try
             {
-                // Backward compatible: without paging params the SPA keeps receiving the
-                // full plain array; with either param the response is the paged envelope.
                 if (page is null && pageSize is null)
                     return Ok(await appointmentService.GetAllAsync(cancellationToken));
 

@@ -41,7 +41,7 @@ builder.Services.AddDbContext<LegalManagerDbContext>(options =>
         sqlOptions.EnableRetryOnFailure(
             maxRetryCount: 6,
             maxRetryDelay: TimeSpan.FromSeconds(20),
-            errorNumbersToAdd: new[] { 40613, 40197, 40501, 49918, 49919, 49920 })));
+            errorNumbersToAdd: [40613, 40197, 40501, 49918, 49919, 49920])));
 
 builder.Services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<IUserRepository, UsersRepository>();
@@ -58,15 +58,11 @@ builder.Services.AddScoped<ITokenService, JwtTokenService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 
-// Account emails (confirmation + password reset): options are lenient at boot like the
-// LLM options: a clone without Email/Smtp config must still boot (and dotnet ef must
-// work); with no Smtp:Host the sender only logs the message instead of sending.
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
 builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection(SmtpOptions.SectionName));
 builder.Services.AddScoped<IAccountEmailService, SmtpAccountEmailService>();
 builder.Services.AddScoped<AccountConfirmationService>();
 
-// File storage: uses Azure Blob Storage if configured, otherwise falls back to local file system
 var azureStorageConn = builder.Configuration["AzureStorage:ConnectionString"];
 var azureContainer = builder.Configuration["AzureStorage:ContainerName"] ?? "documents";
 
@@ -82,18 +78,11 @@ else
 
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 
-// Real PDF generation (QuestPDF): renders the AI summary and the constancia
-// template as actual PDF files instead of plain text stored as .pdf.
 builder.Services.AddScoped<IPdfDocumentRenderer, QuestPdfRenderer>();
 
-// External LLM (OpenCode Go, OpenAI-compatible API): options bound from appsettings;
-// the ApiKey is supplied only through user-secrets ("Llm:ApiKey"), never hardcoded.
 builder.Services.Configure<LlmOptions>(builder.Configuration.GetSection(LlmOptions.SectionName));
 builder.Services.Configure<LlmResilienceOptions>(builder.Configuration.GetSection(LlmResilienceOptions.SectionName));
 
-// Llm:ApiKey is NOT validated here: a clone without user-secrets must still boot
-// (and dotnet ef must work). The summary service validates it at call time and the
-// controller answers 502 with a clear message.
 var llmSettings = builder.Configuration.GetSection(LlmOptions.SectionName).Get<LlmOptions>()
     ?? throw new InvalidOperationException("Falta la sección 'Llm' en appsettings.json.");
 
@@ -117,12 +106,8 @@ builder.Services
         }
         client.DefaultRequestHeaders.UserAgent.ParseAdd("LegalManagerApi/1.0");
 
-        // HttpClient.Timeout must stay infinite: it would wrap the whole retry chain.
-        // The per-attempt deadline is enforced by the innermost Polly timeout policy.
         client.Timeout = Timeout.InfiniteTimeSpan;
     })
-    // Outermost to innermost: retry wraps circuit breaker wraps per-attempt timeout,
-    // so the breaker counts failures per attempt and each attempt has its own deadline.
     .AddPolicyHandler(LlmPolicies.GetRetryPolicy(llmResilience))
     .AddPolicyHandler(LlmPolicies.GetCircuitBreakerPolicy(llmResilience))
     .AddPolicyHandler(LlmPolicies.GetTimeoutPolicy(llmResilience));
@@ -154,9 +139,6 @@ builder.Services
             ClockSkew = TimeSpan.Zero
         };
 
-        // Effective revocation without a refresh token: if the user was removed or
-        // deactivated between token issuance and use, the request is rejected with 401
-        // in OnTokenValidated.
         options.Events = new JwtBearerEvents
         {
             OnTokenValidated = async context =>
@@ -227,8 +209,6 @@ app.MapControllers();
 
 await app.RunAsync();
 
-// Seeds the first administrator if none exists. Without it there is no way to
-// obtain an admin token, because POST /api/user/admin requires the Admin role.
 static async Task SeedInitialAdminAsync(WebApplication app)
 {
     var seed = app.Configuration.GetSection("SeedAdmin");
@@ -256,8 +236,6 @@ static async Task SeedInitialAdminAsync(WebApplication app)
         email,
         passwordHasher.Hash(password));
 
-    // The seeded admin must be able to log in on a fresh database without going
-    // through the email confirmation flow.
     admin.ConfirmEmail();
 
     usersRepository.Add(admin);

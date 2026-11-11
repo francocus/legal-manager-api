@@ -1,10 +1,5 @@
 namespace LegalManager.Infrastructure.AI
 {
-    /// <summary>
-    /// Resilience knobs for the external LLM client.
-    /// Worst case per request, no breaker: (RetryCount + 1) attempts x TimeoutSeconds
-    /// plus retry backoff = 3 x 15s + (2s + 4s) = 51s before the 502 surfaces.
-    /// </summary>
     public class LlmResilienceOptions
     {
         public const string SectionName = "Llm:Resilience";

@@ -2,12 +2,8 @@ using System.Text.Json.Serialization;
 
 namespace LegalManager.Application.Common
 {
-    // Optional paging envelope for list endpoints. Without page/pageSize query params
-    // the endpoints keep returning the full plain arrays (backward compatible with the SPA).
     public record PagedResponse<T>([property: JsonPropertyName("items")] IReadOnlyList<T> Items, [property: JsonPropertyName("page")] int Page, [property: JsonPropertyName("pageSize")] int PageSize, [property: JsonPropertyName("total")] int Total);
 
-    // Non-generic home for the shared paging defaults and validation. The Spanish
-    // messages are user-facing copy: controllers map ArgumentException to 400.
     public static class PagedResponse
     {
         public const int DefaultPage = 1;

@@ -10,9 +10,6 @@ using QuestPDF.Infrastructure;
 
 namespace LegalManager.Infrastructure.Pdf
 {
-    // QuestPDF renderer for every PDF the system generates: the AI summary and
-    // the fixed-template constancia. Segoe UI is used as the default font
-    // because it ships with Windows (the App Service host).
     public class QuestPdfRenderer : IPdfDocumentRenderer
     {
         private const string FontFamily = "Segoe UI";
@@ -51,7 +48,6 @@ namespace LegalManager.Infrastructure.Pdf
                             AddCaseRow(table, "Inicio", data.StartDate);
                             AddCaseRow(table, "Última actualización", data.LastUpdate);
 
-                            // The closing date only exists once the case reaches Cerrado.
                             if (!string.IsNullOrWhiteSpace(data.ClosingDate))
                                 AddCaseRow(table, "Cierre", data.ClosingDate);
                         });
@@ -94,8 +90,6 @@ namespace LegalManager.Infrastructure.Pdf
                             AddCaseRow(table, "Inicio", data.StartDate);
                             AddCaseRow(table, "Última actualización", data.LastUpdate);
 
-                            // Full-width row: the description can wrap over
-                            // several lines, so it spans both table columns.
                             table.Cell().ColumnSpan(2).PaddingTop(4).Text("Descripción").FontSize(10).SemiBold().FontColor(AccentColor);
                             table.Cell().ColumnSpan(2).Text(string.IsNullOrWhiteSpace(data.Description) ? "-" : data.Description).FontSize(10);
                         });
@@ -115,8 +109,6 @@ namespace LegalManager.Infrastructure.Pdf
             });
         }
 
-        // Two-column case fields table: fixed label column, wider value column
-        // so long titles and names wrap instead of squeezing the label.
         private static void BuildCaseColumns(TableDescriptor table)
         {
             table.ColumnsDefinition(columns =>
@@ -132,8 +124,6 @@ namespace LegalManager.Infrastructure.Pdf
             table.Cell().Text(string.IsNullOrWhiteSpace(value) ? "-" : value).FontSize(10);
         }
 
-        // The AI summary is plain prose; blank lines separate its paragraphs.
-        // When there is none, the whole text falls back to a single paragraph.
         private static void BuildParagraphs(IContainer container, string summaryText)
         {
             var paragraphs = summaryText

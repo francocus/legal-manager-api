@@ -1,4 +1,4 @@
-﻿namespace LegalManager.Domain.Entities
+namespace LegalManager.Domain.Entities
 {
     public class Client : User
     {
@@ -26,9 +26,6 @@
             Address = address;
         }
 
-        // Role change factory: materializes a Client from an existing Lawyer, copying the
-        // shared identity via User.CopyRoleChangeFrom. Phone moves over; the address starts
-        // empty because lawyers do not carry one.
         public static Client FromLawyer(Lawyer lawyer)
         {
             var client = new Client();

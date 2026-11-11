@@ -113,9 +113,8 @@ namespace LegalManager.Domain.Entities
             if (lawyers.Count == 1)
                 throw new InvalidOperationException("El expediente debe tener al menos un abogado asignado.");
 
-            var lawyer = lawyers.FirstOrDefault(l => l.Id == lawyerId);
-            if (lawyer == null)
-                throw new InvalidOperationException("Este abogado no está asignado al expediente.");
+            var lawyer = lawyers.FirstOrDefault(l => l.Id == lawyerId)
+                ?? throw new InvalidOperationException("Este abogado no está asignado al expediente.");
 
             lawyers.Remove(lawyer);
         }

@@ -55,7 +55,6 @@ namespace LegalManager.Infrastructure.Storage
             }
             catch (Exception)
             {
-                // Best-effort cleanup
             }
         }
 

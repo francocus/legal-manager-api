@@ -1,8 +1,5 @@
 namespace LegalManager.Application.Documents.Interfaces
 {
-    // Port that turns case data into real PDF documents. Implemented in
-    // Infrastructure with QuestPDF so the Application layer stays
-    // framework-free (Clean Architecture dependency direction).
     public interface IPdfDocumentRenderer
     {
         byte[] RenderSummaryPdf(SummaryPdfData data);

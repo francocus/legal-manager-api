@@ -2,11 +2,6 @@ using System.Text.Json;
 
 namespace LegalManager.Presentation.Middleware
 {
-    // El framework emite 401/403 sin cuerpo (auth middleware y policies): el
-    // cliente solo ve el codigo. Este middleware completa esas respuestas
-    // vacias con el mismo formato ProblemDetails que usan los errores de
-    // validacion de la API; los cuerpos ya escritos (por ejemplo el texto
-    // plano de ForbiddenExceptionMiddleware) no se pisan.
     public class ProblemDetailsMiddleware(RequestDelegate next)
     {
         private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);

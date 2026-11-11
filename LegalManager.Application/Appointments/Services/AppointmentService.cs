@@ -65,18 +65,12 @@ namespace LegalManager.Application.Appointments.Services
         {
             var (currentPage, currentPageSize) = PagedResponse.Normalize(page, pageSize);
 
-            // Admin sees every active appointment, so the repository can page in SQL.
-            // Lawyers and clients see a role-filtered subset computed in memory (same as
-            // the unpaged list), so paging must run AFTER that filter to keep items and
-            // total correct.
             if (currentUser.IsAdmin)
             {
                 var (adminItems, adminTotal) = await appointmentsRepository.GetPagedAsync(currentPage, currentPageSize, cancellationToken);
                 return new PagedResponse<AppointmentResponse>(adminItems.Select(AppointmentResponse.Desde).ToList(), currentPage, currentPageSize, adminTotal);
             }
 
-            // Paged path only: stable deterministic order by Id (the unpaged path keeps
-            // its original ordering untouched).
             var visible = FilterByRole(await appointmentsRepository.GetAllAsync(cancellationToken))
                 .OrderBy(a => a.Id)
                 .ToList();
@@ -90,8 +84,6 @@ namespace LegalManager.Application.Appointments.Services
             return new PagedResponse<AppointmentResponse>(items, currentPage, currentPageSize, visible.Count);
         }
 
-        // Same visibility rules as the unpaged list: admins see everything, lawyers only
-        // their own appointments, clients only their own appointments.
         private IReadOnlyList<Appointment> FilterByRole(IReadOnlyList<Appointment> appointments)
         {
             if (currentUser.IsAdmin) return appointments;
@@ -162,10 +154,6 @@ namespace LegalManager.Application.Appointments.Services
 
             EnsureCanAccess(appointment);
 
-            // El conflicto se chequea ANTES de mutar el turno: si el request falla, el
-            // tracked entity queda intacto (sin estado a medias) y se responde directo.
-            // La exclusión del propio id permite reprogramar al mismo horario (por
-            // ejemplo para extender EndTime).
             if (await appointmentsRepository.HasScheduleConflictAsync(appointment.LawyerId, request.Date, request.Time, request.EndTime, excludingAppointmentId: id, cancellationToken: cancellationToken))
                 throw new InvalidOperationException("El abogado ya tiene un turno en ese horario.");
 

@@ -30,9 +30,6 @@ namespace LegalManager.Infrastructure.Email
         public bool UseSsl { get; set; } = true;
     }
 
-    // SMTP implementation of the account emails. Documented dev/POC fallback: with no
-    // Smtp:Host configured nothing is sent and the whole message (including the token
-    // link) is logged, so a clone without SMTP still completes the confirmation flow.
     public class SmtpAccountEmailService(
         IOptions<SmtpOptions> smtpOptions,
         IOptions<EmailOptions> emailOptions,

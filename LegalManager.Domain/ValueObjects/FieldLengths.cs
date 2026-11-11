@@ -1,11 +1,5 @@
 namespace LegalManager.Domain.ValueObjects
 {
-    /// <summary>
-    /// Maximum lengths of text fields, in characters.
-    /// Single source of truth: used by the <c>[StringLength]</c> annotations on the DTOs
-    /// (Application) and the <c>HasMaxLength</c> EF mapping (Infrastructure), so the two
-    /// layers cannot diverge. Without this every text column stays <c>nvarchar(max)</c>.
-    /// </summary>
     public static class FieldLengths
     {
         public const int PersonName = 100;

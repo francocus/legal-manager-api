@@ -6,8 +6,6 @@ namespace LegalManager.Infrastructure.AI
 
         public string BaseUrl { get; set; } = string.Empty;
 
-        // Structural only: the real ApiKey lives in user-secrets ("Llm:ApiKey"),
-        // it must never be hardcoded or committed.
         public string ApiKey { get; set; } = string.Empty;
 
         public string Model { get; set; } = string.Empty;

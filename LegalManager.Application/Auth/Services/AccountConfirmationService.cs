@@ -15,17 +15,12 @@ using LegalManager.Application.Common.Exceptions;
 
 namespace LegalManager.Application.Auth.Services
 {
-    // Token semantics, uniform for confirm + reset: 32 random bytes encoded as base64url
-    // without padding (~43 chars) travel RAW in the email link; storage keeps only the hex
-    // SHA-256 hash (64 chars) plus the UTC expiry, and the hash is cleared on first use.
     public class AccountConfirmationService(
         IUserRepository usersRepository,
         IAccountEmailService emailSender,
         IOptions<EmailOptions> emailOptions,
         IPasswordHasher passwordHasher)
     {
-        // Sets the token hash + expiry on the entity but does not save: the caller saves
-        // and then emails the returned raw token inside the link.
         public Task<string> StartForNewUserAsync(User user, CancellationToken cancellationToken = default)
         {
             var rawToken = GenerateRawToken();
@@ -34,9 +29,6 @@ namespace LegalManager.Application.Auth.Services
             return Task.FromResult(rawToken);
         }
 
-        // FrontBaseUrl trimmed of its trailing slash + the feature path + the raw token.
-        // With no FrontBaseUrl the base part is empty and the URL stays relative; the SMTP
-        // sender logs it, so a clone without frontend/base config can still be driven by hand.
         public static string BuildUrl(EmailOptions options, string path, string rawToken)
         {
             var baseUrl = string.IsNullOrWhiteSpace(options.FrontBaseUrl) ? string.Empty : options.FrontBaseUrl.TrimEnd('/');
@@ -75,7 +67,6 @@ namespace LegalManager.Application.Auth.Services
 
             var user = await usersRepository.GetByEmailAsync(email, cancellationToken);
 
-            // Missing or inactive account: return silently to avoid leaking registered emails.
             if (user == null || !user.Active)
                 return;
 
@@ -108,7 +99,6 @@ namespace LegalManager.Application.Auth.Services
         {
             var user = await usersRepository.GetByEmailAsync(email, cancellationToken);
 
-            // Only pending active accounts get a new link; everything else stays silent.
             if (user == null || !user.Active || user.EmailConfirmed)
                 return;
 
@@ -120,7 +110,6 @@ namespace LegalManager.Application.Auth.Services
 
         private static string GenerateRawToken()
         {
-            // 32 random bytes -> base64url without padding (~43 chars).
             return Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
                 .Replace('+', '-')
                 .Replace('/', '_')
@@ -129,7 +118,6 @@ namespace LegalManager.Application.Auth.Services
 
         private static string HashToken(string rawToken)
         {
-            // Hex SHA-256 of the raw token (64 chars). Never persisted in raw form.
             return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(rawToken)));
         }
     }

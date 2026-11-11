@@ -42,9 +42,6 @@ namespace LegalManager.Presentation.Controllers
             return Ok(login);
         }
 
-        // Public registration: every self-service account is a Client. No role is
-        // accepted from the request; privileged roles remain created through the
-        // admin user flow.
         [HttpPost("register")]
         public async Task<ActionResult<UserResponse>> Register([FromBody] RegisterRequest request, CancellationToken cancellationToken)
         {

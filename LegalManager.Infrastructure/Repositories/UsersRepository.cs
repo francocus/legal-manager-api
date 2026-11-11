@@ -17,8 +17,6 @@ namespace LegalManager.Infrastructure.Repositories
             return await _dbSet.FirstOrDefaultAsync(u => u.Active && u.Email.Trim().ToLower() == normalized, cancellationToken);
         }
 
-        // TPC maps these lookups to one query per concrete table (Clients/Lawyers/Admins);
-        // every one of them holds all base User columns. Active filter matches the repo rule.
         public async Task<User?> GetByEmailConfirmationTokenAsync(string tokenHash, CancellationToken cancellationToken = default)
         {
             return await _dbSet.FirstOrDefaultAsync(u => u.Active && u.EmailConfirmationToken == tokenHash, cancellationToken);
@@ -29,11 +27,6 @@ namespace LegalManager.Infrastructure.Repositories
             return await _dbSet.FirstOrDefaultAsync(u => u.Active && u.PasswordResetToken == tokenHash, cancellationToken);
         }
 
-        // Client <-> lawyer move under TPC: one union query over the base set loads the
-        // concrete entity, then the source row is deleted and the target inserted in a
-        // single save. EF orders deletes before inserts; the Restrict FKs pointing at
-        // Lawyers/Clients are guarded by the service pre-checks, so a DB rejection here is
-        // a genuine race and bubbles as-is.
         public async Task<User?> ChangeRoleAsync(Guid id, string targetRole, string? barNumber, string? specialtiesJson, CancellationToken cancellationToken = default)
         {
             var user = await _dbSet.FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
@@ -48,8 +41,8 @@ namespace LegalManager.Infrastructure.Repositories
                     throw new ArgumentException("El rol indicado no es válido.");
 
                 var specialties = specialtiesJson == null
-                    ? new List<string>()
-                    : JsonSerializer.Deserialize<List<string>>(specialtiesJson) ?? new List<string>();
+                    ? []
+                    : JsonSerializer.Deserialize<List<string>>(specialtiesJson) ?? [];
 
                 var targetLawyer = Lawyer.FromClient(sourceClient, barNumber ?? string.Empty, sourceClient.Phone, specialties);
 
@@ -83,10 +76,6 @@ namespace LegalManager.Infrastructure.Repositories
             }
             catch (DbUpdateException ex) when (IsUniqueViolation(ex))
             {
-                // Dos requests simultáneos pasaron el chequeo en memoria de EnsureUnique y el
-                // índice único de Email/Dni (mismo filtro [Active] = 1) cerró la carrera en la
-                // base. Se traduce al mismo InvalidOperationException que EnsureUnique, para que
-                // el controller responda 409 y no un 500 crudo.
                 throw new InvalidOperationException(UniqueViolationMessage(ex));
             }
         }
@@ -102,9 +91,6 @@ namespace LegalManager.Infrastructure.Repositories
                 : "Ya existe un usuario con ese DNI.";
         }
 
-        // Paged variants mirror GetAllAsync's Active filter over the TPC union (or the
-        // per-type OfType set), ordered by Id so pages are stable, with the total counted
-        // over the same filter (before Skip/Take).
         public async Task<(IReadOnlyList<User> Items, int Total)> GetPagedAsync(int page, int pageSize, CancellationToken cancellationToken = default)
             => await GetPagedByTypeAsync(_dbSet.Where(u => u.Active), page, pageSize, cancellationToken);
 

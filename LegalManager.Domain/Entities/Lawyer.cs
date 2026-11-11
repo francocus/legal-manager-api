@@ -1,4 +1,4 @@
-ï»¿namespace LegalManager.Domain.Entities
+namespace LegalManager.Domain.Entities
 {
     public class Lawyer : User
     {
@@ -9,27 +9,24 @@
         private Lawyer()
         {
             BarNumber = string.Empty;
-            Specialties = Array.Empty<string>();
+            Specialties = [];
         }
 
         public Lawyer(string firstName, string lastName, string dni, string email, string passwordHash, string barNumber, string? phone, IEnumerable<string>? specialties = null)
             : base(firstName, lastName, dni, email, passwordHash)
         {
             if (string.IsNullOrWhiteSpace(barNumber))
-                throw new ArgumentException("La matrÃ­cula es obligatoria.", nameof(barNumber));
+                throw new ArgumentException("La matrícula es obligatoria.", nameof(barNumber));
 
             BarNumber = barNumber;
             Phone = phone;
             Specialties = (specialties ?? []).ToList().AsReadOnly();
         }
 
-        // Role change factory: materializes a Lawyer from an existing Client, copying the
-        // shared identity via User.CopyRoleChangeFrom. The bar number guard mirrors the
-        // main constructor; specialties arrive as the already-validated list.
         public static Lawyer FromClient(Client client, string barNumber, string? phone, IEnumerable<string>? specialties)
         {
             if (string.IsNullOrWhiteSpace(barNumber))
-                throw new ArgumentException("La matrÃ­cula es obligatoria.", nameof(barNumber));
+                throw new ArgumentException("La matrícula es obligatoria.", nameof(barNumber));
 
             var lawyer = new Lawyer();
             lawyer.CopyRoleChangeFrom(client);
@@ -42,7 +39,7 @@
         public void UpdateBarNumber(string barNumber)
         {
             if (string.IsNullOrWhiteSpace(barNumber))
-                throw new ArgumentException("La matrÃ­cula es obligatoria.", nameof(barNumber));
+                throw new ArgumentException("La matrícula es obligatoria.", nameof(barNumber));
 
             BarNumber = barNumber;
         }

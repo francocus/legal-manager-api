@@ -6,8 +6,6 @@ namespace LegalManager.Infrastructure.AI
 {
     public static class LlmPolicies
     {
-        // Per-attempt deadline: lives between the circuit breaker and the HTTP send, unlike
-        // HttpClient.Timeout, which would wrap the whole retry chain.
         public static IAsyncPolicy<HttpResponseMessage> GetTimeoutPolicy(LlmResilienceOptions options)
         {
             return Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(options.TimeoutSeconds));
@@ -36,9 +34,6 @@ namespace LegalManager.Infrastructure.AI
                     TimeSpan.FromSeconds(options.BreakerOpenDurationSeconds));
         }
 
-        // Retried and breaker-counted: network errors, server 5xx, 408 (server timeout),
-        // 429 (rate limit), and per-attempt timeouts (TimeoutRejectedException).
-        // A 400/401/403 will not succeed on retry.
         private static bool IsTransientFailure(HttpResponseMessage response)
         {
             return (int)response.StatusCode >= 500

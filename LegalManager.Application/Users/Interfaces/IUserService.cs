@@ -23,9 +23,6 @@ namespace LegalManager.Application.Users.Interfaces
 
         Task<IReadOnlyList<UserResponse>> GetAdminsAsync(CancellationToken cancellationToken = default);
 
-        // Paged listings. With both params null these are never called: controllers keep
-        // the plain-array behavior. With either param present, page defaults to 1 and
-        // pageSize to 20; page/pageSize bounds are validated here (ArgumentException -> 400).
         Task<PagedResponse<UserResponse>> GetPagedAsync(int? page, int? pageSize, CancellationToken cancellationToken = default);
 
         Task<PagedResponse<UserResponse>> GetClientsPagedAsync(int? page, int? pageSize, CancellationToken cancellationToken = default);
@@ -52,8 +49,6 @@ namespace LegalManager.Application.Users.Interfaces
 
         Task<UserResponse?> ConfirmEmailByAdminAsync(Guid id, CancellationToken cancellationToken = default);
 
-        // Admin flow: fixes the self-registered role (client <-> lawyer) keeping the same
-        // user id. Admins are out of this flow: they are command-seeded and never change role.
         Task<UserResponse?> ChangeRoleAsync(Guid id, RoleChangeRequest request, CancellationToken cancellationToken = default);
     }
 }

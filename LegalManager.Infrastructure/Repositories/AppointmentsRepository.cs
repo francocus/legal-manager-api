@@ -32,9 +32,6 @@ namespace LegalManager.Infrastructure.Repositories
             }
             catch (DbUpdateException ex) when (IsUniqueViolation(ex))
             {
-                // The UX_Appointments_Lawyer_Slot unique index fired: two simultaneous requests
-                // grabbed the same slot. It is mapped to the same InvalidOperationException the
-                // in-memory check produces, so the controller still answers 409.
                 throw new InvalidOperationException("El abogado ya tiene un turno en ese horario.");
             }
         }
@@ -42,8 +39,6 @@ namespace LegalManager.Infrastructure.Repositories
         private static bool IsUniqueViolation(DbUpdateException ex)
             => ex.InnerException is SqlException { Number: 2601 or 2627 };
 
-        // Same Active filter as GetAllAsync, ordered by Id so pages are stable,
-        // with the total counted over the same filter (before Skip/Take).
         public async Task<(IReadOnlyList<Appointment> Items, int Total)> GetPagedAsync(int page, int pageSize, CancellationToken cancellationToken = default)
         {
             var query = _dbSet.Where(a => a.Active).OrderBy(a => a.Id);

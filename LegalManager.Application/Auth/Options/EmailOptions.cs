@@ -1,8 +1,5 @@
 namespace LegalManager.Application.Auth
 {
-    // Options for the account emails (confirmation + password reset links).
-    // FrontBaseUrl is the frontend origin the emailed links point at; when it is
-    // missing the flow keeps working and the emailed URL is relative-only.
     public class EmailOptions
     {
         public const string SectionName = "Email";

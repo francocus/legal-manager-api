@@ -103,9 +103,6 @@ namespace LegalManager.Application.Documents.Services
             return (stream, document.ContentType, document.FileName);
         }
 
-        // Confirm-first: generates the AI summary and its real PDF but persists
-        // nothing. The draft travels back to the client, which decides whether
-        // to store it through SaveGeneratedAsync.
         public async Task<GeneratedDocumentDraftResponse> GenerateAiSummaryAsync(Guid caseId, CancellationToken cancellationToken = default)
         {
             var caseItem = await casesRepository.GetByIdAsync(caseId, cancellationToken);
@@ -137,8 +134,6 @@ namespace LegalManager.Application.Documents.Services
                 Convert.ToBase64String(pdfBytes));
         }
 
-        // Same confirm-first contract as the AI summary, but composed from a
-        // fixed template: no LLM call, no quota to burn.
         public async Task<GeneratedDocumentDraftResponse> GenerateConstanciaAsync(Guid caseId, CancellationToken cancellationToken = default)
         {
             var caseItem = await casesRepository.GetByIdAsync(caseId, cancellationToken);
@@ -191,16 +186,12 @@ namespace LegalManager.Application.Documents.Services
                 throw new ArgumentException("El contenido del documento es inválido.");
             }
 
-            // Every document produced by this system comes from QuestPDF, so the
-            // header is a cheap integrity check against corrupted payloads.
             if (!pdfBytes.AsSpan().StartsWith("%PDF-"u8))
                 throw new ArgumentException("Todo documento generado debe ser un PDF válido.");
 
             if (pdfBytes.Length > 10 * 1024 * 1024)
                 throw new ArgumentException("El archivo supera el tamaño máximo permitido (10 MB).");
 
-            // File name is decided server-side; the client only flags whether
-            // the document is an AI summary or a template constancia.
             var fileName = request.GeneratedByAi ? "ResumenIA.pdf" : "Constancia.pdf";
 
             var storagePath = await fileStorage.SaveAsync(
@@ -213,8 +204,6 @@ namespace LegalManager.Application.Documents.Services
             Document document;
             if (request.GeneratedByAi)
             {
-                // The client already reviewed the draft before saving, so the
-                // document arrives reviewed: no pending-review queue anymore.
                 document = Document.CreateAiSummary(request.CaseId, fileName, storagePath, request.SummaryText, currentUser.Id);
                 document.Approve(currentUser.Id);
             }
@@ -230,8 +219,6 @@ namespace LegalManager.Application.Documents.Services
             }
             catch
             {
-                // Best-effort orphan cleanup: without it, a failed save leaves the written
-                // file on storage without its database record.
                 await fileStorage.DeleteAsync(storagePath, cancellationToken);
                 throw;
             }

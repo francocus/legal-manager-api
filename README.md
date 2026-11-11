@@ -1,114 +1,356 @@
-# LegalManager
+# LegalManager — Sistema de Gestión Integral para Estudios Jurídicos
 
-API de gestión para estudios jurídicos (expedientes, turnos, documentos y resumen IA).
+> **Trabajo Práctico Integrador**  
+> **Carrera:** Tecnicatura Universitaria en Programación (TUP)  
+> **Cátedra:** Programación IV  
+> **Equipo de Desarrollo:**  
+> - Agustín Angelini  
+> - Franco Cuscianna  
+> - Thiago Cuscianna  
+>
+> 🌐 **Despliegue en la Nube (Microsoft Azure):**  
+> - **API REST (Punto de acceso público):** `https://legalmanager-api-f4gqhqfsejdshrcm.chilecentral-01.azurewebsites.net`  
+> - **Cliente Web (Frontend SPA):** `https://www.legalmanager.tech`  
 
-## Configuración
+---
 
-**Desarrollo:** `appsettings.Development.json` trae el bootstrap completo (base de datos local, clave JWT de desarrollo y seed del admin `admin@legalmanager.local`). Solo falta la clave del LLM por user-secrets:
+## 1. Descripción y Función Principal
 
-```bash
-dotnet user-secrets set "Llm:ApiKey" "<clave>"
+**LegalManager** es una solución de software compuesta por una API REST y una aplicación cliente web, concebida para la gestión operativa y administrativa integral de un estudio jurídico. Centraliza y digitaliza los procesos centrales del ejercicio profesional del derecho:
+
+1. **Gestión de Expedientes (Causas Legales):** Registro y seguimiento de casos judiciales y extrajudiciales, vinculación obligatoria entre clientes y abogados responsables, trazabilidad de actuaciones y control de ciclo de vida (Activo, Pendiente, Cerrado).
+2. **Agenda y Turnos Profesionales:** Coordinación interactiva de citas con validación de disponibilidad horaria en tiempo real, detección de solapamientos a nivel de base de datos y cálculo de estados efectivos (`Finalizado`).
+3. **Gestión Documental y Resúmenes con Inteligencia Artificial:** 
+   - Subida y almacenamiento seguro de archivos PDF vinculados a cada causa (en Azure Blob Storage o en el sistema de archivos del servidor).
+   - Generación de constancias oficiales formateadas profesionalmente con **QuestPDF**.
+   - Redacción asistida de resúmenes de causas mediante **modelos de lenguaje (LLM)** a través de una arquitectura asincrónica y resiliente con **Polly**, bajo un esquema de confirmación previa (*confirm-first*).
+
+---
+
+## 2. Minuta de Relevamiento
+
+### Roles de Usuario y Matriz de Permisos
+El sistema implementa autenticación basada en **JSON Web Tokens (JWT)** con autorización por roles:
+
+- **Administrador (Admin):** Propietario o director del estudio. Gestiona usuarios, asigna roles, audita expedientes y administra la configuración global.
+- **Abogado (Lawyer):** Profesional a cargo de causas. Puede gestionar sus expedientes asignados, adjuntar y consultar documentos, coordinar su agenda y generar resúmenes con IA.
+- **Cliente (Client):** Usuario final que consulta el avance de sus causas, descarga documentación pública y solicita turnos de atención.
+
+| Funcionalidad / Módulo | Administrador | Abogado | Cliente |
+|---|:---:|:---:|:---:|
+| **Administración de Usuarios y Roles** | ✅ Sí | ❌ No | ❌ No |
+| **Autorregistro inicial** | ❌ No | ❌ No | ✅ Sí (público) |
+| **Creación de Expedientes** | ✅ Sí | ✅ Sí | ❌ No |
+| **Gestión de Abogados en Causa** | ✅ Sí | ✅ Sí (asignados) | ❌ No |
+| **Cambio de Estado de Causa** | ✅ Sí | ✅ Sí (asignados) | ❌ No |
+| **Consulta de Expedientes** | ✅ Todos | 👁️ Solo asignados | 👁️ Solo propios |
+| **Solicitud de Turnos** | ✅ Sí | ✅ De sus clientes | ✅ Solo propios |
+| **Gestión de Agenda (Confirmar/Cancelar)** | ✅ Sí | ✅ Su agenda | 👁️ Solo cancelar propio |
+| **Subida y Descarga de Documentos PDF** | ✅ Sí | ✅ De sus expedientes | 👁️ Descarga de propios |
+| **Generación de Resumen IA y Constancias** | ✅ Sí | ✅ Sí | ❌ No |
+
+### Reglas de Negocio
+- **Baja Lógica Universal:** Ninguna entidad se elimina de forma física en base de datos; todas implementan la propiedad `Active = false` para auditoría y consistencia histórica.
+- **Unicidad de Identificadores:** El DNI (con normalización de formato argentino), Email y Número de Expediente son estrictamente únicos.
+- **Integridad de Expedientes:** Toda causa debe contar con un cliente titular y al menos un abogado responsable. No es posible desvincular al último abogado.
+- **Congelamiento de Casos Cerrados:** Un expediente en estado Cerrado no admite modificaciones, reaperturas ni la adición de nuevos documentos adjuntos.
+- **Agenda sin Solapamiento:** Protección a doble nivel contra doble reserva: validación lógica en memoria y constraint única filtrada en base de datos (`UX_Appointments_Lawyer_Slot`).
+- **Seguridad en Cuentas:** Tokens de confirmación de email (24 h) y recuperación de contraseña (1 h) protegidos mediante hash SHA-256 de un solo uso. Revocación inmediata en `OnTokenValidated` para usuarios inactivos o no confirmados.
+
+---
+
+## 3. Diagrama de Clases
+
+El modelo de dominio implementado en `LegalManager.Domain` refleja la siguiente estructura de clases y relaciones:
+
+```mermaid
+classDiagram
+    direction TB
+
+    class User {
+        <<Abstract>>
+        +Guid Id
+        +string FirstName
+        +string LastName
+        +string FullName
+        +string Dni
+        +string Email
+        +string PasswordHash
+        +DateOnly RegistrationDate
+        +bool Active
+        +bool EmailConfirmed
+        +string? EmailConfirmationToken
+        +DateTime? EmailConfirmationTokenExpiresAt
+        +string? PasswordResetToken
+        +DateTime? PasswordResetTokenExpiresAt
+        +Deactivate()
+        +ConfirmEmail()
+        +StartPasswordReset()
+        +CompletePasswordReset()
+    }
+
+    class Client {
+        +string? Phone
+        +string? Address
+        +UpdatePhone(phone)
+        +UpdateAddress(address)
+    }
+
+    class Lawyer {
+        +string BarNumber
+        +string? Phone
+        +IReadOnlyList~string~ Specialties
+        +UpdatePhone(phone)
+        +UpdateBarNumber(barNumber)
+    }
+
+    class Admin {
+    }
+
+    class Case {
+        +Guid Id
+        +string CaseNumber
+        +string Title
+        +string Area
+        +CaseStatus Status
+        +DateOnly StartDate
+        +DateOnly LastUpdate
+        +DateOnly? ClosingDate
+        +string? Description
+        +string? Notes
+        +Guid ClientId
+        +Guid CreatedByUserId
+        +IReadOnlyList~Guid~ LawyerIds
+        +bool Active
+        +ChangeStatus(status)
+        +AddLawyer(lawyer)
+        +RemoveLawyer(lawyer)
+        +Deactivate()
+    }
+
+    class Appointment {
+        +Guid Id
+        +string Title
+        +DateOnly Date
+        +TimeOnly Time
+        +TimeOnly EndTime
+        +int DurationMinutes
+        +string? Reason
+        +AppointmentStatus Status
+        +AppointmentStatus EffectiveStatus
+        +string? Area
+        +string? Location
+        +string? Notes
+        +Guid ClientId
+        +Guid LawyerId
+        +Guid? CaseId
+        +Confirm()
+        +Cancel(reason)
+        +Reschedule(date, time)
+    }
+
+    class Document {
+        +Guid Id
+        +Guid CaseId
+        +string FileName
+        +string FilePath
+        +string ContentType
+        +long SizeBytes
+        +DocumentType Type
+        +Guid UploadedByUserId
+        +DateOnly UploadDate
+        +bool Active
+        +bool GeneratedByAI
+        +Guid? ReviewedByUserId
+        +DateOnly? ReviewedAt
+        +Deactivate()
+    }
+
+    class CaseStatus {
+        <<Enumeration>>
+        Activo
+        Pendiente
+        Cerrado
+    }
+
+    class AppointmentStatus {
+        <<Enumeration>>
+        Pendiente
+        Confirmado
+        Cancelado
+        Finalizado
+    }
+
+    class DocumentType {
+        <<Enumeration>>
+        Escrito
+        Expediente
+        Contrato
+        Prueba
+        Generado
+    }
+
+    User <|-- Client : Herencia TPC
+    User <|-- Lawyer : Herencia TPC
+    User <|-- Admin : Herencia TPC
+
+    Client "1" --> "0..*" Case : es titular
+    Lawyer "1..*" --> "0..*" Case : gestiona (N:M)
+    Case "1" *-- "0..*" Document : contiene
+    User "1" --> "0..*" Document : adjunta
+    Client "1" --> "0..*" Appointment : solicita
+    Lawyer "1" --> "0..*" Appointment : atiende
+    Case "0..1" --> "0..*" Appointment : asocia opcionalmente
+
+    Case ..> CaseStatus : estado
+    Appointment ..> AppointmentStatus : estado
+    Document ..> DocumentType : tipo
 ```
 
-**Producción:** las claves y credenciales van por variables de entorno (nunca en archivos commiteados):
+> 📌 *Diagrama conceptual de partida archivado en:* [`docs/diagrama-clases.png`](./docs/diagrama-clases.png).
 
-```bash
-Jwt__Key="<clave JWT segura>"
-SeedAdmin__Email="<admin inicial>"
-SeedAdmin__Password="<contraseña segura>"
-ConnectionStrings__LegalManagerDb="<cadena de conexión>"
-Llm__ApiKey="<clave del proveedor LLM>"
+---
+
+## 4. Arquitectura y Diseño del Sistema
+
+### A. Patrón Clean Architecture
+El sistema está construido en 4 proyectos desacoplados con flujo unidireccional de dependencias hacia el núcleo del dominio:
+
+```
+┌────────────────────────────────────────────────────────┐
+│                   Presentation Layer                   │
+│   (Controllers, Auth Policies, Middlewares, DI Setup)   │
+└───────────────────────────┬────────────────────────────┘
+                            │
+┌───────────────────────────▼────────────────────────────┐
+│                    Application Layer                   │
+│   (Use Cases, Services, DTOs, Service Interfaces)      │
+└─────────────┬────────────────────────────┬─────────────┘
+              │                            │
+┌─────────────▼─────────────┐ ┌────────────▼─────────────┐
+│       Domain Layer        │ │   Infrastructure Layer   │
+│ (Entities, Enums, Rules,  │ │ (EF Core, TPC, Repos,    │
+│  Value Objects, Ports)    │ │  Blob Storage, AI Polly) │
+└───────────────────────────┘ └──────────────────────────┘
 ```
 
-## Base de datos
+- **`LegalManager.Domain`:** Núcleo sin dependencias de frameworks externos. Contiene las entidades con lógica de negocio encapsulada (`Entities/`), tipos enumerados (`Enums/`), objetos de valor y reglas de validación como `FieldLengths` y `DniFormat` (`ValueObjects/`), excepciones de dominio (`Exceptions/`) e interfaces de abstracción (`Interfaces/`).
+- **`LegalManager.Application`:** Orquesta los casos de uso organizada por módulos funcionales (`Auth/`, `Users/`, `Cases/`, `Appointments/`, `Documents/`). Cada módulo cuenta con sus contratos de servicio (`Interfaces/`), implementaciones (`Services/`), modelos de transferencia (`DTOs/`) y componentes transversales (`Common/`).
+- **`LegalManager.Infrastructure`:** Implementaciones técnicas concretas: acceso a datos con EF Core (`Persistence/`), repositorios (`Repositories/`), autenticación y seguridad con JWT y BCrypt (`Auth/`), cliente de IA externa (`AI/`), generación de PDF con QuestPDF (`Pdf/`), almacenamiento de archivos (`Storage/`) y servicio de correo SMTP con MailKit (`Email/`).
+- **`LegalManager.Presentation`:** Punto de entrada de la Web API. Aloja los controladores REST (`Controllers/`), middlewares de captura de excepciones y ProblemDetails (`Middleware/`), políticas de autorización (`Auth/`) y la configuración del contenedor de dependencias (`Program.cs`).
 
-```bash
-dotnet tool restore
-dotnet ef database update --project LegalManager.Infrastructure --startup-project LegalManager.Presentation
-```
+---
 
-## Documentos
+### B. Persistencia Relacional y Migraciones con EF Core (Code-First)
+- **Base de Datos:** Microsoft SQL Server (Azure SQL Database en producción).
+- **Mapeo de Herencia TPC (Table-Per-Concrete-Type):** La jerarquía polimórfica de `User` se persiste utilizando la estrategia TPC, generando tablas independientes para cada tipo concreto (`Clients`, `Lawyers`, `Admins`), optimizando consultas y evitando tablas dispersas o columnas nulas innecesarias.
+- **Relaciones Complejas:** Relación de muchos a muchos $N:M$ entre `Case` y `Lawyer` modelada mediante tabla intermedia `CaseLawyer`.
+- **Migraciones y Snapshots:** Historial de migraciones versionado con EF Core CLI (`InitialCreate`, `AddUniqueEmailDniIndexes`, `AddEmailVerificationAndReset`, `DiscardOrphanPendingAiSummaries`).
+- **Resiliencia de Conexión:** Configuración de `EnableRetryOnFailure` en `Program.cs` para tolerar pausas automáticas de Azure SQL Serverless.
 
-Los PDFs que el sistema genera (resumen IA y constancia) se producen con **QuestPDF** (licencia Community): dejan de ser texto guardado como `.pdf` y pasan a ser archivos PDF reales, con plantilla fija y letra Segoe UI.
+---
 
-Todos los documentos generados siguen un contrato de **confirmación previa** (confirm-first): generar no persiste nada, el borrador vuelve al cliente y solo un guardado explícito lo persiste.
+### C. Patrón Generic Repository y Repositorios Especializados
+Para abstraer la persistencia y estandarizar las operaciones de acceso a datos:
 
-1. `POST /api/document/case/{caseId}/generate-summary` — genera el resumen con IA y devuelve un **borrador** (`GeneratedDocumentDraftResponse`: nombre, tipo, tamaño, texto y el PDF en base64). No toca storage ni base de datos.
-2. `POST /api/document/case/{caseId}/generate-constancia` — genera la constancia con una plantilla fija (sin IA, sin llamar al LLM) y devuelve el mismo formato de borrador.
-3. El cliente muestra el borrador y decide. Solo `POST /api/document/generated` (`{ "caseId": ..., "pdfBase64": ..., "summaryText": ..., "generatedByAi": ... }`) persiste el documento: valida que el contenido sea un PDF real de hasta 10 MB y el nombre del archivo lo decide el servidor (`ResumenIA.pdf` o `Constancia.pdf`).
+- **Interfaz Genérica:** `IRepository<T>` en la capa de Dominio (`where T : class, IEntity`), definiendo los métodos base: `Add`, `Update`, `Delete`, `GetAllAsync`, `GetByIdAsync` y `SaveAsync`.
+- **Implementación Genérica Base:** `GenericRepository<T>` en Infraestructura, encapsulando las operaciones contra `DbSet<T>` y aplicando automáticamente el filtrado por baja lógica (`Active == true`).
+- **Registro en Contenedor (DI):** Registrado como tipo genérico abierto:
+  ```csharp
+  builder.Services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
+  ```
+- **Repositorios Específicos:** `UsersRepository`, `CasesRepository`, `AppointmentsRepository` y `DocumentsRepository` heredan de `GenericRepository<T>` e implementan sus interfaces correspondientes (`IUserRepository`, etc.), incorporando métodos especializados (búsquedas por email/DNI, validación de franjas horarias y control de concurrencia).
 
-Los documentos IA guardados llegan ya revisados (`Approved = true`): ya no existe la cola de borradores pendientes, así que se quitaron los endpoints `PATCH /api/document/{id}/approve` y `PATCH /api/document/{id}/discard`. La subida manual de PDFs (`POST /api/document`) sigue funcionando igual.
+---
 
-## Verificación de email y recuperación de contraseña
+### D. Inyección de Dependencias y Servicios Completos
+Todos los controladores delegan la ejecución en servicios de aplicación debidamente inyectados a través de interfaces (Inversión de Dependencias):
 
-Toda cuenta nueva (autoregistro de cliente y altas de abogados/clientes/admins hechas por un admin) arranca sin email confirmado y recibe un correo con un enlace de confirmación. Mientras la cuenta esté pendiente, el login responde 403: `Debés confirmar tu email antes de iniciar sesión.`
+- `IUserService` $\rightarrow$ `UserService`
+- `ICaseService` $\rightarrow$ `CaseService`
+- `IAppointmentService` $\rightarrow$ `AppointmentService`
+- `IDocumentService` $\rightarrow$ `DocumentService`
+- `IAuthService` $\rightarrow$ `AuthService`
+- `IPasswordHasher` $\rightarrow$ `BCryptPasswordHasher`
+- `ITokenService` $\rightarrow$ `JwtTokenService`
+- `IFileStorage` $\rightarrow$ `AzureBlobFileStorage` / `LocalFileSystemStorage`
+- `IPdfDocumentRenderer` $\rightarrow$ `QuestPdfRenderer`
+- `IAccountEmailService` $\rightarrow$ `SmtpAccountEmailService`
+- `IAiSummaryService` $\rightarrow$ `OpenCodeAiSummaryService`
 
-Los tokens de confirmación y restablecimiento viajan crudos en el enlace y vencen (24 h / 1 h); en la base solo queda el hash SHA-256 y cada token es de un solo uso.
+---
 
-### Endpoints públicos (`AuthController`)
+### E. Consumo de Servicios de Terceros con HttpClientFactory y Resiliencia
+Para la generación de resúmenes de causas con Inteligencia Artificial, la API consume un servicio externo de inferencia LLM (compatible con OpenAI ejecutando `deepseek-v4.1-flash`):
 
-- `POST /api/auth/confirm-email` `{ "token": "..." }` — confirma la cuenta con el token del enlace.
-- `POST /api/auth/forgot-password` `{ "email": "..." }` — envía el enlace de restablecimiento (responde igual si el email no está registrado).
-- `POST /api/auth/reset-password` `{ "token": "...", "newPassword": "..." }` — setea la contraseña nueva; usar el enlace también confirma el email.
-- `POST /api/auth/resend-confirmation` `{ "email": "..." }` — reenvía el enlace de confirmación de una cuenta pendiente.
+- **Cliente HTTP Tipado:** Registrado mediante `IHttpClientFactory`:
+  ```csharp
+  builder.Services.AddHttpClient<IAiSummaryService, OpenCodeAiSummaryService>(client => { ... })
+  ```
+- **Políticas de Resiliencia con Polly:** Envoltura configurada en orden decreciente:
+  1. *Retry con Backoff Exponencial y Jitter:* 3 intentos ante caídas de red, códigos 5xx o 429.
+  2. *Circuit Breaker:* Corta el tráfico durante 30 segundos tras registrar 5 fallas consecutivas.
+  3. *Timeout por Intento:* 15 segundos por intento (con `HttpClient.Timeout = Timeout.InfiniteTimeSpan`).
+  4. *Degradación Elegante:* Si el servicio no responde, levanta `AiSummaryUnavailableException`, capturada por el controlador para devolver `502 Bad Gateway` con mensaje claro al usuario, sin dejar documentos corruptos en el sistema.
 
-### Rescate de admin
+---
 
-- `PATCH /api/user/{id}/confirm-email` (requiere rol Admin) — confirma la cuenta por id, para cuando se pierde el acceso al email o para QA automatizado.
+### F. Autenticación y Autorización Funcional (JWT)
+- **Controlador de Autenticación (`AuthController`):** Endpoint funcional de login (`POST /api/auth/login`) que autentica credenciales validadas con BCrypt y emite tokens JWT firmados con algoritmo HMAC-SHA256.
+- **Configuración de Seguridad:** La clave secreta para la firma de tokens (`Jwt:Key`) se obtiene a través de variables de entorno seguras en el Web App de Azure en producción (y mediante `dotnet user-secrets` en entorno de desarrollo local), garantizando que nunca quede expuesta en el código fuente.
+- **Validación Estricta:** Parámetros con validación de emisor (`Issuer`), audiencia (`Audience`), firma y tiempo de vida (`ClockSkew: TimeSpan.Zero`).
+- **Políticas de Autorización:** Políticas declarativas (`AdminsOnly`, `AdminOrLawyer`, `AllRoles`) combinadas con validación de tenencia de recursos (*ownership*) en la capa de aplicación.
 
-### Configuración
+---
 
-```bash
-Email__FrontBaseUrl="<url del frontend>"   # origen al que apuntan los enlaces del email
-Email__ConfirmationPath="/confirmar-email"
-Email__ResetPath="/restablecer-contrasena"
-Email__ConfirmationTokenLifetimeHours=24
-Email__ResetTokenLifetimeMinutes=60
-Smtp__Host="<servidor smtp>"
-Smtp__Port=587
-Smtp__User="<usuario>"
-Smtp__Password="<contraseña>"
-Smtp__From="<remitente>"
-Smtp__UseSsl=true
-```
+### G. Integración y Despliegue Continuo (CI/CD en Azure)
+- **Pipeline Automatizado en GitHub Actions:** Configurado en el repositorio a través del archivo `.github/workflows/deploy.yml`.
+- **Flujo de Ejecución:** Ante cada `push` en la rama `master`:
+  1. Descarga el código y configura el entorno de .NET 10.
+  2. Restaura dependencias y compila la solución en modo `Release`.
+  3. Ejecuta las migraciones de Entity Framework Core contra la base de datos Azure SQL (con script de reintentos para soportar encendido de bases serverless en pausa).
+  4. Publica los artefactos y realiza el despliegue automático hacia **Azure App Service**.
+- **Accesibilidad Pública Externa:** La API y sus endpoints se encuentran permanentemente operativos y accesibles en internet bajo su dominio de Azure.
 
-**Atención:** si `Smtp:Host` no está configurado, la API no envía correos: el remitente registra el mensaje completo (incluido el enlace con el token) en el log con nivel Warning. Es el fallback de desarrollo/POC para probar el flujo sin SMTP; en producción hay que configurar `Smtp:Host`, porque sin él ningún usuario puede confirmarse salvo por el rescate de admin.
+---
 
-## Paginación (opcional)
+## 5. Puesta en Marcha Local
 
-Los endpoints que devuelven listados aceptan paginación opcional vía query params: `page` (mayor a 0, por defecto 1) y `pageSize` (entre 1 y 100, por defecto 20). Aplica a `GET /api/case`, `GET /api/appointment`, `GET /api/user`, `GET /api/user/clients`, `GET /api/user/lawyers` y `GET /api/user/admins`.
+### Requisitos
+- [.NET 10 SDK](https://dotnet.microsoft.com/)
+- [SQL Server](https://www.microsoft.com/sql-server) o LocalDB
+- [Git](https://git-scm.com/)
 
-- **Sin `page` ni `pageSize`** la respuesta no cambia: sigue siendo el array plano de siempre (compatible con el SPA actual).
-- **Con cualquiera de los dos params** la respuesta pasa a ser un sobre paginado:
+### Instrucciones de Ejecución
+1. **Clonar el proyecto:**
+   ```bash
+   git clone https://github.com/francocus/legal-manager-api.git
+   cd legal-manager-api
+   ```
+2. **Restaurar dependencias y herramientas:**
+   ```bash
+   dotnet restore
+   dotnet tool restore
+   ```
+3. **Configurar la clave de API del LLM (User Secrets):**
+   ```bash
+   dotnet user-secrets set "Llm:ApiKey" "tu_clave_aqui" --project LegalManager.Presentation
+   ```
+4. **Ejecutar migraciones de base de datos:**
+   ```bash
+   dotnet ef database update --project LegalManager.Infrastructure --startup-project LegalManager.Presentation
+   ```
+5. **Iniciar la aplicación:**
+   ```bash
+   dotnet run --project LegalManager.Presentation
+   ```
+   La API levantará en `https://localhost:7001` (o el puerto configurado en `launchSettings.json`) e inicializará automáticamente el usuario administrador predeterminado (`admin@legalmanager.local` / `Admin123!`).
 
-```json
-{
-  "items": [],
-  "page": 1,
-  "pageSize": 20,
-  "total": 57
-}
-```
+---
 
-`page` menor a 1 o `pageSize` fuera del rango 1..100 responde 400 con el mensaje de error correspondiente. Los ítems paginados vuelven ordenados por `Id` de forma estable; sin paginación el orden queda exactamente igual que antes.
-## Cambio de rol
+## 6. Colección de Pruebas Automatizadas (Postman)
 
-Los abogados se autoregistran por el alta pública de cliente y un admin luego corrige su rol desde este endpoint. El usuario conserva el mismo `id` (solo cambia la tabla TPC donde vive la fila). Los administradores no participan de este flujo: se crean por comando y no cambian de rol.
+El repositorio incluye una colección integral y 100% automatizada lista para correr en:  
+📂 [`docs/LegalManager API.postman_collection.json`](./docs/LegalManager%20API.postman_collection.json)
 
-`PATCH /api/user/{id}/role` (requiere rol Admin):
-
-```json
-{
-  "role": "abogado",
-  "barNumber": "MP 12345",
-  "specialties": ["Laboral", "Familia"]
-}
-```
-
-Reglas:
-
-- `role` acepta solo `"abogado"` o `"cliente"`, en minúsculas; otro valor responde 400 con `El rol indicado no es válido.`
-- Pedir el rol que el usuario ya tiene responde `200` con el usuario sin cambios (idempotente).
-- Cliente → abogado: exige `barNumber`; si falta, responde 400. Si el usuario tiene expedientes o turnos como cliente (en cualquier estado), responde 409.
-- Abogado → cliente: si el usuario tiene expedientes o turnos como abogado (en cualquier estado), responde 409.
-- Si el destino es un admin, responde 409 con `Los administradores se crean por comando y no cambian de rol.`
+- **Total:** 56 peticiones y 95 aserciones de prueba automatizadas.

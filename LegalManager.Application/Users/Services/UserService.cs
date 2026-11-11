@@ -56,8 +56,6 @@ namespace LegalManager.Application.Users.Services
 
             var client = new Client(request.FirstName, request.LastName, request.Dni, request.Email, HashPassword(request.Password), request.Phone, request.Address);
 
-            // New accounts start unconfirmed: set the token before the save and email the
-            // link right after it succeeds, keeping the single save and the 201 semantics.
             var rawToken = await confirmationService.StartForNewUserAsync(client, cancellationToken);
 
             usersRepository.Add(client);
@@ -74,8 +72,6 @@ namespace LegalManager.Application.Users.Services
 
             var lawyer = new Lawyer(request.FirstName, request.LastName, request.Dni, request.Email, HashPassword(request.Password), request.BarNumber, request.Phone, request.Specialties);
 
-            // New accounts start unconfirmed: set the token before the save and email the
-            // link right after it succeeds, keeping the single save and the 201 semantics.
             var rawToken = await confirmationService.StartForNewUserAsync(lawyer, cancellationToken);
 
             usersRepository.Add(lawyer);
@@ -92,8 +88,6 @@ namespace LegalManager.Application.Users.Services
 
             var admin = new Admin(request.FirstName, request.LastName, request.Dni, request.Email, HashPassword(request.Password));
 
-            // New accounts start unconfirmed: set the token before the save and email the
-            // link right after it succeeds, keeping the single save and the 201 semantics.
             var rawToken = await confirmationService.StartForNewUserAsync(admin, cancellationToken);
 
             usersRepository.Add(admin);
@@ -156,8 +150,6 @@ namespace LegalManager.Application.Users.Services
             return ToPagedResponse(users, currentPage, currentPageSize, total);
         }
 
-        // Same mapping (and same private-data rule) as the unpaged listings, so paged
-        // items are byte-identical to their plain-array counterparts.
         private PagedResponse<UserResponse> ToPagedResponse(IReadOnlyList<User> users, int page, int pageSize, int total)
             => new(users.Select(u => UserResponse.Desde(u, CanSeePrivateData(u))).ToList(), page, pageSize, total);
 
@@ -279,8 +271,6 @@ namespace LegalManager.Application.Users.Services
             return true;
         }
 
-        // Admin rescue hatch: confirms an account by id when the emailed link was lost
-        // (or for automated QA). Idempotent: an already-confirmed account returns unchanged.
         public async Task<UserResponse?> ConfirmEmailByAdminAsync(Guid id, CancellationToken cancellationToken = default)
         {
             var user = await usersRepository.GetByIdAsync(id, cancellationToken);
@@ -295,9 +285,6 @@ namespace LegalManager.Application.Users.Services
             return UserResponse.Desde(user, CanSeePrivateData(user));
         }
 
-        // Admin flow: lawyers self-register through the public client signup and an admin
-        // fixes the role afterwards. The user keeps the same Id; only the TPC row changes.
-        // Admins are out of this flow: they are command-seeded and never change role.
         public async Task<UserResponse?> ChangeRoleAsync(Guid id, RoleChangeRequest request, CancellationToken cancellationToken = default)
         {
             var user = await usersRepository.GetByIdAsync(id, cancellationToken);
@@ -312,7 +299,6 @@ namespace LegalManager.Application.Users.Services
             var targetIsLawyer = request.Role == "abogado";
             var userIsLawyer = user is Lawyer;
 
-            // Idempotent: asking for the role the user already has returns it unchanged.
             if (userIsLawyer == targetIsLawyer)
                 return UserResponse.Desde(user, CanSeePrivateData(user));
 
@@ -321,8 +307,6 @@ namespace LegalManager.Application.Users.Services
                 if (string.IsNullOrWhiteSpace(request.BarNumber))
                     throw new ArgumentException("La matrícula es obligatoria para promover a abogado.");
 
-                // Promote: any case or appointment as client in ANY state blocks the move,
-                // the Restrict FKs would reject it in the database anyway.
                 var hasCasesAsClient = await casesRepository.HasAnyCaseAsClientAsync(id, cancellationToken);
                 var hasAppointmentsAsClient = await appointmentsRepository.HasAnyAppointmentAsClientAsync(id, cancellationToken);
                 if (hasCasesAsClient || hasAppointmentsAsClient)
@@ -334,7 +318,6 @@ namespace LegalManager.Application.Users.Services
                 return promoted == null ? null : UserResponse.Desde(promoted, CanSeePrivateData(promoted));
             }
 
-            // Demote: any case or appointment as lawyer in ANY state blocks the move.
             var hasCasesAsLawyer = await casesRepository.HasAnyCaseAsLawyerAsync(id, cancellationToken);
             var hasAppointmentsAsLawyer = await appointmentsRepository.HasAnyAppointmentAsLawyerAsync(id, cancellationToken);
             if (hasCasesAsLawyer || hasAppointmentsAsLawyer)
@@ -344,8 +327,6 @@ namespace LegalManager.Application.Users.Services
             return demoted == null ? null : UserResponse.Desde(demoted, CanSeePrivateData(demoted));
         }
 
-        // One predicate for both private user fields (Dni and Email): either the admin
-        // sees them or the user themselves does. No one else sees them on any endpoint.
         private bool CanSeePrivateData(User user) => currentUser.IsAdmin || user.Id == currentUser.Id;
 
         private async Task EnsureCanReadAsync(User user, CancellationToken cancellationToken = default)

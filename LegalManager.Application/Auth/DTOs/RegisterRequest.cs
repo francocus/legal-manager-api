@@ -6,8 +6,6 @@ using LegalManager.Domain.Exceptions;
 
 namespace LegalManager.Application.Auth.DTOs
 {
-    // Public registration payload. It maps to the same fields as CreateClientRequest
-    // (phone/address excluded: they are optional user-managed data).
     public record RegisterRequest(
         [param: StringLength(FieldLengths.PersonName)] string FirstName,
         [param: StringLength(FieldLengths.PersonName)] string LastName,

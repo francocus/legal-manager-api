@@ -75,8 +75,6 @@ namespace LegalManager.Presentation.Controllers
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
         }
 
-        // Confirm-first: the draft (text + real PDF) is returned to the client and
-        // nothing is persisted; only POST /api/document/generated stores it.
         [Authorize(Policy = Policies.AdminOrLawyer)]
         [HttpPost("case/{caseId}/generate-summary")]
         public async Task<ActionResult<GeneratedDocumentDraftResponse>> GenerateAiSummary([FromRoute] Guid caseId, CancellationToken cancellationToken)
@@ -88,9 +86,6 @@ namespace LegalManager.Presentation.Controllers
             }
             catch (ArgumentException ex) { return BadRequest(ex.Message); }
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
-            // The LLM failure is upstream of this API, so it maps to 502 at this action,
-            // following the same per-action error handling used across the controller and
-            // leaving every other exception handling untouched.
             catch (AiSummaryUnavailableException ex) { return StatusCode(StatusCodes.Status502BadGateway, ex.Message); }
         }
 

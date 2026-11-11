@@ -26,8 +26,6 @@ namespace LegalManager.Infrastructure.Persistence
             modelBuilder.Entity<Lawyer>().ToTable("Lawyers");
             modelBuilder.Entity<Admin>().ToTable("Admins");
 
-            // Without this all text stays nvarchar(max). The limits live in Domain.FieldLengths
-            // so that this layer and the DTOs' [StringLength] cannot diverge.
             modelBuilder.Entity<User>().Property(u => u.FirstName).HasMaxLength(FieldLengths.PersonName);
             modelBuilder.Entity<User>().Property(u => u.LastName).HasMaxLength(FieldLengths.PersonName);
             modelBuilder.Entity<User>().Property(u => u.Dni).HasMaxLength(FieldLengths.Dni);
@@ -37,12 +35,6 @@ namespace LegalManager.Infrastructure.Persistence
             modelBuilder.Entity<Client>().Property(c => c.Phone).HasMaxLength(FieldLengths.Phone);
             modelBuilder.Entity<Client>().Property(c => c.Address).HasMaxLength(FieldLengths.Address);
 
-            // La unicidad de Email y Dni la controla UserService en memoria, pero con TPC no hay
-            // tabla base para un constraint unico global: estos indices por tabla respaldan esa
-            // unicidad dentro de cada una y cierran la carrera de dos requests simultaneos.
-            // El filtro por [Active] = 1 alinea el indice con EnsureUnique (que solo mira
-            // usuarios activos): el email/DNI de un usuario dado de baja queda libre para
-            // reutilizarse en vez de chocar contra una fila inactiva.
             modelBuilder.Entity<Client>().HasIndex(c => c.Email).IsUnique().HasDatabaseName("UX_Clients_Email").HasFilter("[Active] = 1");
             modelBuilder.Entity<Client>().HasIndex(c => c.Dni).IsUnique().HasDatabaseName("UX_Clients_Dni").HasFilter("[Active] = 1");
             modelBuilder.Entity<Lawyer>().HasIndex(l => l.Email).IsUnique().HasDatabaseName("UX_Lawyers_Email").HasFilter("[Active] = 1");
@@ -52,7 +44,6 @@ namespace LegalManager.Infrastructure.Persistence
 
             modelBuilder.Entity<Lawyer>().Property(l => l.Phone).HasMaxLength(FieldLengths.Phone);
             modelBuilder.Entity<Lawyer>().Property(l => l.BarNumber).HasMaxLength(FieldLengths.BarNumber);
-            // Specialties stays nvarchar(max) on purpose: it is serialized JSON, not a string.
 
             modelBuilder.Entity<Case>().Property(c => c.CaseNumber).HasMaxLength(FieldLengths.CaseNumber);
             modelBuilder.Entity<Case>().Property(c => c.Title).HasMaxLength(FieldLengths.Title);
@@ -111,11 +102,6 @@ namespace LegalManager.Infrastructure.Persistence
             modelBuilder.Entity<Appointment>()
                 .Ignore(a => a.EffectiveStatus);
 
-            // A lawyer cannot have two appointments in the same slot (requirements: schedule
-            // conflict). The in-memory HasScheduleConflict check returns the nicer error, but
-            // two simultaneous requests can both pass it; this index is what actually closes
-            // the race. Filter: a canceled appointment (Status 2) frees the slot. "Finalizado"
-            // is never persisted (EffectiveStatus is computed), so the database only holds 0, 1 and 2.
             modelBuilder.Entity<Appointment>()
                 .HasIndex(a => new { a.LawyerId, a.Date, a.Time })
                 .IsUnique()
