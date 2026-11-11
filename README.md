@@ -61,7 +61,9 @@ El sistema implementa autenticación basada en **JSON Web Tokens (JWT)** con aut
 
 ## 3. Diagrama de Clases
 
-![Diagrama de Clases Conceptual](./docs/diagrama-clases.png)
+<div align="center">
+  <img src="./docs/diagrama-clases.png" alt="Diagrama de Clases Conceptual" width="650" />
+</div>
 
 ---
 

@@ -77,7 +77,7 @@ namespace LegalManager.Infrastructure.Email
             }
 
             var message = new MimeMessage();
-            message.From.Add(new MailboxAddress("Legal Manager", options.From));
+            message.From.Add(new MailboxAddress("Legal Manager", options.From ?? "no-reply@legalmanager.tech"));
             message.To.Add(new MailboxAddress(to, to));
             message.Subject = subject;
             message.Body = new MultipartAlternative
@@ -90,7 +90,7 @@ namespace LegalManager.Infrastructure.Email
             await client.ConnectAsync(options.Host, options.Port, options.UseSsl ? SecureSocketOptions.StartTls : SecureSocketOptions.Auto, cancellationToken);
 
             if (!string.IsNullOrWhiteSpace(options.User))
-                await client.AuthenticateAsync(options.User, options.Password, cancellationToken);
+                await client.AuthenticateAsync(options.User, options.Password ?? string.Empty, cancellationToken);
 
             await client.SendAsync(message, cancellationToken);
             await client.DisconnectAsync(true, cancellationToken);

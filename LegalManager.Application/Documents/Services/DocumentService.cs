@@ -123,7 +123,7 @@ namespace LegalManager.Application.Documents.Services
                 caseItem.LastUpdate.ToString("dd/MM/yyyy"),
                 caseItem.ClosingDate?.ToString("dd/MM/yyyy"),
                 caseItem.Description ?? string.Empty,
-                caseItem.Notes,
+                caseItem.Notes ?? string.Empty,
                 summary));
 
             return new GeneratedDocumentDraftResponse(
