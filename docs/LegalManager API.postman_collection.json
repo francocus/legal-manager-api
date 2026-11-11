@@ -154,6 +154,247 @@
                             ]
                         }
                     }
+                },
+                {
+                    "name": "Registro publico (cliente)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"firstName\": \"Cliente\",\n    \"lastName\": \"Registro\",\n    \"dni\": \"88776655\",\n    \"email\": \"nuevo.cliente@mail.com\",\n    \"password\": \"Password123!\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/register",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "register"
+                            ]
+                        },
+                        "description": "Auto-registro público de clientes. Crea la cuenta en estado pendiente de confirmación de email.",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                                    "pm.collectionVariables.set('registeredClientId', pm.response.json().id);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Confirmar email (token)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"token\": \"{{confirmationToken}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/confirm-email",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "confirm-email"
+                            ]
+                        },
+                        "description": "Confirma el email de una cuenta usando el token de 64 caracteres recibido por correo.",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('200 OK o 400', () => pm.expect(pm.response.code).to.be.oneOf([200, 400]));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Reenviar confirmacion de email",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"nuevo.cliente@mail.com\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/resend-confirmation",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "resend-confirmation"
+                            ]
+                        },
+                        "description": "Reenvía el correo de confirmación si la cuenta aún tiene el email pendiente.",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Olvidé mi contraseña (solicitar reset)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"{{clientEmail}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/forgot-password",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "forgot-password"
+                            ]
+                        },
+                        "description": "Envía el email de recuperación con el token para restablecer la contraseña.",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Restablecer contraseña (con token)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"token\": \"{{resetPasswordToken}}\",\n    \"newPassword\": \"NuevaPassword123!\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/reset-password",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "reset-password"
+                            ]
+                        },
+                        "description": "Aplica la nueva contraseña utilizando el token recibido por email.",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('200 OK o 400', () => pm.expect(pm.response.code).to.be.oneOf([200, 400]));"
+                                ]
+                            }
+                        }
+                    ]
                 }
             ]
         },
@@ -611,6 +852,48 @@
                                 "type": "text/javascript",
                                 "exec": [
                                     "pm.test('204 No Content', () => pm.response.to.have.status(204));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Confirmar email por Admin (bypass)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/user/{{clientId}}/confirm-email",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "user",
+                                "{{clientId}}",
+                                "confirm-email"
+                            ]
+                        },
+                        "description": "Rescue hatch para Admin: confirma manualmente el email de un usuario si no recibió el correo.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{adminToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                                    "pm.test('EmailConfirmed es true', () => pm.expect(pm.response.json().emailConfirmed).to.eql(true));"
                                 ]
                             }
                         }
@@ -1126,68 +1409,13 @@
                             "script": {
                                 "type": "text/javascript",
                                 "exec": [
-                                    "pm.test('201 Created', () => pm.response.to.have.status(201));",
-                                    "pm.test('Documento generado por IA', () => pm.expect(pm.response.json().generatedByAI).to.eql(true));",
-                                    "pm.collectionVariables.set('documentId', pm.response.json().id);"
-                                ]
-                            }
-                        }
-                    ]
-                },
-                {
-                    "name": "Revisar resumen IA",
-                    "request": {
-                        "method": "PATCH",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseUrl}}/api/document/{{documentId}}/approve"
-                        }
-                    },
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "type": "text/javascript",
-                                "exec": [
                                     "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                                    "pm.test('Documento aprobado', () => pm.expect(pm.response.json().approved).to.eql(true));",
-                                    "pm.test('Revisado por el abogado', () => pm.expect(pm.response.json().reviewedByUserId).to.eql(pm.collectionVariables.get('lawyerId')));"
-                                ]
-                            }
-                        }
-                    ]
-                },
-                {
-                    "name": "NEGATIVO: revisar documento manual (409)",
-                    "request": {
-                        "method": "PATCH",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json",
-                                "type": "text"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{baseUrl}}/api/document/{{uploadedDocumentId}}/approve"
-                        },
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\"reviewedByUserId\":\"{{lawyerId}}\"}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        }
-                    },
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "type": "text/javascript",
-                                "exec": [
-                                    "pm.test('409 Conflict', () => pm.response.to.have.status(409));"
+                                    "pm.test('Borrador generado con PDF real', () => {",
+                                    "    const data = pm.response.json();",
+                                    "    pm.expect(data.pdfBase64).to.be.a('string').and.not.empty;",
+                                    "    pm.collectionVariables.set('draftPdfBase64', data.pdfBase64);",
+                                    "    pm.collectionVariables.set('draftSummaryText', data.summaryText);",
+                                    "});"
                                 ]
                             }
                         }
@@ -1215,14 +1443,34 @@
                     ]
                 },
                 {
-                    "name": "Descartar resumen IA",
+                    "name": "Generar borrador de constancia",
                     "request": {
-                        "method": "PATCH",
+                        "method": "POST",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/api/document/{{documentId}}/discard"
+                            "raw": "{{baseUrl}}/api/document/case/{{caseId}}/generate-constancia",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "document",
+                                "case",
+                                "{{caseId}}",
+                                "generate-constancia"
+                            ]
                         },
-                        "description": "Descarta un borrador de resumen generado por IA (requiere rol Admin o Abogado)."
+                        "description": "Genera el borrador de constancia de expediente con QuestPDF y devuelve el PDF en base64 para previsualización.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{lawyerToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
                     },
                     "event": [
                         {
@@ -1231,7 +1479,126 @@
                                 "type": "text/javascript",
                                 "exec": [
                                     "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                                    "pm.test('Documento descartado', () => pm.expect(pm.response.json().isPendingReview).to.eql(false));"
+                                    "pm.test('Borrador de constancia generado', () => {",
+                                    "    const data = pm.response.json();",
+                                    "    pm.expect(data.pdfBase64).to.be.a('string').and.not.empty;",
+                                    "    pm.collectionVariables.set('constanciaPdfBase64', data.pdfBase64);",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Guardar documento generado (confirmar resumen IA)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"caseId\": \"{{caseId}}\",\n    \"generatedByAi\": true,\n    \"summaryText\": \"{{draftSummaryText}}\",\n    \"pdfBase64\": \"{{draftPdfBase64}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/document/generated",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "document",
+                                "generated"
+                            ]
+                        },
+                        "description": "Persiste el borrador de resumen IA en Azure Blob Storage y en la BD tras ser confirmado por el usuario.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{lawyerToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                                    "pm.test('Documento guardado en storage', () => {",
+                                    "    const data = pm.response.json();",
+                                    "    pm.expect(data.id).to.be.a('string');",
+                                    "    pm.collectionVariables.set('savedGeneratedDocId', data.id);",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Guardar documento generado (confirmar constancia)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"caseId\": \"{{caseId}}\",\n    \"generatedByAi\": false,\n    \"summaryText\": null,\n    \"pdfBase64\": \"{{constanciaPdfBase64}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/document/generated",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "document",
+                                "generated"
+                            ]
+                        },
+                        "description": "Persiste la constancia generada en Azure Blob Storage y en la BD.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{lawyerToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('201 Created', () => pm.response.to.have.status(201));"
                                 ]
                             }
                         }
@@ -1308,6 +1675,41 @@
         {
             "key": "token",
             "value": ""
+        },
+        {
+            "key": "registeredClientId",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "confirmationToken",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "resetPasswordToken",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "draftPdfBase64",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "draftSummaryText",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "constanciaPdfBase64",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "savedGeneratedDocId",
+            "value": "",
+            "type": "string"
         }
     ],
     "auth": {
