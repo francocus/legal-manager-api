@@ -18,5 +18,13 @@ namespace LegalManager.Infrastructure.Repositories
 
             return (items, total);
         }
+        public async Task<bool> HasAnyCaseAsClientAsync(Guid clientId, CancellationToken cancellationToken = default)
+            => await _dbSet.AnyAsync(c => c.ClientId == clientId, cancellationToken);
+
+        // CaseLawyer is a shared-type join entity: no CLR type and no typed DbSet, so it is
+        // queried by name through the property-bag set, reading the shadow FK by name.
+        public async Task<bool> HasAnyCaseAsLawyerAsync(Guid lawyerId, CancellationToken cancellationToken = default)
+            => await _context.Set<Dictionary<string, object>>("CaseLawyer")
+                .AnyAsync(cl => EF.Property<Guid>(cl, "LawyerId") == lawyerId, cancellationToken);
     }
 }

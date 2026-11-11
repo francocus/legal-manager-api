@@ -1,3 +1,4 @@
+using System.Text.Json;
 using LegalManager.Domain.Entities;
 using LegalManager.Domain.Interfaces;
 using LegalManager.Infrastructure.Persistence;
@@ -25,6 +26,52 @@ namespace LegalManager.Infrastructure.Repositories
         public async Task<User?> GetByPasswordResetTokenAsync(string tokenHash, CancellationToken cancellationToken = default)
         {
             return await _dbSet.FirstOrDefaultAsync(u => u.Active && u.PasswordResetToken == tokenHash, cancellationToken);
+        }
+
+        // Client <-> lawyer move under TPC: one union query over the base set loads the
+        // concrete entity, then the source row is deleted and the target inserted in a
+        // single save. EF orders deletes before inserts; the Restrict FKs pointing at
+        // Lawyers/Clients are guarded by the service pre-checks, so a DB rejection here is
+        // a genuine race and bubbles as-is.
+        public async Task<User?> ChangeRoleAsync(Guid id, string targetRole, string? barNumber, string? specialtiesJson, CancellationToken cancellationToken = default)
+        {
+            var user = await _dbSet.FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
+            if (user == null) return null;
+
+            if (user is Admin)
+                throw new InvalidOperationException("Los administradores se crean por comando y no cambian de rol.");
+
+            if (user is Client sourceClient)
+            {
+                if (targetRole != "abogado")
+                    throw new ArgumentException("El rol indicado no es válido.");
+
+                var specialties = specialtiesJson == null
+                    ? new List<string>()
+                    : JsonSerializer.Deserialize<List<string>>(specialtiesJson) ?? new List<string>();
+
+                var targetLawyer = Lawyer.FromClient(sourceClient, barNumber ?? string.Empty, sourceClient.Phone, specialties);
+
+                _dbSet.Remove(sourceClient);
+                _dbSet.Add(targetLawyer);
+                await SaveAsync(cancellationToken);
+                return targetLawyer;
+            }
+
+            if (user is Lawyer sourceLawyer)
+            {
+                if (targetRole != "cliente")
+                    throw new ArgumentException("El rol indicado no es válido.");
+
+                var targetClient = Client.FromLawyer(sourceLawyer);
+
+                _dbSet.Remove(sourceLawyer);
+                _dbSet.Add(targetClient);
+                await SaveAsync(cancellationToken);
+                return targetClient;
+            }
+
+            throw new ArgumentException("El rol indicado no es válido.");
         }
 
         public override async Task SaveAsync(CancellationToken cancellationToken = default)

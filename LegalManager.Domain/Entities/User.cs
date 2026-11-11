@@ -159,6 +159,26 @@ using LegalManager.Domain.Interfaces;
             EmailConfirmed = true;
         }
 
+        // Role change (client <-> lawyer) keeps the same user identity: a derived-type
+        // factory copies every base column into the new TPC row, so the user's Id,
+        // registration history, tokens and confirmation state survive the move untouched.
+        protected void CopyRoleChangeFrom(User other)
+        {
+            Id = other.Id;
+            FirstName = other.FirstName;
+            LastName = other.LastName;
+            Dni = other.Dni;
+            Email = other.Email;
+            PasswordHash = other.PasswordHash;
+            RegistrationDate = other.RegistrationDate;
+            Active = other.Active;
+            EmailConfirmed = other.EmailConfirmed;
+            EmailConfirmationToken = other.EmailConfirmationToken;
+            EmailConfirmationTokenExpiresAt = other.EmailConfirmationTokenExpiresAt;
+            PasswordResetToken = other.PasswordResetToken;
+            PasswordResetTokenExpiresAt = other.PasswordResetTokenExpiresAt;
+        }
+
         // DNI argentino: 7 u 8 digitos, opcionalmente con puntos o espacios visuales.
         // Se devuelve normalizado (solo digitos) para almacenarlo y compararlo siempre
         // en la misma forma; la fuente de la normalizacion es DniFormat en Domain.

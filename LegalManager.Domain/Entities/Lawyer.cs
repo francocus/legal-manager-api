@@ -23,6 +23,22 @@
             Specialties = (specialties ?? []).ToList().AsReadOnly();
         }
 
+        // Role change factory: materializes a Lawyer from an existing Client, copying the
+        // shared identity via User.CopyRoleChangeFrom. The bar number guard mirrors the
+        // main constructor; specialties arrive as the already-validated list.
+        public static Lawyer FromClient(Client client, string barNumber, string? phone, IEnumerable<string>? specialties)
+        {
+            if (string.IsNullOrWhiteSpace(barNumber))
+                throw new ArgumentException("La matrícula es obligatoria.", nameof(barNumber));
+
+            var lawyer = new Lawyer();
+            lawyer.CopyRoleChangeFrom(client);
+            lawyer.BarNumber = barNumber;
+            lawyer.Phone = phone;
+            lawyer.Specialties = (specialties ?? []).ToList().AsReadOnly();
+            return lawyer;
+        }
+
         public void UpdateBarNumber(string barNumber)
         {
             if (string.IsNullOrWhiteSpace(barNumber))

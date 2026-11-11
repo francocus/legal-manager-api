@@ -213,5 +213,21 @@ namespace LegalManager.Presentation.Controllers
             }
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
         }
+
+        // Admin flow: a self-registered client is promoted to lawyer (or demoted back).
+        // Same user id is preserved; only the TPC row changes.
+        [Authorize(Policy = Policies.AdminsOnly)]
+        [HttpPatch("{id}/role")]
+        public async Task<ActionResult<UserResponse>> ChangeRole([FromRoute] Guid id, [FromBody] RoleChangeRequest request, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var user = await userService.ChangeRoleAsync(id, request, cancellationToken);
+                if (user == null) return NotFound($"No existe un elemento con el id {id}.");
+                return Ok(user);
+            }
+            catch (ArgumentException ex) { return BadRequest(ex.Message); }
+            catch (InvalidOperationException ex) { return Conflict(ex.Message); }
+        }
     }
 }

@@ -46,5 +46,9 @@ namespace LegalManager.Application.Interfaces
         Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 
         Task<UserResponse?> ConfirmEmailByAdminAsync(Guid id, CancellationToken cancellationToken = default);
+
+        // Admin flow: fixes the self-registered role (client <-> lawyer) keeping the same
+        // user id. Admins are out of this flow: they are command-seeded and never change role.
+        Task<UserResponse?> ChangeRoleAsync(Guid id, RoleChangeRequest request, CancellationToken cancellationToken = default);
     }
 }
