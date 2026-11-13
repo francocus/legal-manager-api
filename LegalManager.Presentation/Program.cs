@@ -101,7 +101,8 @@ builder.Services
         }
         if (!string.IsNullOrWhiteSpace(llmSettings.ApiKey))
         {
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", llmSettings.ApiKey);
+            var cleanKey = llmSettings.ApiKey.Trim().Trim('<', '>');
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", cleanKey);
         }
         if (!string.IsNullOrWhiteSpace(llmSettings.SessionId))
         {

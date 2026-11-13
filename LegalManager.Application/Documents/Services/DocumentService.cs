@@ -168,7 +168,7 @@ namespace LegalManager.Application.Documents.Services
             if (caseItem == null)
                 throw new ArgumentException("El expediente indicado no existe.");
 
-            if (caseItem.Status == CaseStatus.Cerrado)
+            if (caseItem.Status == CaseStatus.Cerrado && !request.GeneratedByAi)
                 throw new InvalidOperationException("No se pueden agregar documentos a un expediente cerrado.");
 
             EnsureCanWrite(caseItem);

@@ -84,9 +84,10 @@ namespace LegalManager.Presentation.Controllers
                 var draft = await documentService.GenerateAiSummaryAsync(caseId, cancellationToken);
                 return Ok(draft);
             }
-            catch (ArgumentException ex) { return BadRequest(ex.Message); }
-            catch (InvalidOperationException ex) { return Conflict(ex.Message); }
-            catch (AiSummaryUnavailableException ex) { return StatusCode(StatusCodes.Status502BadGateway, ex.Message); }
+            catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+            catch (InvalidOperationException ex) { return Conflict(new { message = ex.Message }); }
+            catch (AiSummaryUnavailableException ex) { return StatusCode(StatusCodes.Status503ServiceUnavailable, new { message = ex.Message }); }
+            catch (Exception ex) { return StatusCode(StatusCodes.Status500InternalServerError, new { message = ex.Message }); }
         }
 
         [Authorize(Policy = Policies.AdminOrLawyer)]
@@ -98,8 +99,9 @@ namespace LegalManager.Presentation.Controllers
                 var draft = await documentService.GenerateConstanciaAsync(caseId, cancellationToken);
                 return Ok(draft);
             }
-            catch (ArgumentException ex) { return BadRequest(ex.Message); }
-            catch (InvalidOperationException ex) { return Conflict(ex.Message); }
+            catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+            catch (InvalidOperationException ex) { return Conflict(new { message = ex.Message }); }
+            catch (Exception ex) { return StatusCode(StatusCodes.Status500InternalServerError, new { message = ex.Message }); }
         }
 
         [Authorize(Policy = Policies.AdminOrLawyer)]
