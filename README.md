@@ -49,10 +49,10 @@ El sistema implementa autenticación basada en **JSON Web Tokens (JWT)** con aut
 | **Subida y Descarga de Documentos PDF** | ✅ Sí | ✅ De sus expedientes | 👁️ Descarga de propios |
 | **Generación de Resumen IA y Constancias** | ✅ Sí | ✅ Sí (abiertos y cerrados) | ❌ No |
 | **Configuración de Agenda y Horarios Libres** | ❌ No | ✅ Sí (propia) | ❌ No |
-| **Papelera de Reciclaje y Restauración** | ✅ Sí | ❌ No | ❌ No |
+| **Papelera de Reciclaje y Restauración** | ✅ Sí (Total) | ✅ Sí (sus expedientes y turnos) | ❌ No |
 
 ### Reglas de Negocio
-- **Baja Lógica Universal y Papelera:** Ninguna entidad se elimina de forma física en base de datos; todas implementan la propiedad `Active = false` para auditoría y consistencia histórica. Los administradores disponen de un módulo de Papelera de Reciclaje (`TrashController`) para auditar y restaurar registros dados de baja.
+- **Baja Lógica Universal y Papelera:** Ninguna entidad se elimina de forma física en base de datos; todas implementan la propiedad `Active = false` para auditoría y consistencia histórica. Tanto los administradores como los abogados (para sus expedientes y turnos asignados) disponen del módulo de Papelera de Reciclaje (`TrashController`) para auditar con fecha y hora exacta (`datetime2`) y restaurar registros dados de baja.
 - **Unicidad de Identificadores:** El DNI (con normalización de formato argentino), Email y Número de Expediente son estrictamente únicos.
 - **Integridad de Expedientes:** Toda causa debe contar con un cliente titular y al menos un abogado responsable. No es posible desvincular al último abogado.
 - **Congelamiento de Casos Cerrados y Consulta Asistida por IA:** Un expediente en estado Cerrado no admite modificaciones, reaperturas ni la adición de nuevos documentos adjuntos. Admite la generación y consulta de resúmenes asistidos con Inteligencia Artificial con fines de lectura, análisis y archivo histórico.
@@ -103,7 +103,7 @@ El sistema está construido en 4 proyectos desacoplados con flujo unidireccional
 - **Base de Datos:** Microsoft SQL Server (Azure SQL Database en producción).
 - **Mapeo de Herencia TPC (Table-Per-Concrete-Type):** La jerarquía polimórfica de `User` se persiste utilizando la estrategia TPC, generando tablas independientes para cada tipo concreto (`Clients`, `Lawyers`, `Admins`), optimizando consultas y evitando tablas dispersas o columnas nulas innecesarias.
 - **Relaciones Complejas:** Relación de muchos a muchos $N:M$ entre `Case` y `Lawyer` modelada mediante tabla intermedia `CaseLawyer`.
-- **Migraciones y Snapshots:** Historial de migraciones versionado con EF Core CLI (`InitialCreate`, `AddUniqueEmailDniIndexes`, `AddEmailVerificationAndReset`, `DiscardOrphanPendingAiSummaries`, `AddLawyerSchedule`, `UpdateDeactivatedAtToDateTime`).
+- **Migraciones y Snapshots:** Historial de migraciones versionado con EF Core CLI (`InitialCreate`, `AddUniqueEmailDniIndexes`, `AddEmailVerificationAndReset`, `DiscardOrphanPendingAiSummaries`, `AddLawyerSchedule`, `UpdateDeactivatedAtToDateTime`, `UpdateCaseLastUpdateToDateTime`). La columna `LastUpdate` en `Cases` se persiste en formato `datetime2` y se actualiza de manera reactiva ante la carga o generación de nuevos documentos.
 - **Resiliencia de Conexión:** Configuración de `EnableRetryOnFailure` en `Program.cs` para tolerar pausas automáticas de Azure SQL Serverless.
 
 ---
@@ -215,7 +215,11 @@ Para la generación de resúmenes de causas con Inteligencia Artificial, la API 
    ```bash
    dotnet run --project LegalManager.Presentation
    ```
-   La API levantará en `https://localhost:7001` (o el puerto configurado en `launchSettings.json`) e inicializará automáticamente el usuario administrador predeterminado (`admin@legalmanager.local` / `Admin123!`).
+   La API levantará en `http://localhost:5133` (o el puerto configurado en `launchSettings.json`). Al arrancar por primera vez, el servicio `DatabaseSeeder` inicializa automáticamente la base de datos con 3 cuentas confirmadas y un conjunto representativo de datos de prueba:
+   - **Administrador:** `admin@legalmanager.local` / `Admin123!`
+   - **Abogado:** `abogado@legalmanager.local` / `Abogado123!`
+   - **Cliente:** `cliente@legalmanager.local` / `Cliente123!`
+   - Incluye 3 expedientes (Activo, Pendiente y Cerrado con resumen IA), 5 documentos PDF válidos en almacenamiento y 4 turnos programados (incluyendo elementos de prueba en papelera).
 
 ---
 
@@ -224,4 +228,5 @@ Para la generación de resúmenes de causas con Inteligencia Artificial, la API 
 El repositorio incluye una colección integral y 100% automatizada lista para correr en:  
 📂 [`docs/LegalManager API.postman_collection.json`](./docs/LegalManager%20API.postman_collection.json)
 
-- **Total:** 56 peticiones y 95 aserciones de prueba automatizadas.
+- **Total:** 64 peticiones y 107 aserciones de prueba automatizadas.
+- **Módulos Cubiertos:** Autenticación y recuperación de contraseñas, Gestión de Usuarios y Roles, Agenda y Horarios Flexibles de Abogados, Expedientes y Cierre Seguro, Turnos y Disponibilidad Dinámica, Gestión Documental con QuestPDF e IA, y Módulo Integral de Papelera de Reciclaje (Baja Lógica y Restauración).

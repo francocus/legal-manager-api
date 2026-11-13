@@ -11,7 +11,7 @@ namespace LegalManager.Domain.Entities
         public string Area { get; private set; }
         public CaseStatus Status { get; private set; }
         public DateOnly StartDate { get; private set; }
-        public DateOnly LastUpdate { get; private set; }
+        public DateTime LastUpdate { get; private set; }
         public DateOnly? ClosingDate { get; private set; }
         public string? Description { get; private set; }
         public string? Notes { get; private set; }
@@ -56,7 +56,7 @@ namespace LegalManager.Domain.Entities
             Area = area;
             Status = CaseStatus.Activo;
             StartDate = startDate;
-            LastUpdate = startDate;
+            LastUpdate = DateTime.UtcNow;
             Description = description;
             Notes = notes;
             ClientId = clientId;
@@ -80,7 +80,12 @@ namespace LegalManager.Domain.Entities
             Area = area;
             Description = description;
             Notes = notes;
-            LastUpdate = DateOnly.FromDateTime(DateTime.Now);
+            LastUpdate = DateTime.UtcNow;
+        }
+
+        public void TouchLastUpdate()
+        {
+            LastUpdate = DateTime.UtcNow;
         }
 
         public void ChangeStatus(CaseStatus newStatus)
@@ -89,10 +94,10 @@ namespace LegalManager.Domain.Entities
                 throw new InvalidOperationException("No se puede reabrir un expediente cerrado.");
 
             Status = newStatus;
-            LastUpdate = DateOnly.FromDateTime(DateTime.Now);
+            LastUpdate = DateTime.UtcNow;
 
             if (newStatus == CaseStatus.Cerrado)
-                ClosingDate = LastUpdate;
+                ClosingDate = DateOnly.FromDateTime(LastUpdate);
         }
 
         public void AddLawyer(Lawyer lawyer)

@@ -39,6 +39,7 @@ A continuación, se detallan las funcionalidades con las que debe cumplir el sis
 ### C. Módulo de Agenda y Turnos
 
 - **Calendario interactivo:** la aplicación deberá incluir una interfaz de calendario dinámica para la gestión visual de las citas.
+- **Configuración de agenda y horarios libres:** los abogados disponen de autonomía para configurar los días de la semana y cualquier horario personalizado de atención (`HH:mm`), calculando la disponibilidad en tiempo real y evitando solapamientos a nivel de base de datos.
 - **Solicitud de turnos:** el sistema debe permitir a los clientes solicitar turnos con los abogados por diversos motivos, asociados o no a un expediente.
 - **Disponibilidad:** el sistema debe permitir consultar la disponibilidad horaria de un abogado en una fecha antes de solicitar un turno.
 - **Ciclo de vida del turno:** los turnos pueden confirmarse, cancelarse o reprogramarse.
@@ -48,21 +49,28 @@ A continuación, se detallan las funcionalidades con las que debe cumplir el sis
 
 - **Carga y almacenamiento:** subida de archivos PDF reales (hasta 10 MB) asociados a un expediente, en distintos tipos: escritos, contratos, pruebas, el expediente digitalizado, o documentos generados por el sistema.
 - **Consulta y descarga:** listado y descarga de los documentos vinculados a cada expediente, con baja lógica de documentos.
+- **Fecha y hora de actualización en tiempo real:** la fecha y hora de última modificación del expediente (`LastUpdate`) se actualiza reactivamente al momento exacto en que se adjuntan o generan documentos.
 - **Generación automática:** el sistema puede generar documentos por plantilla fija, como constancias del expediente.
-- **Resumen por Inteligencia Artificial:** generación de un resumen narrativo del expediente a partir de los datos y actuaciones ya cargados en el sistema, quedando en estado de borrador hasta que un abogado lo revisa y lo aprueba o descarta.
+- **Resumen por Inteligencia Artificial:** generación de un resumen narrativo del expediente a partir de los datos y actuaciones ya cargados en el sistema, disponible tanto para expedientes en trámite como archivados (`Cerrados`), quedando en estado de borrador hasta que un abogado lo revisa y lo aprueba o descarta.
 
-### E. Funcionalidades Transversales (UX/UI y Seguridad)
+### E. Módulo de Papelera de Reciclaje (Baja Lógica y Restauración)
+
+- **Auditoría de bajas:** panel unificado donde se listan las entidades desactivadas (`Active = false`), registrando la fecha y hora exacta desde que se encuentran en la papelera (`datetime2`).
+- **Restauración reversible:** tanto los Administradores (acceso global) como los Abogados (para sus expedientes y turnos asignados) pueden restaurar los registros a su estado activo anterior con un solo clic.
+
+### F. Funcionalidades Transversales (UX/UI y Seguridad)
 
 - **Control de acceso:** login seguro para todos los usuarios.
 - **Accesibilidad visual:** inclusión de un interruptor para alternar la interfaz entre "Modo Claro" y "Modo Oscuro" (Light/Dark Theme), mejorando la experiencia de uso.
+- **Campos obligatorios:** señalización con asterisco rojo (`*`) en todos los formularios para guiar al usuario.
 
 ## 4. Reglas de Negocio
 
 ### A. Estados y ciclo de vida
 
-- **Estados del expediente: activo, pendiente, cerrado.** Al cerrar un expediente se registra su fecha de cierre. Un expediente cerrado no puede modificarse, reabrirse, ni recibir nuevos documentos adjuntos.
+- **Estados del expediente: activo, pendiente, cerrado.** Al cerrar un expediente se registra su fecha de cierre y exige confirmación manual del número de expediente. Un expediente cerrado no puede modificarse, reabrirse, ni recibir nuevos documentos adjuntos; admite la generación y consulta de resúmenes de lectura mediante Inteligencia Artificial con fines de archivo y auditoría.
 - **Estados del turno: pendiente, confirmado, cancelado.** Un turno confirmado cuya fecha y hora ya transcurrieron se considera finalizado (se calcula automáticamente, no se persiste como tal).
-- **Baja lógica:** ninguna entidad se elimina de forma física; únicamente se desactiva y deja de visualizarse.
+- **Baja lógica y Papelera:** ninguna entidad se elimina de forma física en base de datos; se desactivan (`Active = false`) y registran su fecha y hora exacta (`DeactivatedAt` en `datetime2`). Administradores y abogados (para sus expedientes y turnos asignados) pueden consultar y restaurar estos registros desde el módulo de Papelera.
 
 ### B. Vinculaciones
 
@@ -76,7 +84,8 @@ A continuación, se detallan las funcionalidades con las que debe cumplir el sis
 
 ### C. Agenda y turnos
 
-- Conflicto de agenda: un abogado no puede tener más de un turno activo en el mismo día y franja horaria, tanto al crear como al reprogramar un turno.
+- Conflicto de agenda: un abogado no puede tener más de un turno activo en el mismo día y franja horaria, tanto al crear como al reprogramar un turno. Se valida a doble nivel (lógica en memoria y constraint única filtrada en base de datos).
+- Disponibilidad flexible: el profesional puede configurar libremente sus días y horarios de atención sin límite a franjas fijas.
 - El abogado puede agendar turnos en nombre de sus clientes.
 - Un turno asociado a un expediente hereda su área; sin expediente, registra su propia área.
 
@@ -93,6 +102,7 @@ A continuación, se detallan las funcionalidades con las que debe cumplir el sis
 - El cliente registra su domicilio y teléfono (opcionales) para notificaciones y contactos.
 - El email y el DNI de un usuario deben ser únicos en el sistema, tanto al crear como al actualizar un usuario.
 - El número de expediente (CaseNumber) debe ser único en el sistema.
+- La fecha y hora de última modificación del expediente (`LastUpdate`) se actualiza automáticamente al momento exacto en que se adjuntan o generan documentos.
 
 ### F. Documentos e Inteligencia Artificial
 
@@ -120,13 +130,15 @@ Se reutiliza el frontend de la versión anterior, incorporando un backend robust
 |---|---|---|---|
 | Gestión de Usuarios (CRUD) | Sí | No | No |
 | Crear/actualizar expedientes | Sí | Sí | No |
-| Cambiar estado de expediente | Sí | Solo los que gestiona | No |
+| Cambiar estado de expediente | Sí | Solo los que gestiona (con confirmación de cierre) | No |
 | Consultar expedientes | Sí | Solo los que gestiona | Solo propios |
 | Solicitar turnos | Sí | Sí, de sus clientes | Sí |
 | Gestionar turnos (Confirmar/Cancelar/Reprogramar) | Sí | Sí, de sus clientes | Solo propios |
+| Configuración de agenda y horarios libres | No | Sí (propia) | No |
 | Consultar agenda | Sí | Su calendario | Solo propios |
 | Subir / descargar documentos PDF | Sí | Sí, de sus expedientes | Solo consulta/descarga de los propios |
-| Generar y aprobar resumen por IA | Sí | Sí (aprueba) | No |
+| Generar y aprobar resumen por IA | Sí | Sí (en causas abiertas y cerradas) | No |
+| Papelera de Reciclaje (Baja Lógica y Restauración) | Sí (Total) | Sí (sus expedientes y turnos asignados) | No |
 
 ## 7. Anexo: Diagrama de Clases Conceptual
 
