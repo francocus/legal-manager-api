@@ -11,7 +11,7 @@ namespace LegalManager.Application.Cases.DTOs
     {
         public static CaseResponse Desde(Case c) => new(
             c.Id, c.CaseNumber, c.Title, c.Area, c.Status,
-            c.StartDate, c.LastUpdate, c.ClosingDate,
+            c.StartDate, DateTime.SpecifyKind(c.LastUpdate, DateTimeKind.Utc), c.ClosingDate,
             c.Description, c.Notes, c.ClientId, c.CreatedByUserId, c.LawyerIds, c.Active);
     }
 }
