@@ -351,6 +351,10 @@ namespace LegalManager.Infrastructure.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
+                    b.Property<string>("Schedule")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
                     b.Property<string>("Specialties")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");

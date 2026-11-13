@@ -1,10 +1,11 @@
-namespace LegalManager.Domain.Entities
+ï»¿namespace LegalManager.Domain.Entities
 {
     public class Lawyer : User
     {
         public string BarNumber { get; private set; }
         public string? Phone { get; private set; }
         public IReadOnlyList<string> Specialties { get; private set; }
+        public string? Schedule { get; private set; }
 
         private Lawyer()
         {
@@ -12,21 +13,22 @@ namespace LegalManager.Domain.Entities
             Specialties = [];
         }
 
-        public Lawyer(string firstName, string lastName, string dni, string email, string passwordHash, string barNumber, string? phone, IEnumerable<string>? specialties = null)
+        public Lawyer(string firstName, string lastName, string dni, string email, string passwordHash, string barNumber, string? phone, IEnumerable<string>? specialties = null, string? schedule = null)
             : base(firstName, lastName, dni, email, passwordHash)
         {
             if (string.IsNullOrWhiteSpace(barNumber))
-                throw new ArgumentException("La matrícula es obligatoria.", nameof(barNumber));
+                throw new ArgumentException("La matrÃ­cula es obligatoria.", nameof(barNumber));
 
             BarNumber = barNumber;
             Phone = phone;
             Specialties = (specialties ?? []).ToList().AsReadOnly();
+            Schedule = schedule;
         }
 
         public static Lawyer FromClient(Client client, string barNumber, string? phone, IEnumerable<string>? specialties)
         {
             if (string.IsNullOrWhiteSpace(barNumber))
-                throw new ArgumentException("La matrícula es obligatoria.", nameof(barNumber));
+                throw new ArgumentException("La matrÃ­cula es obligatoria.", nameof(barNumber));
 
             var lawyer = new Lawyer();
             lawyer.CopyRoleChangeFrom(client);
@@ -39,7 +41,7 @@ namespace LegalManager.Domain.Entities
         public void UpdateBarNumber(string barNumber)
         {
             if (string.IsNullOrWhiteSpace(barNumber))
-                throw new ArgumentException("La matrícula es obligatoria.", nameof(barNumber));
+                throw new ArgumentException("La matrÃ­cula es obligatoria.", nameof(barNumber));
 
             BarNumber = barNumber;
         }
@@ -57,6 +59,11 @@ namespace LegalManager.Domain.Entities
                 throw new ArgumentException("Se requiere al menos una especialidad.", nameof(specialties));
 
             Specialties = cleaned.AsReadOnly();
+        }
+
+        public void UpdateSchedule(string? schedule)
+        {
+            Schedule = schedule;
         }
     }
 }

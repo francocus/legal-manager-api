@@ -199,6 +199,19 @@ namespace LegalManager.Presentation.Controllers
             catch (ArgumentException ex) { return BadRequest(ex.Message); }
         }
 
+        [Authorize(Policy = Policies.AdminOrLawyer)]
+        [HttpPatch("lawyer/{id}/schedule")]
+        public async Task<ActionResult<UserResponse>> UpdateLawyerSchedule([FromRoute] Guid id, [FromBody] UpdateLawyerScheduleRequest request, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var user = await userService.UpdateLawyerScheduleAsync(id, request, cancellationToken);
+                if (user == null) return NotFound($"No existe un elemento con el id {id}.");
+                return Ok(user);
+            }
+            catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+        }
+
         [Authorize(Policy = Policies.AdminsOnly)]
         [HttpPatch("{id}/confirm-email")]
         public async Task<ActionResult<UserResponse>> ConfirmEmailByAdmin([FromRoute] Guid id, CancellationToken cancellationToken)
