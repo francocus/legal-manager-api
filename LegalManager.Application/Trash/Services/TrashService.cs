@@ -7,9 +7,6 @@ using LegalManager.Application.Common.Exceptions;
 
 namespace LegalManager.Application.Trash.Services
 {
-    // Restore-only archive of deactivated (baja) items; the system has no physical
-    // deletion. Restore-into-occupied-slot conflicts surface as InvalidOperationException
-    // from the repositories' SaveAsync unique-index translation.
     public class TrashService(
         ICaseRepository casesRepository,
         IAppointmentRepository appointmentsRepository,
@@ -72,7 +69,6 @@ namespace LegalManager.Application.Trash.Services
 
         public async Task<bool> RestoreUserAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            // User restoration is admin-only even though the route admits lawyers.
             if (!currentUser.IsAdmin)
                 throw new ForbiddenException("La papelera de usuarios es exclusiva del administrador.");
 
@@ -95,8 +91,6 @@ namespace LegalManager.Application.Trash.Services
                 await usersRepository.GetInactiveAsync(cancellationToken),
                 cancellationToken);
 
-        // Lawyers see only their own inactive items; the users bucket stays empty
-        // because user restoration is admin-only.
         private async Task<TrashResponse> BuildLawyerTrashAsync(CancellationToken cancellationToken)
         {
             var lawyerId = currentUser.Id;
@@ -111,8 +105,6 @@ namespace LegalManager.Application.Trash.Services
                 cancellationToken);
         }
 
-        // Document parent labels resolve only against ACTIVE cases, so an inactive
-        // parent case falls back to a null label.
         private async Task<TrashResponse> BuildTrashResponseAsync(
             IReadOnlyList<Case> cases,
             IReadOnlyList<Appointment> appointments,
@@ -120,16 +112,19 @@ namespace LegalManager.Application.Trash.Services
             IReadOnlyList<User> users,
             CancellationToken cancellationToken)
         {
-            var activeCases = (await casesRepository.GetAllAsync(cancellationToken))
-                .ToDictionary(c => c.Id, c => (CaseNumber: (string?)c.CaseNumber, Title: (string?)c.Title));
+            var caseIds = cases.Select(c => c.Id).ToList();
+            var appointmentsCountMap = await casesRepository.CountAppointmentsByCaseIdsAsync(caseIds, cancellationToken);
+            var documentsCountMap = await casesRepository.CountDocumentsByCaseIdsAsync(caseIds, cancellationToken);
 
-            var caseItems = new List<TrashCaseResponse>();
-            foreach (var caseItem in cases)
+            var caseIdsForDocs = documents.Select(d => d.CaseId).Distinct().ToList();
+            var activeCases = await casesRepository.GetCaseHeadersByIdsAsync(caseIdsForDocs, cancellationToken);
+
+            var caseItems = cases.Select(caseItem =>
             {
-                var totalAppointments = await casesRepository.CountAppointmentsForCaseAsync(caseItem.Id, cancellationToken);
-                var totalDocuments = await casesRepository.CountDocumentsForCaseAsync(caseItem.Id, cancellationToken);
-                caseItems.Add(TrashCaseResponse.Desde(caseItem, totalAppointments, totalDocuments));
-            }
+                var totalAppointments = appointmentsCountMap.GetValueOrDefault(caseItem.Id, 0);
+                var totalDocuments = documentsCountMap.GetValueOrDefault(caseItem.Id, 0);
+                return TrashCaseResponse.Desde(caseItem, totalAppointments, totalDocuments);
+            }).ToList();
 
             var appointmentItems = appointments
                 .Select(TrashAppointmentResponse.Desde)

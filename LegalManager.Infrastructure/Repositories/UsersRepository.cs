@@ -85,8 +85,6 @@ namespace LegalManager.Infrastructure.Repositories
 
         private static string UniqueViolationMessage(DbUpdateException ex)
         {
-            // A trash restore re-enters the filtered email/DNI unique indexes as a
-            // Modified entry; the Added path keeps the create-flow wording.
             if (ex.Entries.Any(e => e.State == EntityState.Modified))
                 return "El email o el DNI ya pertenecen a otra cuenta activa.";
 

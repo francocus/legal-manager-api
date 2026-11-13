@@ -17,6 +17,7 @@ namespace LegalManager.Infrastructure.Repositories
 
             return (items, total);
         }
+
         public async Task<bool> HasAnyCaseAsClientAsync(Guid clientId, CancellationToken cancellationToken = default)
             => await _dbSet.AnyAsync(c => c.ClientId == clientId, cancellationToken);
 
@@ -33,14 +34,40 @@ namespace LegalManager.Infrastructure.Repositories
         public async Task<Case?> GetByIdIncludingInactiveAsync(Guid id, CancellationToken cancellationToken = default)
             => await _dbSet.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
 
-        public async Task<int> CountAppointmentsForCaseAsync(Guid caseId, CancellationToken cancellationToken = default)
-            => await _context.Set<Appointment>().CountAsync(a => a.CaseId == caseId, cancellationToken);
+        public async Task<IReadOnlyDictionary<Guid, int>> CountAppointmentsByCaseIdsAsync(IReadOnlyCollection<Guid> caseIds, CancellationToken cancellationToken = default)
+        {
+            if (caseIds.Count == 0) return new Dictionary<Guid, int>();
 
-        public async Task<int> CountDocumentsForCaseAsync(Guid caseId, CancellationToken cancellationToken = default)
-            => await _context.Set<Document>().CountAsync(d => d.CaseId == caseId, cancellationToken);
+            return await _context.Set<Appointment>()
+                .Where(a => a.CaseId.HasValue && caseIds.Contains(a.CaseId.Value))
+                .GroupBy(a => a.CaseId!.Value)
+                .Select(g => new { CaseId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.CaseId, x => x.Count, cancellationToken);
+        }
 
-        // Shared-type join: no CLR type, so rows are read through the property-bag set
-        // by shadow FK name; membership must not depend on the case Active flag.
+        public async Task<IReadOnlyDictionary<Guid, int>> CountDocumentsByCaseIdsAsync(IReadOnlyCollection<Guid> caseIds, CancellationToken cancellationToken = default)
+        {
+            if (caseIds.Count == 0) return new Dictionary<Guid, int>();
+
+            return await _context.Set<Document>()
+                .Where(d => caseIds.Contains(d.CaseId))
+                .GroupBy(d => d.CaseId)
+                .Select(g => new { CaseId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.CaseId, x => x.Count, cancellationToken);
+        }
+
+        public async Task<IReadOnlyDictionary<Guid, (string CaseNumber, string Title)>> GetCaseHeadersByIdsAsync(IReadOnlyCollection<Guid> caseIds, CancellationToken cancellationToken = default)
+        {
+            if (caseIds.Count == 0) return new Dictionary<Guid, (string, string)>();
+
+            var items = await _dbSet
+                .Where(c => caseIds.Contains(c.Id))
+                .Select(c => new { c.Id, c.CaseNumber, c.Title })
+                .ToListAsync(cancellationToken);
+
+            return items.ToDictionary(c => c.Id, c => (c.CaseNumber, c.Title));
+        }
+
         public async Task<IReadOnlyList<Guid>> GetCaseIdsForLawyerAsync(Guid lawyerId, CancellationToken cancellationToken = default)
             => await _context.Set<Dictionary<string, object>>("CaseLawyer")
                 .Where(cl => EF.Property<Guid>(cl, "LawyerId") == lawyerId)

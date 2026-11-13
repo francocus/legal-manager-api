@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace LegalManager.Presentation.Controllers
 {
-    // Restore-only trash (papelera): no hard delete or purge exists anywhere.
     [Route("api/trash")]
     [ApiController]
     [Authorize(Policy = Policies.AdminOrLawyer)]
