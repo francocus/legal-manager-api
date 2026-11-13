@@ -246,6 +246,32 @@ namespace LegalManager.Application.Users.Services
             return UserResponse.Desde(lawyer, CanSeePrivateData(lawyer));
         }
 
+        public async Task<UserResponse?> UpdateLawyerScheduleAsync(Guid id, UpdateLawyerScheduleRequest request, CancellationToken cancellationToken = default)
+        {
+            var user = await usersRepository.GetByIdAsync(id, cancellationToken);
+            if (user == null) return null;
+
+            if (user is not Lawyer lawyer)
+                throw new ArgumentException("El usuario indicado no es un abogado.");
+
+            if (!currentUser.IsAdmin && user.Id != currentUser.Id)
+                throw new ForbiddenException("No tienes permisos para modificar el horario de este abogado.");
+
+            string? scheduleJson = request.Schedule;
+            if (string.IsNullOrWhiteSpace(scheduleJson) && request.Days != null && request.Slots != null)
+            {
+                scheduleJson = JsonSerializer.Serialize(new
+                {
+                    days = request.Days,
+                    slots = request.Slots
+                });
+            }
+
+            lawyer.UpdateSchedule(scheduleJson);
+            await usersRepository.SaveAsync(cancellationToken);
+            return UserResponse.Desde(lawyer, CanSeePrivateData(lawyer));
+        }
+
         public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
         {
             var user = await usersRepository.GetByIdAsync(id, cancellationToken);

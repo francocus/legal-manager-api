@@ -1,3 +1,4 @@
+using System.Text.Json;
 using LegalManager.Application.Auth.DTOs;
 using LegalManager.Application.Users.DTOs;
 using LegalManager.Application.Cases.DTOs;
@@ -97,11 +98,56 @@ namespace LegalManager.Application.Appointments.Services
         public async Task<IReadOnlyList<TimeOnly>> GetAvailabilityAsync(Guid lawyerId, DateOnly date, CancellationToken cancellationToken = default)
         {
             var lawyer = await usersRepository.GetByIdAsync(lawyerId, cancellationToken);
-            if (lawyer is not Lawyer)
+            if (lawyer is not Lawyer lawyerEntity)
                 throw new ArgumentException("El abogado indicado no es válido.");
 
+            var workingSlots = Appointment.ValidSlots;
+
+            if (!string.IsNullOrWhiteSpace(lawyerEntity.Schedule))
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(lawyerEntity.Schedule);
+                    var root = doc.RootElement;
+                    if (root.TryGetProperty("days", out var daysElem) && daysElem.ValueKind == JsonValueKind.Array)
+                    {
+                        var days = daysElem.EnumerateArray()
+                            .Where(e => e.TryGetInt32(out _))
+                            .Select(e => e.GetInt32())
+                            .ToList();
+
+                        var dayInt = (int)date.DayOfWeek;
+                        if (!days.Contains(dayInt))
+                        {
+                            return Array.Empty<TimeOnly>();
+                        }
+                    }
+
+                    if (root.TryGetProperty("slots", out var slotsElem) && slotsElem.ValueKind == JsonValueKind.Array)
+                    {
+                        var allowedSlots = new List<TimeOnly>();
+                        foreach (var s in slotsElem.EnumerateArray())
+                        {
+                            if (TimeOnly.TryParse(s.GetString(), out var t) && Appointment.ValidSlots.Contains(t))
+                            {
+                                allowedSlots.Add(t);
+                            }
+                        }
+
+                        if (allowedSlots.Count > 0)
+                        {
+                            workingSlots = allowedSlots.OrderBy(t => t).ToList().AsReadOnly();
+                        }
+                    }
+                }
+                catch
+                {
+                    // Fallback to default slots on format error
+                }
+            }
+
             var availableSlots = new List<TimeOnly>();
-            foreach (var slot in Appointment.ValidSlots)
+            foreach (var slot in workingSlots)
             {
                 var hasConflict = await appointmentsRepository.HasScheduleConflictAsync(
                     lawyerId, date, slot, slot.AddMinutes(Appointment.SlotDurationMinutes), null, cancellationToken);

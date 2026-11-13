@@ -1,4 +1,4 @@
-using LegalManager.Application.Auth.DTOs;
+﻿using LegalManager.Application.Auth.DTOs;
 using LegalManager.Application.Users.DTOs;
 using LegalManager.Application.Cases.DTOs;
 using LegalManager.Application.Appointments.DTOs;
@@ -44,6 +44,8 @@ namespace LegalManager.Application.Users.Interfaces
         Task<UserResponse?> UpdateBarNumberAsync(Guid id, string barNumber, CancellationToken cancellationToken = default);
 
         Task<UserResponse?> UpdateSpecialtiesAsync(Guid id, IEnumerable<string> specialties, CancellationToken cancellationToken = default);
+
+        Task<UserResponse?> UpdateLawyerScheduleAsync(Guid id, UpdateLawyerScheduleRequest request, CancellationToken cancellationToken = default);
 
         Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 

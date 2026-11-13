@@ -44,6 +44,7 @@ namespace LegalManager.Infrastructure.Persistence
 
             modelBuilder.Entity<Lawyer>().Property(l => l.Phone).HasMaxLength(FieldLengths.Phone);
             modelBuilder.Entity<Lawyer>().Property(l => l.BarNumber).HasMaxLength(FieldLengths.BarNumber);
+            modelBuilder.Entity<Lawyer>().Property(l => l.Schedule).HasMaxLength(FieldLengths.LongText);
 
             modelBuilder.Entity<Case>().Property(c => c.CaseNumber).HasMaxLength(FieldLengths.CaseNumber);
             modelBuilder.Entity<Case>().Property(c => c.Title).HasMaxLength(FieldLengths.Title);
