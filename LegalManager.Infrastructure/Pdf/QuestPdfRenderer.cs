@@ -12,7 +12,7 @@ namespace LegalManager.Infrastructure.Pdf
 {
     public class QuestPdfRenderer : IPdfDocumentRenderer
     {
-        private const string FontFamily = "Segoe UI";
+        private const string FontFamily = "Lato";
         private const string AccentColor = "#2F6FEB";
         private const string BodyColor = "#333333";
         private const string FooterColor = "#666666";
@@ -20,6 +20,7 @@ namespace LegalManager.Infrastructure.Pdf
         static QuestPdfRenderer()
         {
             QuestPDF.Settings.License = LicenseType.Community;
+            QuestPDF.Settings.UseSystemFonts = false;
         }
 
         public byte[] RenderSummaryPdf(SummaryPdfData data)

@@ -21,7 +21,8 @@ namespace LegalManager.Infrastructure.AI
 
         public async Task<string> GenerateSummaryAsync(string caseContext, CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(llmSettings.ApiKey))
+            var apiKey = llmSettings.ApiKey?.Trim().Trim('<', '>');
+            if (string.IsNullOrWhiteSpace(apiKey))
                 throw new AiSummaryUnavailableException("Falta la API key del servicio de IA ('Llm:ApiKey' en user-secrets). Configúrala y volvé a intentar.");
 
             var request = new ChatCompletionRequest
