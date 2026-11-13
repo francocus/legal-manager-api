@@ -85,6 +85,11 @@ namespace LegalManager.Infrastructure.Repositories
 
         private static string UniqueViolationMessage(DbUpdateException ex)
         {
+            // A trash restore re-enters the filtered email/DNI unique indexes as a
+            // Modified entry; the Added path keeps the create-flow wording.
+            if (ex.Entries.Any(e => e.State == EntityState.Modified))
+                return "El email o el DNI ya pertenecen a otra cuenta activa.";
+
             var message = ex.InnerException?.Message ?? string.Empty;
             return message.Contains("Email", StringComparison.OrdinalIgnoreCase)
                 ? "Ya existe un usuario con ese email."
@@ -112,5 +117,14 @@ namespace LegalManager.Infrastructure.Repositories
 
             return (items, total);
         }
+
+        public async Task<IReadOnlyList<User>> GetInactiveAsync(CancellationToken cancellationToken = default)
+            => await _dbSet.Where(u => !u.Active)
+                .OrderByDescending(u => u.DeactivatedAt == null)
+                .ThenByDescending(u => u.DeactivatedAt)
+                .ToListAsync(cancellationToken);
+
+        public async Task<User?> GetByIdIncludingInactiveAsync(Guid id, CancellationToken cancellationToken = default)
+            => await _dbSet.FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
     }
 }

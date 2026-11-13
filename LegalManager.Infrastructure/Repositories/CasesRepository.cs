@@ -23,5 +23,28 @@ namespace LegalManager.Infrastructure.Repositories
         public async Task<bool> HasAnyCaseAsLawyerAsync(Guid lawyerId, CancellationToken cancellationToken = default)
             => await _context.Set<Dictionary<string, object>>("CaseLawyer")
                 .AnyAsync(cl => EF.Property<Guid>(cl, "LawyerId") == lawyerId, cancellationToken);
+
+        public async Task<IReadOnlyList<Case>> GetInactiveAsync(CancellationToken cancellationToken = default)
+            => await _dbSet.Where(c => !c.Active)
+                .OrderByDescending(c => c.DeactivatedAt == null)
+                .ThenByDescending(c => c.DeactivatedAt)
+                .ToListAsync(cancellationToken);
+
+        public async Task<Case?> GetByIdIncludingInactiveAsync(Guid id, CancellationToken cancellationToken = default)
+            => await _dbSet.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+
+        public async Task<int> CountAppointmentsForCaseAsync(Guid caseId, CancellationToken cancellationToken = default)
+            => await _context.Set<Appointment>().CountAsync(a => a.CaseId == caseId, cancellationToken);
+
+        public async Task<int> CountDocumentsForCaseAsync(Guid caseId, CancellationToken cancellationToken = default)
+            => await _context.Set<Document>().CountAsync(d => d.CaseId == caseId, cancellationToken);
+
+        // Shared-type join: no CLR type, so rows are read through the property-bag set
+        // by shadow FK name; membership must not depend on the case Active flag.
+        public async Task<IReadOnlyList<Guid>> GetCaseIdsForLawyerAsync(Guid lawyerId, CancellationToken cancellationToken = default)
+            => await _context.Set<Dictionary<string, object>>("CaseLawyer")
+                .Where(cl => EF.Property<Guid>(cl, "LawyerId") == lawyerId)
+                .Select(cl => EF.Property<Guid>(cl, "CaseId"))
+                .ToListAsync(cancellationToken);
     }
 }

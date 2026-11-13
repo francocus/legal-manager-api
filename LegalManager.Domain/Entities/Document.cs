@@ -26,6 +26,7 @@ namespace LegalManager.Domain.Entities
         public Guid UploadedByUserId { get; private set; }
         public DateOnly UploadDate { get; private set; }
         public bool Active { get; private set; }
+        public DateOnly? DeactivatedAt { get; private set; }
         public bool GeneratedByAI { get; private set; }
         public Guid? ReviewedByUserId { get; private set; }
         public DateOnly? ReviewedAt { get; private set; }
@@ -121,6 +122,16 @@ namespace LegalManager.Domain.Entities
                 throw new InvalidOperationException("El documento ya está inactivo.");
 
             Active = false;
+            DeactivatedAt = DateOnly.FromDateTime(DateTime.UtcNow);
+        }
+
+        public void Reactivate()
+        {
+            if (Active)
+                throw new InvalidOperationException("El elemento ya está activo.");
+
+            Active = true;
+            DeactivatedAt = null;
         }
     }
 }
