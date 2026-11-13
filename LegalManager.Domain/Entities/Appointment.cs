@@ -29,7 +29,7 @@ namespace LegalManager.Domain.Entities
         public Guid LawyerId { get; private set; }
         public Guid? CaseId { get; private set; }
         public bool Active { get; private set; }
-        public DateOnly? DeactivatedAt { get; private set; }
+        public DateTime? DeactivatedAt { get; private set; }
 
         private Appointment()
         {
@@ -47,9 +47,6 @@ namespace LegalManager.Domain.Entities
 
             if (lawyerId == Guid.Empty)
                 throw new ArgumentException("El turno necesita un abogado asignado.", nameof(lawyerId));
-
-            if (!ValidSlots.Contains(time))
-                throw new ArgumentException($"Horario inválido. Valores permitidos: {string.Join(", ", ValidSlots)}.", nameof(time));
 
             if (endTime <= time)
                 throw new ArgumentException("La hora de fin debe ser posterior a la hora de inicio.", nameof(endTime));
@@ -94,9 +91,6 @@ namespace LegalManager.Domain.Entities
             if (Status == AppointmentStatus.Cancelado)
                 throw new InvalidOperationException("No se puede reprogramar un turno cancelado.");
 
-            if (!ValidSlots.Contains(newTime))
-                throw new ArgumentException($"Horario inválido. Valores permitidos: {string.Join(", ", ValidSlots)}.", nameof(newTime));
-
             if (newEndTime <= newTime)
                 throw new ArgumentException("La hora de fin debe ser posterior a la hora de inicio.", nameof(newEndTime));
 
@@ -118,7 +112,7 @@ namespace LegalManager.Domain.Entities
                 throw new InvalidOperationException("El turno ya está inactivo.");
 
             Active = false;
-            DeactivatedAt = DateOnly.FromDateTime(DateTime.UtcNow);
+            DeactivatedAt = DateTime.UtcNow;
         }
 
         public void Reactivate()

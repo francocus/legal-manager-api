@@ -102,7 +102,7 @@ namespace LegalManager.Presentation.Controllers
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
         }
 
-        [Authorize(Policy = Policies.AdminsOnly)]
+        [Authorize(Policy = Policies.AdminOrLawyer)]
         [HttpDelete("{id}")]
         public async Task<ActionResult> Delete([FromRoute] Guid id, CancellationToken cancellationToken)
         {

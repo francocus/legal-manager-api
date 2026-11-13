@@ -128,7 +128,7 @@ namespace LegalManager.Application.Appointments.Services
                         var allowedSlots = new List<TimeOnly>();
                         foreach (var s in slotsElem.EnumerateArray())
                         {
-                            if (TimeOnly.TryParse(s.GetString(), out var t) && Appointment.ValidSlots.Contains(t))
+                            if (TimeOnly.TryParse(s.GetString(), out var t))
                             {
                                 allowedSlots.Add(t);
                             }
@@ -136,7 +136,7 @@ namespace LegalManager.Application.Appointments.Services
 
                         if (allowedSlots.Count > 0)
                         {
-                            workingSlots = allowedSlots.OrderBy(t => t).ToList().AsReadOnly();
+                            workingSlots = allowedSlots.OrderBy(t => t).Distinct().ToList().AsReadOnly();
                         }
                     }
                 }
@@ -213,9 +213,20 @@ namespace LegalManager.Application.Appointments.Services
             var appointment = await appointmentsRepository.GetByIdAsync(id, cancellationToken);
             if (appointment == null) return false;
 
+            EnsureCanDelete(appointment);
+
             appointment.Deactivate();
             await appointmentsRepository.SaveAsync(cancellationToken);
             return true;
+        }
+
+        private void EnsureCanDelete(Appointment appointment)
+        {
+            if (currentUser.IsAdmin) return;
+
+            if (currentUser.IsLawyer && appointment.LawyerId == currentUser.Id) return;
+
+            throw new ForbiddenException("Solo el administrador o el abogado asignado pueden eliminar este turno.");
         }
 
         private async Task EnsureCanCreateAsync(CreateAppointmentRequest request, Case? relatedCase, CancellationToken cancellationToken = default)

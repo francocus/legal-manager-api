@@ -15,7 +15,7 @@ namespace LegalManager.Domain.Entities
         public string PasswordHash { get; private set; }
         public DateOnly RegistrationDate { get; private set; }
         public bool Active { get; private set; }
-        public DateOnly? DeactivatedAt { get; private set; }
+        public DateTime? DeactivatedAt { get; private set; }
         public bool EmailConfirmed { get; private set; }
 
         [MaxLength(FieldLengths.EmailTokenHash)]
@@ -95,7 +95,7 @@ namespace LegalManager.Domain.Entities
                 throw new InvalidOperationException("El usuario ya está inactivo.");
 
             Active = false;
-            DeactivatedAt = DateOnly.FromDateTime(DateTime.UtcNow);
+            DeactivatedAt = DateTime.UtcNow;
         }
 
         public void Reactivate()
