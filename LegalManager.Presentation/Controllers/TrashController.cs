@@ -1,6 +1,7 @@
 using LegalManager.Presentation.Auth;
 using LegalManager.Application.Trash.DTOs;
 using LegalManager.Application.Trash.Interfaces;
+using LegalManager.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -61,6 +62,14 @@ namespace LegalManager.Presentation.Controllers
                 return NoContent();
             }
             catch (InvalidOperationException ex) { return Conflict(ex.Message); }
+        }
+
+        [HttpPost("reset-and-seed")]
+        [Authorize(Policy = Policies.AdminsOnly)]
+        public async Task<ActionResult> ResetAndSeed(CancellationToken cancellationToken)
+        {
+            await DatabaseSeeder.SeedAsync(HttpContext.RequestServices, forceReset: true);
+            return Ok(new { message = "Base de datos reiniciada y poblada con la seed de prueba exitosamente." });
         }
     }
 }

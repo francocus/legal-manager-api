@@ -3345,6 +3345,48 @@
               }
             }
           ]
+        },
+        {
+          "name": "Reiniciar y poblar base de datos con seed de prueba (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Mensaje confirma inicializacion limpia\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include(\"seed de prueba exitosamente\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/trash/reset-and-seed",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "trash",
+                "reset-and-seed"
+              ]
+            },
+            "description": "Endpoint administrativo para forzar el vaciado y repoblado inmediato de la base de datos con los 3 roles (Admin, Abogado, Cliente), 3 expedientes, 5 documentos y 4 turnos de prueba."
+          },
+          "response": []
         }
       ]
     }

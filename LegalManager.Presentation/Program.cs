@@ -190,7 +190,15 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-await DatabaseSeeder.SeedAsync(app.Services);
+try
+{
+    await DatabaseSeeder.SeedAsync(app.Services);
+}
+catch (Exception ex)
+{
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogError(ex, "Error durante la inicialización o reseteo de la base de datos.");
+}
 
 if (app.Environment.IsDevelopment())
 {
