@@ -59,8 +59,8 @@ namespace LegalManager.Infrastructure.Migrations
                     b.Property<DateOnly>("Date")
                         .HasColumnType("date");
 
-                    b.Property<DateOnly?>("DeactivatedAt")
-                        .HasColumnType("date");
+                    b.Property<DateTime?>("DeactivatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<TimeOnly>("EndTime")
                         .HasColumnType("time");
@@ -133,8 +133,8 @@ namespace LegalManager.Infrastructure.Migrations
                     b.Property<Guid>("CreatedByUserId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateOnly?>("DeactivatedAt")
-                        .HasColumnType("date");
+                    b.Property<DateTime?>("DeactivatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
                         .HasMaxLength(4000)
@@ -187,8 +187,8 @@ namespace LegalManager.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<DateOnly?>("DeactivatedAt")
-                        .HasColumnType("date");
+                    b.Property<DateTime?>("DeactivatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("FileName")
                         .IsRequired()
@@ -241,8 +241,8 @@ namespace LegalManager.Infrastructure.Migrations
                     b.Property<bool>("Active")
                         .HasColumnType("bit");
 
-                    b.Property<DateOnly?>("DeactivatedAt")
-                        .HasColumnType("date");
+                    b.Property<DateTime?>("DeactivatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Dni")
                         .IsRequired()

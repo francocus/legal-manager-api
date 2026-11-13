@@ -47,14 +47,16 @@ El sistema implementa autenticación basada en **JSON Web Tokens (JWT)** con aut
 | **Solicitud de Turnos** | ✅ Sí | ✅ De sus clientes | ✅ Solo propios |
 | **Gestión de Agenda (Confirmar/Cancelar)** | ✅ Sí | ✅ Su agenda | 👁️ Solo cancelar propio |
 | **Subida y Descarga de Documentos PDF** | ✅ Sí | ✅ De sus expedientes | 👁️ Descarga de propios |
-| **Generación de Resumen IA y Constancias** | ✅ Sí | ✅ Sí | ❌ No |
+| **Generación de Resumen IA y Constancias** | ✅ Sí | ✅ Sí (abiertos y cerrados) | ❌ No |
+| **Configuración de Agenda y Horarios Libres** | ❌ No | ✅ Sí (propia) | ❌ No |
+| **Papelera de Reciclaje y Restauración** | ✅ Sí | ❌ No | ❌ No |
 
 ### Reglas de Negocio
-- **Baja Lógica Universal:** Ninguna entidad se elimina de forma física en base de datos; todas implementan la propiedad `Active = false` para auditoría y consistencia histórica.
+- **Baja Lógica Universal y Papelera:** Ninguna entidad se elimina de forma física en base de datos; todas implementan la propiedad `Active = false` para auditoría y consistencia histórica. Los administradores disponen de un módulo de Papelera de Reciclaje (`TrashController`) para auditar y restaurar registros dados de baja.
 - **Unicidad de Identificadores:** El DNI (con normalización de formato argentino), Email y Número de Expediente son estrictamente únicos.
 - **Integridad de Expedientes:** Toda causa debe contar con un cliente titular y al menos un abogado responsable. No es posible desvincular al último abogado.
-- **Congelamiento de Casos Cerrados:** Un expediente en estado Cerrado no admite modificaciones, reaperturas ni la adición de nuevos documentos adjuntos.
-- **Agenda sin Solapamiento:** Protección a doble nivel contra doble reserva: validación lógica en memoria y constraint única filtrada en base de datos (`UX_Appointments_Lawyer_Slot`).
+- **Congelamiento de Casos Cerrados y Consulta Asistida por IA:** Un expediente en estado Cerrado no admite modificaciones, reaperturas ni la adición de nuevos documentos adjuntos. Admite la generación y consulta de resúmenes asistidos con Inteligencia Artificial con fines de lectura, análisis y archivo histórico.
+- **Agenda y Disponibilidad Flexible:** Los abogados pueden configurar de manera autónoma los días de la semana y las franjas horarias personalizadas en las que atienden clientes (`PATCH /api/user/lawyer/{id}/schedule`). La API calcula la disponibilidad en tiempo real cruzando la agenda configurada con los turnos ya otorgados. Protección a doble nivel contra doble reserva: validación lógica en memoria y constraint única filtrada en base de datos (`UX_Appointments_Lawyer_Slot`).
 - **Seguridad en Cuentas:** Tokens de confirmación de email (24 h) y recuperación de contraseña (1 h) protegidos mediante hash SHA-256 de un solo uso. Revocación inmediata en `OnTokenValidated` para usuarios inactivos o no confirmados.
 
 ---
@@ -101,7 +103,7 @@ El sistema está construido en 4 proyectos desacoplados con flujo unidireccional
 - **Base de Datos:** Microsoft SQL Server (Azure SQL Database en producción).
 - **Mapeo de Herencia TPC (Table-Per-Concrete-Type):** La jerarquía polimórfica de `User` se persiste utilizando la estrategia TPC, generando tablas independientes para cada tipo concreto (`Clients`, `Lawyers`, `Admins`), optimizando consultas y evitando tablas dispersas o columnas nulas innecesarias.
 - **Relaciones Complejas:** Relación de muchos a muchos $N:M$ entre `Case` y `Lawyer` modelada mediante tabla intermedia `CaseLawyer`.
-- **Migraciones y Snapshots:** Historial de migraciones versionado con EF Core CLI (`InitialCreate`, `AddUniqueEmailDniIndexes`, `AddEmailVerificationAndReset`, `DiscardOrphanPendingAiSummaries`).
+- **Migraciones y Snapshots:** Historial de migraciones versionado con EF Core CLI (`InitialCreate`, `AddUniqueEmailDniIndexes`, `AddEmailVerificationAndReset`, `DiscardOrphanPendingAiSummaries`, `AddLawyerSchedule`, `UpdateDeactivatedAtToDateTime`).
 - **Resiliencia de Conexión:** Configuración de `EnableRetryOnFailure` en `Program.cs` para tolerar pausas automáticas de Azure SQL Serverless.
 
 ---
@@ -167,6 +169,19 @@ Para la generación de resúmenes de causas con Inteligencia Artificial, la API 
   3. Ejecuta las migraciones de Entity Framework Core contra la base de datos Azure SQL (con script de reintentos para soportar encendido de bases serverless en pausa).
   4. Publica los artefactos y realiza el despliegue automático hacia **Azure App Service**.
 - **Accesibilidad Pública Externa:** La API y sus endpoints se encuentran permanentemente operativos y accesibles en internet bajo su dominio de Azure.
+
+---
+
+### H. Endpoints y Funcionalidades Destacadas
+
+1. **Agenda y Disponibilidad Dinámica de Abogados:**
+   - `PATCH /api/user/lawyer/{id}/schedule`: Configura los días de la semana (`days`: `[1, 2, 3, 4, 5]`) y la lista de franjas horarias personalizadas (`slots`: `["08:30", "10:00", "15:30"]`).
+   - `GET /api/appointment/availability?lawyerId={id}&date={yyyy-MM-dd}`: Retorna en tiempo real los slots libres para una fecha determinada, considerando la agenda del profesional y filtrando turnos preexistentes.
+2. **Resúmenes con Inteligencia Artificial (Causas Abiertas y Cerradas):**
+   - `POST /api/case/{id}/summary`: Procesa el historial procesal y notas de la causa para sintetizar un resumen ejecutivo mediante LLM, permitiendo su ejecución tanto en causas en trámite (`Activo`, `Pendiente`) como archivadas (`Cerrado`).
+3. **Módulo de Papelera de Reciclaje y Restauración Lógica:**
+   - `GET /api/trash`: Permite auditar registros dados de baja lógica (`Active == false`) con paginación y discriminación por tipo de entidad (`users`, `clients`, `cases`, `appointments`).
+   - `POST /api/trash/{entityType}/{id}/restore`: Restaura de forma inmediata el elemento recuperando su visibilidad y operatividad.
 
 ---
 

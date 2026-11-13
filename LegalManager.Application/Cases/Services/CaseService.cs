@@ -157,6 +157,8 @@ namespace LegalManager.Application.Cases.Services
             var caseItem = await casesRepository.GetByIdAsync(id, cancellationToken);
             if (caseItem == null) return false;
 
+            EnsureCanManage(caseItem);
+
             var allAppointments = await appointmentsRepository.GetAllAsync(cancellationToken);
             var hasActiveAppointments = allAppointments
                 .Any(a => a.CaseId == id
