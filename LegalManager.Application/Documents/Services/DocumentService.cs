@@ -49,9 +49,11 @@ namespace LegalManager.Application.Documents.Services
 
             var document = new Document(request.CaseId, request.FileName, storagePath, request.ContentType, request.Length, request.Type, currentUser.Id);
             documentsRepository.Add(document);
+            caseItem.TouchLastUpdate();
             try
             {
                 await documentsRepository.SaveAsync(cancellationToken);
+                await casesRepository.SaveAsync(cancellationToken);
             }
             catch
             {
@@ -120,7 +122,7 @@ namespace LegalManager.Application.Documents.Services
                 caseItem.Area,
                 caseItem.Status.ToString(),
                 caseItem.StartDate.ToString("dd/MM/yyyy"),
-                caseItem.LastUpdate.ToString("dd/MM/yyyy"),
+                caseItem.LastUpdate.ToString("dd/MM/yyyy HH:mm"),
                 caseItem.ClosingDate?.ToString("dd/MM/yyyy"),
                 caseItem.Description ?? string.Empty,
                 caseItem.Notes ?? string.Empty,
@@ -150,7 +152,7 @@ namespace LegalManager.Application.Documents.Services
                 caseItem.Area,
                 caseItem.Status.ToString(),
                 caseItem.StartDate.ToString("dd/MM/yyyy"),
-                caseItem.LastUpdate.ToString("dd/MM/yyyy"),
+                caseItem.LastUpdate.ToString("dd/MM/yyyy HH:mm"),
                 caseItem.Description ?? string.Empty,
                 DateTime.Now.ToString("dd/MM/yyyy HH:mm")));
 
@@ -213,9 +215,11 @@ namespace LegalManager.Application.Documents.Services
             }
 
             documentsRepository.Add(document);
+            caseItem.TouchLastUpdate();
             try
             {
                 await documentsRepository.SaveAsync(cancellationToken);
+                await casesRepository.SaveAsync(cancellationToken);
             }
             catch
             {
@@ -248,7 +252,7 @@ namespace LegalManager.Application.Documents.Services
                 : $" Notas: {caseItem.Notes}";
 
             return $"El expediente {caseItem.CaseNumber} - {caseItem.Title}, del área {caseItem.Area}, se encuentra en estado {caseItem.Status}." +
-                   $" Iniciado el {caseItem.StartDate:dd/MM/yyyy}, su última actualización fue el {caseItem.LastUpdate:dd/MM/yyyy}.{closing}" +
+                   $" Iniciado el {caseItem.StartDate:dd/MM/yyyy}, su última actualización fue el {caseItem.LastUpdate:dd/MM/yyyy HH:mm}.{closing}" +
                    $" Descripción: {caseItem.Description}.{notes}";
         }
 

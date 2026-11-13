@@ -190,7 +190,7 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-await SeedInitialAdminAsync(app);
+await DatabaseSeeder.SeedAsync(app.Services);
 
 if (app.Environment.IsDevelopment())
 {
@@ -212,41 +212,3 @@ app.UseAuthorization();
 app.MapControllers();
 
 await app.RunAsync();
-
-static async Task SeedInitialAdminAsync(WebApplication app)
-{
-    var seed = app.Configuration.GetSection("SeedAdmin");
-    var email = seed["Email"];
-    var password = seed["Password"];
-
-    if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
-        return;
-
-    using var scope = app.Services.CreateScope();
-
-    var usersRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
-
-    var users = await usersRepository.GetAllAsync();
-    if (users.Any(u => u is Admin))
-        return;
-
-    var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
-    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-
-    var admin = new Admin(
-        seed["FirstName"] ?? "Admin",
-        seed["LastName"] ?? "LegalManager",
-        seed["Dni"] ?? "00000000",
-        email,
-        passwordHasher.Hash(password));
-
-    admin.ConfirmEmail();
-
-    usersRepository.Add(admin);
-    await usersRepository.SaveAsync();
-
-    if (logger.IsEnabled(LogLevel.Information))
-    {
-        logger.LogInformation("Admin inicial creado con el email {Email}.", admin.Email);
-    }
-}

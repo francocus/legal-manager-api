@@ -5,7 +5,7 @@ namespace LegalManager.Application.Cases.DTOs
 {
     public record CaseResponse(
         Guid Id, string CaseNumber, string Title, string Area, CaseStatus Status,
-        DateOnly StartDate, DateOnly LastUpdate, DateOnly? ClosingDate,
+        DateOnly StartDate, DateTime LastUpdate, DateOnly? ClosingDate,
         string? Description, string? Notes, Guid ClientId, Guid CreatedByUserId,
         IReadOnlyList<Guid> LawyerIds, bool Active)
     {
