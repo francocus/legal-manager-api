@@ -353,7 +353,10 @@ namespace LegalManager.Application.Users.Services
             return demoted == null ? null : UserResponse.Desde(demoted, CanSeePrivateData(demoted));
         }
 
-        private bool CanSeePrivateData(User user) => currentUser.IsAdmin || user.Id == currentUser.Id;
+        private bool CanSeePrivateData(User user) =>
+            currentUser.IsAdmin
+            || user.Id == currentUser.Id
+            || (currentUser.IsLawyer && user is Client);
 
         private async Task EnsureCanReadAsync(User user, CancellationToken cancellationToken = default)
         {
