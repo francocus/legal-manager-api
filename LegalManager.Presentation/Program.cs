@@ -8,12 +8,14 @@ using LegalManager.Application.Users.Interfaces;
 using LegalManager.Application.Cases.Interfaces;
 using LegalManager.Application.Appointments.Interfaces;
 using LegalManager.Application.Documents.Interfaces;
+using LegalManager.Application.Trash.Interfaces;
 using LegalManager.Application.Common.Interfaces;
 using LegalManager.Application.Auth.Services;
 using LegalManager.Application.Users.Services;
 using LegalManager.Application.Cases.Services;
 using LegalManager.Application.Appointments.Services;
 using LegalManager.Application.Documents.Services;
+using LegalManager.Application.Trash.Services;
 using LegalManager.Domain.Entities;
 using LegalManager.Domain.Enums;
 using LegalManager.Domain.Interfaces;
@@ -77,6 +79,7 @@ else
 }
 
 builder.Services.AddScoped<IDocumentService, DocumentService>();
+builder.Services.AddScoped<ITrashService, TrashService>();
 
 builder.Services.AddScoped<IPdfDocumentRenderer, QuestPdfRenderer>();
 

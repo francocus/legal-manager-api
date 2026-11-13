@@ -20,6 +20,7 @@ namespace LegalManager.Domain.Entities
         private readonly List<Lawyer> lawyers = [];
         public IReadOnlyList<Guid> LawyerIds => lawyers.Select(l => l.Id).ToList().AsReadOnly();
         public bool Active { get; private set; }
+        public DateOnly? DeactivatedAt { get; private set; }
 
         private Case()
         {
@@ -125,6 +126,16 @@ namespace LegalManager.Domain.Entities
                 throw new InvalidOperationException("El expediente ya está inactivo.");
 
             Active = false;
+            DeactivatedAt = DateOnly.FromDateTime(DateTime.UtcNow);
+        }
+
+        public void Reactivate()
+        {
+            if (Active)
+                throw new InvalidOperationException("El elemento ya está activo.");
+
+            Active = true;
+            DeactivatedAt = null;
         }
     }
 }

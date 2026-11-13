@@ -15,6 +15,7 @@ namespace LegalManager.Domain.Entities
         public string PasswordHash { get; private set; }
         public DateOnly RegistrationDate { get; private set; }
         public bool Active { get; private set; }
+        public DateOnly? DeactivatedAt { get; private set; }
         public bool EmailConfirmed { get; private set; }
 
         [MaxLength(FieldLengths.EmailTokenHash)]
@@ -94,6 +95,16 @@ namespace LegalManager.Domain.Entities
                 throw new InvalidOperationException("El usuario ya está inactivo.");
 
             Active = false;
+            DeactivatedAt = DateOnly.FromDateTime(DateTime.UtcNow);
+        }
+
+        public void Reactivate()
+        {
+            if (Active)
+                throw new InvalidOperationException("El usuario ya está activo.");
+
+            Active = true;
+            DeactivatedAt = null;
         }
 
         public void StartEmailConfirmation(string tokenHash, DateTime expiresAtUtc)
@@ -162,6 +173,7 @@ namespace LegalManager.Domain.Entities
             PasswordHash = other.PasswordHash;
             RegistrationDate = other.RegistrationDate;
             Active = other.Active;
+            DeactivatedAt = other.DeactivatedAt;
             EmailConfirmed = other.EmailConfirmed;
             EmailConfirmationToken = other.EmailConfirmationToken;
             EmailConfirmationTokenExpiresAt = other.EmailConfirmationTokenExpiresAt;

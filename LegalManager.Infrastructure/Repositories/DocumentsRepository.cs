@@ -10,5 +10,14 @@ namespace LegalManager.Infrastructure.Repositories
     {
         public async Task<IReadOnlyList<Document>> GetByCaseIdAsync(Guid caseId, CancellationToken cancellationToken = default)
             => await _dbSet.Where(d => d.CaseId == caseId && d.Active).ToListAsync(cancellationToken);
+
+        public async Task<IReadOnlyList<Document>> GetInactiveAsync(CancellationToken cancellationToken = default)
+            => await _dbSet.Where(d => !d.Active)
+                .OrderByDescending(d => d.DeactivatedAt == null)
+                .ThenByDescending(d => d.DeactivatedAt)
+                .ToListAsync(cancellationToken);
+
+        public async Task<Document?> GetByIdIncludingInactiveAsync(Guid id, CancellationToken cancellationToken = default)
+            => await _dbSet.FirstOrDefaultAsync(d => d.Id == id, cancellationToken);
     }
 }

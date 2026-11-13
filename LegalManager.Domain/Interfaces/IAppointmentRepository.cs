@@ -11,5 +11,9 @@ namespace LegalManager.Domain.Interfaces
         Task<bool> HasAnyAppointmentAsClientAsync(Guid clientId, CancellationToken cancellationToken = default);
 
         Task<bool> HasAnyAppointmentAsLawyerAsync(Guid lawyerId, CancellationToken cancellationToken = default);
+
+        Task<IReadOnlyList<Appointment>> GetInactiveAsync(CancellationToken cancellationToken = default);
+
+        Task<Appointment?> GetByIdIncludingInactiveAsync(Guid id, CancellationToken cancellationToken = default);
     }
 }

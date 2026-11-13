@@ -48,5 +48,14 @@ namespace LegalManager.Infrastructure.Repositories
 
             return (items, total);
         }
+
+        public async Task<IReadOnlyList<Appointment>> GetInactiveAsync(CancellationToken cancellationToken = default)
+            => await _dbSet.Where(a => !a.Active)
+                .OrderByDescending(a => a.DeactivatedAt == null)
+                .ThenByDescending(a => a.DeactivatedAt)
+                .ToListAsync(cancellationToken);
+
+        public async Task<Appointment?> GetByIdIncludingInactiveAsync(Guid id, CancellationToken cancellationToken = default)
+            => await _dbSet.FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
     }
 }

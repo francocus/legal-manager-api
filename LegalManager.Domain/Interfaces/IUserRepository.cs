@@ -11,6 +11,10 @@ namespace LegalManager.Domain.Interfaces
 
         Task<User?> GetByPasswordResetTokenAsync(string tokenHash, CancellationToken cancellationToken = default);
 
+        Task<IReadOnlyList<User>> GetInactiveAsync(CancellationToken cancellationToken = default);
+
+        Task<User?> GetByIdIncludingInactiveAsync(Guid id, CancellationToken cancellationToken = default);
+
         Task<(IReadOnlyList<User> Items, int Total)> GetPagedAsync(int page, int pageSize, CancellationToken cancellationToken = default);
 
         Task<(IReadOnlyList<User> Items, int Total)> GetClientsPagedAsync(int page, int pageSize, CancellationToken cancellationToken = default);
