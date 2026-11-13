@@ -18,6 +18,23 @@ namespace LegalManager.Infrastructure.Persistence
             var fileStorage = scope.ServiceProvider.GetRequiredService<IFileStorage>();
             var logger = scope.ServiceProvider.GetRequiredService<ILogger<LegalManagerDbContext>>();
 
+            // Verificamos si los usuarios de la seed de prueba ya existen en la base de datos
+            var hasDemoLawyer = await context.Set<Lawyer>().AnyAsync(l => l.Email == "abogado@legalmanager.local");
+            var hasDemoClient = await context.Set<Client>().AnyAsync(c => c.Email == "cliente@legalmanager.local");
+
+            // Si falta alguno de los roles de prueba (como ocurre al desplegar sobre una base con datos viejos),
+            // o si se solicitó explícitamente, forzamos el reseteo limpio completo.
+            if (!hasDemoLawyer || !hasDemoClient)
+            {
+                logger.LogInformation("No se detectaron los usuarios de la seed de prueba ('abogado@legalmanager.local' o 'cliente@legalmanager.local'). Forzando reinicialización limpia...");
+                forceReset = true;
+            }
+            else if (!forceReset)
+            {
+                logger.LogInformation("La base de datos ya contiene los usuarios de la seed de prueba requeridos, se omite el seed.");
+                return;
+            }
+
             if (forceReset)
             {
                 logger.LogInformation("Vaciando base de datos para reinicialización limpia...");
@@ -31,13 +48,6 @@ namespace LegalManager.Infrastructure.Persistence
                     DELETE FROM Clients;
                     DELETE FROM Lawyers;
                     DELETE FROM Admins;");
-            }
-
-            var hasUsers = await context.Users.AnyAsync();
-            if (hasUsers && !forceReset)
-            {
-                logger.LogInformation("La base de datos ya contiene usuarios, se omite el seed.");
-                return;
             }
 
             logger.LogInformation("Iniciando seed de datos de prueba con roles Admin, Abogado y Cliente...");

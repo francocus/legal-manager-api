@@ -57,6 +57,7 @@ A continuación, se detallan las funcionalidades con las que debe cumplir el sis
 
 - **Auditoría de bajas:** panel unificado donde se listan las entidades desactivadas (`Active = false`), registrando la fecha y hora exacta desde que se encuentran en la papelera (`datetime2`).
 - **Restauración reversible:** tanto los Administradores (acceso global) como los Abogados (para sus expedientes y turnos asignados) pueden restaurar los registros a su estado activo anterior con un solo clic.
+- **Semilla y reinicialización para evaluación:** se incorpora un mecanismo automático en el inicio del sistema y un endpoint administrativo (`POST /api/trash/reset-and-seed`) para restaurar la base de datos a un estado de prueba limpio con los 3 roles del sistema (`Admin`, `Abogado` y `Cliente`), expedientes con documentos reales y turnos de demostración.
 
 ### F. Funcionalidades Transversales (UX/UI y Seguridad)
 
