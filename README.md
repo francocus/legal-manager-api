@@ -228,4 +228,5 @@ Para la generación de resúmenes de causas con Inteligencia Artificial, la API 
 El repositorio incluye una colección integral y 100% automatizada lista para correr en:  
 📂 [`docs/LegalManager API.postman_collection.json`](./docs/LegalManager%20API.postman_collection.json)
 
-- **Total:** 56 peticiones y 95 aserciones de prueba automatizadas.
+- **Total:** 64 peticiones y 107 aserciones de prueba automatizadas.
+- **Módulos Cubiertos:** Autenticación y recuperación de contraseñas, Gestión de Usuarios y Roles, Agenda y Horarios Flexibles de Abogados, Expedientes y Cierre Seguro, Turnos y Disponibilidad Dinámica, Gestión Documental con QuestPDF e IA, y Módulo Integral de Papelera de Reciclaje (Baja Lógica y Restauración).
