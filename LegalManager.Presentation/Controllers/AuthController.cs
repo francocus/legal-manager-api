@@ -47,6 +47,9 @@ namespace LegalManager.Presentation.Controllers
         {
             try
             {
+                var phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim();
+                var address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim();
+
                 var client = await userService.CreateClientAsync(
                     new CreateClientRequest(
                         request.FirstName,
@@ -54,8 +57,8 @@ namespace LegalManager.Presentation.Controllers
                         request.Dni,
                         request.Email,
                         request.Password,
-                        Phone: null,
-                        Address: null),
+                        Phone: phone,
+                        Address: address),
                     cancellationToken);
 
                 return CreatedAtAction(nameof(UserController.GetById), "User", new { id = client.Id }, client);

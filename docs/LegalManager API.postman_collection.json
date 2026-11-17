@@ -268,9 +268,12 @@
                   "pm.test('201 Created', () => pm.response.to.have.status(201));",
                   "pm.test('Registra cliente y guarda id', () => {",
                   "    const data = pm.response.json();",
+                  "    const sent = JSON.parse(pm.request.body.raw);",
                   "    pm.expect(data.id).to.be.a('string');",
                   "    pm.collectionVariables.set('registeredClientId', data.id);",
                   "    pm.collectionVariables.set('registeredClientEmail', pm.variables.get('regEmail'));",
+                  "    pm.collectionVariables.set('registeredClientPhone', sent.phone);",
+                  "    pm.collectionVariables.set('registeredClientAddress', sent.address);",
                   "});"
                 ]
               }
@@ -312,7 +315,12 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                  "pm.test('Devuelve usuario confirmado', () => pm.expect(pm.response.json().id).to.be.a('string'));"
+                  "pm.test('Devuelve usuario confirmado', () => pm.expect(pm.response.json().id).to.be.a('string'));",
+                  "pm.test('Telefono y domicilio del registro persisten', () => {",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(data.phone).to.eql(pm.collectionVariables.get('registeredClientPhone'));",
+                  "    pm.expect(data.address).to.eql(pm.collectionVariables.get('registeredClientAddress'));",
+                  "});"
                 ]
               }
             }
@@ -1741,6 +1749,12 @@
                   "    const data = pm.response.json();",
                   "    pm.expect(data.id).to.be.a('string');",
                   "    pm.collectionVariables.set('caseId', data.id);",
+                  "});",
+                  "pm.test('lastUpdate coincide con startDate en la parte fecha', () => {",
+                  "    const data = pm.response.json();",
+                  "    const startDate = JSON.parse(pm.request.body.raw).startDate;",
+                  "    const lastUpdateDate = new Date(data.lastUpdate).toISOString().slice(0, 10);",
+                  "    pm.expect(lastUpdateDate).to.eql(startDate);",
                   "});"
                 ]
               }

@@ -56,7 +56,7 @@ namespace LegalManager.Domain.Entities
             Area = area;
             Status = CaseStatus.Activo;
             StartDate = startDate;
-            LastUpdate = DateTime.UtcNow;
+            LastUpdate = startDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
             Description = description;
             Notes = notes;
             ClientId = clientId;
