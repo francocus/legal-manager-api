@@ -13,7 +13,7 @@ namespace LegalManager.Application.Appointments.DTOs
         TimeOnly Time,
         TimeOnly EndTime,
         [param: StringLength(FieldLengths.Reason)] string? Reason,
-        [property: StringLength(FieldLengths.Area), LegalArea(AllowEmpty = true)] string? Area,
+        [param: StringLength(FieldLengths.Area), LegalArea(AllowEmpty = true)] string? Area,
         [param: StringLength(FieldLengths.Location)] string? Location,
         [param: StringLength(FieldLengths.LongText)] string? Notes,
         Guid ClientId,

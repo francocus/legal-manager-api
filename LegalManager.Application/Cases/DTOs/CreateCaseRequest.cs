@@ -10,7 +10,7 @@ namespace LegalManager.Application.Cases.DTOs
     public record CreateCaseRequest(
         [param: StringLength(FieldLengths.CaseNumber)] string CaseNumber,
         [param: StringLength(FieldLengths.Title)] string Title,
-        [property: StringLength(FieldLengths.Area), LegalArea] string Area,
+        [param: StringLength(FieldLengths.Area), LegalArea] string Area,
         DateOnly StartDate,
         [param: StringLength(FieldLengths.LongText)] string? Description,
         [param: StringLength(FieldLengths.LongText)] string? Notes,
