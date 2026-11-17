@@ -3,6 +3,7 @@ using LegalManager.Domain;
 using LegalManager.Domain.Enums;
 using LegalManager.Domain.ValueObjects;
 using LegalManager.Domain.Exceptions;
+using LegalManager.Application.Common.Validation;
 
 namespace LegalManager.Application.Appointments.DTOs
 {
@@ -12,7 +13,7 @@ namespace LegalManager.Application.Appointments.DTOs
         TimeOnly Time,
         TimeOnly EndTime,
         [param: StringLength(FieldLengths.Reason)] string? Reason,
-        [param: StringLength(FieldLengths.Area)] string? Area,
+        [property: StringLength(FieldLengths.Area), LegalArea(AllowEmpty = true)] string? Area,
         [param: StringLength(FieldLengths.Location)] string? Location,
         [param: StringLength(FieldLengths.LongText)] string? Notes,
         Guid ClientId,
