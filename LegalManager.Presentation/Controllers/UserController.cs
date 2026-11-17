@@ -186,7 +186,7 @@ namespace LegalManager.Presentation.Controllers
             catch (ArgumentException ex) { return BadRequest(ex.Message); }
         }
 
-        [Authorize(Policy = Policies.AdminsOnly)]
+        [Authorize(Policy = Policies.AdminOrLawyer)]
         [HttpPatch("lawyer/{id}/specialties")]
         public async Task<ActionResult<UserResponse>> UpdateSpecialties([FromRoute] Guid id, [FromBody] UpdateSpecialtiesRequest request, CancellationToken cancellationToken)
         {

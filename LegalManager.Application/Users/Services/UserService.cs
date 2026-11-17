@@ -241,6 +241,9 @@ namespace LegalManager.Application.Users.Services
             if (user is not Lawyer lawyer)
                 throw new ArgumentException("El usuario indicado no es un abogado.");
 
+            if (!currentUser.IsAdmin && user.Id != currentUser.Id)
+                throw new ForbiddenException("No tienes permisos para modificar las especialidades de este abogado.");
+
             lawyer.UpdateSpecialties(specialties);
             await usersRepository.SaveAsync(cancellationToken);
             return UserResponse.Desde(lawyer, CanSeePrivateData(lawyer));
