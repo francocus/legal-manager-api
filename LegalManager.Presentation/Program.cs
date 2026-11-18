@@ -52,11 +52,15 @@ builder.Services.AddScoped<IDocumentRepository, DocumentsRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ICaseService, CaseService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
+builder.Services.AddScoped<IDocumentService, DocumentService>();
+builder.Services.AddScoped<ITrashService, TrashService>();
+
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+builder.Services.AddScoped<IPdfDocumentRenderer, QuestPdfRenderer>();
 
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
 builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection(SmtpOptions.SectionName));
@@ -76,10 +80,7 @@ else
     builder.Services.AddSingleton<IFileStorage>(new LocalFileSystemStorage(localPath));
 }
 
-builder.Services.AddScoped<IDocumentService, DocumentService>();
-builder.Services.AddScoped<ITrashService, TrashService>();
 
-builder.Services.AddScoped<IPdfDocumentRenderer, QuestPdfRenderer>();
 
 builder.Services.Configure<LlmOptions>(builder.Configuration.GetSection(LlmOptions.SectionName));
 builder.Services.Configure<LlmResilienceOptions>(builder.Configuration.GetSection(LlmResilienceOptions.SectionName));
