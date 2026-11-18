@@ -1,5 +1,4 @@
 using LegalManager.Domain.Entities;
-using LegalManager.Domain.Enums;
 
 namespace LegalManager.Application.Documents.DTOs
 {

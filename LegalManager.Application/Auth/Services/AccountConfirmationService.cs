@@ -1,14 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
-using LegalManager.Application.Auth;
 using LegalManager.Application.Auth.Interfaces;
-using LegalManager.Application.Users.Interfaces;
-using LegalManager.Application.Cases.Interfaces;
-using LegalManager.Application.Appointments.Interfaces;
-using LegalManager.Application.Documents.Interfaces;
-using LegalManager.Application.Common.Interfaces;
 using LegalManager.Domain.Entities;
-using LegalManager.Domain.Enums;
 using LegalManager.Domain.Interfaces;
 using Microsoft.Extensions.Options;
 using LegalManager.Application.Common.Exceptions;

@@ -1,8 +1,5 @@
 using System.Text.Json;
-using LegalManager.Domain;
-using LegalManager.Domain.Enums;
 using LegalManager.Domain.ValueObjects;
-using LegalManager.Domain.Exceptions;
 using LegalManager.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;

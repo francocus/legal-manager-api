@@ -1,9 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using LegalManager.Domain;
-using LegalManager.Domain.Enums;
-using LegalManager.Domain.ValueObjects;
 using LegalManager.Domain.Exceptions;
 using LegalManager.Domain.Interfaces;
 using Microsoft.Extensions.Options;

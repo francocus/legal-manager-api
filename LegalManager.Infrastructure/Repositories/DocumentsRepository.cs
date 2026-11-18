@@ -1,5 +1,4 @@
 using LegalManager.Domain.Entities;
-using LegalManager.Domain.Enums;
 using LegalManager.Domain.Interfaces;
 using LegalManager.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
