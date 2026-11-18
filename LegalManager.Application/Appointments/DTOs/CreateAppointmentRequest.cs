@@ -1,8 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-using LegalManager.Domain;
-using LegalManager.Domain.Enums;
 using LegalManager.Domain.ValueObjects;
-using LegalManager.Domain.Exceptions;
 using LegalManager.Application.Common.Validation;
 
 namespace LegalManager.Application.Appointments.DTOs

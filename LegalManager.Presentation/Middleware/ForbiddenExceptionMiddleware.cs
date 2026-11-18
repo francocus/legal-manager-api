@@ -1,4 +1,3 @@
-using LegalManager.Application;
 using LegalManager.Application.Common.Exceptions;
 
 namespace LegalManager.Presentation.Middleware

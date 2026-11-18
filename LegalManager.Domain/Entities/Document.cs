@@ -1,7 +1,6 @@
 using LegalManager.Domain.Interfaces;
 
 using System.Text;
-using LegalManager.Domain.Enums;
 
 namespace LegalManager.Domain.Entities
 {
